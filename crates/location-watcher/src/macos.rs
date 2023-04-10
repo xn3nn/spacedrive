@@ -20,13 +20,14 @@ use tokio::{
 	sync::{mpsc, oneshot},
 	time::Instant,
 };
-use uuid::Uuid;
 
-use super::{EventHandler, INodeAndDevice, InstantAndPath, LocationWatcherError, WatcherEvent};
+use super::{
+	EventHandler, INodeAndDevice, InstantAndPath, LocationPubId, LocationWatcherError, WatcherEvent,
+};
 
 pub(super) struct MacOsEventHandler {
-	location_pub_id: Uuid,
-	inode_and_device_tx: mpsc::Sender<(PathBuf, oneshot::Sender<INodeAndDevice>)>,
+	location_pub_id: LocationPubId,
+	inode_and_device_tx: mpsc::Sender<(LocationPubId, PathBuf, oneshot::Sender<INodeAndDevice>)>,
 	events_to_emit_tx: mpsc::Sender<WatcherEvent>,
 	recently_created_files: BTreeMap<PathBuf, Instant>,
 	last_check_created_files: Instant,
@@ -40,8 +41,12 @@ pub(super) struct MacOsEventHandler {
 #[async_trait]
 impl EventHandler for MacOsEventHandler {
 	fn new(
-		location_pub_id: Uuid,
-		inode_and_device_tx: mpsc::Sender<(PathBuf, oneshot::Sender<INodeAndDevice>)>,
+		location_pub_id: LocationPubId,
+		inode_and_device_tx: mpsc::Sender<(
+			LocationPubId,
+			PathBuf,
+			oneshot::Sender<INodeAndDevice>,
+		)>,
 		events_to_emit_tx: mpsc::Sender<WatcherEvent>,
 	) -> Self
 	where

@@ -72,14 +72,13 @@
 ******************************************************************************/
 
 use std::{
-	collections::HashSet,
 	fmt::Display,
 	path::{Path, PathBuf},
 	time::Duration,
 };
 
 use async_trait::async_trait;
-use futures_concurrency::stream::Merge;
+use futures_concurrency::{future::Join, stream::Merge};
 use notify::{Config, Event as NotifyEvent, RecommendedWatcher, RecursiveMode, Watcher};
 use thiserror::Error;
 use tokio::{
@@ -108,7 +107,6 @@ type Handler = macos::MacOsEventHandler;
 #[cfg(target_os = "windows")]
 type Handler = windows::WindowsEventHandler;
 
-pub type IgnorePath = (PathBuf, bool);
 pub type INodeAndDevice = (u64, u64);
 
 type InstantAndPath = (Instant, PathBuf);
@@ -116,9 +114,11 @@ type InstantAndPath = (Instant, PathBuf);
 const ONE_SECOND: Duration = Duration::from_secs(1);
 const HUNDRED_MILLIS: Duration = Duration::from_millis(100);
 
+pub type LocationPubId = Uuid;
+
 #[derive(Debug)]
 pub struct WatcherEvent {
-	pub location_pub_id: Uuid,
+	pub location_pub_id: LocationPubId,
 	pub kind: EventKind,
 }
 
@@ -133,8 +133,12 @@ pub enum EventKind {
 #[async_trait]
 trait EventHandler {
 	fn new(
-		location_pub_id: Uuid,
-		inode_and_device_requester_tx: mpsc::Sender<(PathBuf, oneshot::Sender<INodeAndDevice>)>,
+		location_pub_id: LocationPubId,
+		inode_and_device_requester_tx: mpsc::Sender<(
+			LocationPubId,
+			PathBuf,
+			oneshot::Sender<INodeAndDevice>,
+		)>,
 		events_to_emit_tx: mpsc::Sender<WatcherEvent>,
 	) -> Self
 	where
@@ -156,11 +160,10 @@ pub enum LocationWatcherError {
 
 #[derive(Debug)]
 pub struct LocationWatcher {
-	location_pub_id: Uuid,
+	location_pub_id: LocationPubId,
 	location_path: PathBuf,
 	watcher: RecommendedWatcher,
 	is_watching: bool,
-	ignore_path_tx: mpsc::UnboundedSender<IgnorePath>,
 	_cancel_loop: DropGuard,
 }
 
@@ -182,21 +185,24 @@ impl Display for LocationWatcher {
 
 impl LocationWatcher {
 	pub fn new(
-		location_pub_id: Uuid,
+		location_pub_id: LocationPubId,
 		location_path: impl AsRef<Path>,
-		paths_to_ignore: HashSet<PathBuf>,
-		inode_and_device_requester_tx: mpsc::Sender<(PathBuf, oneshot::Sender<INodeAndDevice>)>,
-		check_location_online_tx: mpsc::Sender<(Uuid, oneshot::Sender<bool>)>,
+		check_paths_rejection_tx: mpsc::Sender<(LocationPubId, PathBuf, oneshot::Sender<bool>)>,
+		inode_and_device_requester_tx: mpsc::Sender<(
+			LocationPubId,
+			PathBuf,
+			oneshot::Sender<INodeAndDevice>,
+		)>,
+		check_location_online_tx: mpsc::Sender<(LocationPubId, oneshot::Sender<bool>)>,
 		event_to_emit_tx: mpsc::Sender<WatcherEvent>,
 	) -> Result<Self, LocationWatcherError> {
-		let (events_tx, events_rx) = mpsc::unbounded_channel();
-		let (ignore_path_tx, ignore_path_rx) = mpsc::unbounded_channel();
+		let (fs_events_tx, fs_events_rx) = mpsc::unbounded_channel();
 		let cancel_token = CancellationToken::new();
 
 		let watcher = RecommendedWatcher::new(
 			move |result| {
-				if !events_tx.is_closed() {
-					if events_tx.send(result).is_err() {
+				if !fs_events_tx.is_closed() {
+					if fs_events_tx.send(result).is_err() {
 						error!(
 					"Unable to send watcher event to location manager for location: <id='{}'>",
 					location_pub_id
@@ -214,12 +220,11 @@ impl LocationWatcher {
 
 		tokio::spawn(watch_events_loop(
 			location_pub_id,
-			paths_to_ignore,
 			InnerWatchingLoopChannels {
+				check_paths_rejection_tx,
 				inode_and_device_requester_tx,
 				check_location_online_tx,
-				events_rx,
-				ignore_path_rx,
+				fs_events_rx,
 				event_to_emit_tx,
 			},
 			cancel_token.child_token(),
@@ -230,15 +235,8 @@ impl LocationWatcher {
 			location_path: location_path.as_ref().to_path_buf(),
 			watcher,
 			is_watching: false,
-			ignore_path_tx,
 			_cancel_loop: cancel_token.drop_guard(),
 		})
-	}
-
-	pub fn ignore_path(&self, path: PathBuf, ignore: bool) {
-		self.ignore_path_tx
-			.send((path, ignore))
-			.expect("failed to send ignore path message, application in inconsistent state")
 	}
 
 	pub fn watch(&mut self) {
@@ -298,38 +296,57 @@ impl LocationWatcher {
 	}
 }
 
-fn reject_event(event: &NotifyEvent, paths_to_ignore: &HashSet<PathBuf>) -> bool {
-	// if path is from a `.spacedrive` file creation or is in the `ignore_paths` set, we ignore
-	event.paths.iter().any(|p| {
-		(p.file_name()
-			.map(|filename| filename == ".spacedrive")
-			.unwrap_or(false)
-			&& event.kind.is_create())
-			|| paths_to_ignore.contains(p)
-	})
+async fn reject_event(
+	location_pub_id: LocationPubId,
+	event: &NotifyEvent,
+	check_paths_rejection_tx: &mpsc::Sender<(LocationPubId, PathBuf, oneshot::Sender<bool>)>,
+) -> bool {
+	event.paths
+		.iter()
+		.cloned()
+		.map(|path| {
+			async {
+				let (tx, rx) = oneshot::channel();
+				check_paths_rejection_tx.send((location_pub_id, path, tx))
+					.await
+					.expect("Unable to send check path request to location manager: application in inconsistent state");
+
+				rx.await
+					.expect("Unable to receive check path response from location manager: application in inconsistent state")
+			}
+		})
+		.collect::<Vec<_>>()
+		.join()
+		.await
+		.iter()
+		.all(|is_rejected| *is_rejected)
 }
 
 struct InnerWatchingLoopChannels {
-	inode_and_device_requester_tx: mpsc::Sender<(PathBuf, oneshot::Sender<INodeAndDevice>)>,
-	check_location_online_tx: mpsc::Sender<(Uuid, oneshot::Sender<bool>)>,
-	events_rx: mpsc::UnboundedReceiver<notify::Result<NotifyEvent>>,
-	ignore_path_rx: mpsc::UnboundedReceiver<IgnorePath>,
+	check_paths_rejection_tx: mpsc::Sender<(LocationPubId, PathBuf, oneshot::Sender<bool>)>,
+	inode_and_device_requester_tx:
+		mpsc::Sender<(LocationPubId, PathBuf, oneshot::Sender<INodeAndDevice>)>,
+	check_location_online_tx: mpsc::Sender<(LocationPubId, oneshot::Sender<bool>)>,
+	fs_events_rx: mpsc::UnboundedReceiver<notify::Result<NotifyEvent>>,
 	event_to_emit_tx: mpsc::Sender<WatcherEvent>,
 }
 
 async fn watch_events_loop(
-	location_pub_id: Uuid,
-	mut paths_to_ignore: HashSet<PathBuf>,
+	location_pub_id: LocationPubId,
 	InnerWatchingLoopChannels {
+		check_paths_rejection_tx: check_paths_tx,
 		inode_and_device_requester_tx,
 		check_location_online_tx,
-		events_rx,
-		ignore_path_rx,
+		fs_events_rx,
 		event_to_emit_tx,
 	}: InnerWatchingLoopChannels,
 	cancel: CancellationToken,
 ) {
-	let mut event_handler = Handler::new(location_pub_id, inode_and_device_requester_tx, event_to_emit_tx);
+	let mut event_handler = Handler::new(
+		location_pub_id,
+		inode_and_device_requester_tx,
+		event_to_emit_tx,
+	);
 
 	let mut handler_ticker = interval_at(Instant::now() + HUNDRED_MILLIS, HUNDRED_MILLIS);
 	// In case of doubt check: https://docs.rs/tokio/latest/tokio/time/enum.MissedTickBehavior.html
@@ -337,14 +354,12 @@ async fn watch_events_loop(
 
 	enum StreamMessage {
 		MaybeEvent(notify::Result<NotifyEvent>),
-		IgnorePath(IgnorePath),
 		Tick,
 		Stop,
 	}
 
 	let mut stream = (
-		UnboundedReceiverStream::new(events_rx).map(StreamMessage::MaybeEvent),
-		UnboundedReceiverStream::new(ignore_path_rx).map(StreamMessage::IgnorePath),
+		UnboundedReceiverStream::new(fs_events_rx).map(StreamMessage::MaybeEvent),
 		IntervalStream::new(handler_ticker).map(|_| StreamMessage::Tick),
 		stream::once(cancel.cancelled()).map(|_| StreamMessage::Stop),
 	)
@@ -357,7 +372,7 @@ async fn watch_events_loop(
 					location_pub_id,
 					event,
 					&mut event_handler,
-					&paths_to_ignore,
+					&check_paths_tx,
 					&check_location_online_tx,
 				)
 				.await
@@ -366,12 +381,6 @@ async fn watch_events_loop(
 				}
 			}
 			StreamMessage::MaybeEvent(Err(e)) => error!("Watcher error: {e}"),
-			StreamMessage::IgnorePath((path, true)) => {
-				paths_to_ignore.insert(path);
-			}
-			StreamMessage::IgnorePath((path, false)) => {
-				paths_to_ignore.remove(&path);
-			}
 			StreamMessage::Tick => event_handler.tick().await,
 			StreamMessage::Stop => {
 				debug!(
@@ -385,13 +394,13 @@ async fn watch_events_loop(
 }
 
 async fn handle_event(
-	location_pub_id: Uuid,
+	location_pub_id: LocationPubId,
 	event: NotifyEvent,
 	event_handler: &mut impl EventHandler,
-	paths_to_ignore: &HashSet<PathBuf>,
-	check_location_online_tx: &mpsc::Sender<(Uuid, oneshot::Sender<bool>)>,
+	check_paths_tx: &mpsc::Sender<(LocationPubId, PathBuf, oneshot::Sender<bool>)>,
+	check_location_online_tx: &mpsc::Sender<(LocationPubId, oneshot::Sender<bool>)>,
 ) -> Result<(), LocationWatcherError> {
-	if reject_event(&event, paths_to_ignore) {
+	if reject_event(location_pub_id, &event, check_paths_tx).await {
 		trace!("Rejected event: {event:#?}");
 		return Ok(());
 	}
