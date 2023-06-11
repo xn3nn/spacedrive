@@ -128,7 +128,7 @@ impl Node {
 		let config = NodeConfigManager::new(data_dir.to_path_buf()).await?;
 
 		let jobs = JobManager::new();
-		let location_manager = LocationManager::new();
+		let location_manager = Arc::new(LocationManager::new());
 		let secure_temp_keystore = SecureTempKeystore::new();
 		let (p2p, mut p2p_rx) = P2PManager::new(config.clone()).await;
 
@@ -137,7 +137,7 @@ impl Node {
 			NodeContext {
 				config: config.clone(),
 				jobs: jobs.clone(),
-				location_manager: location_manager.clone(),
+				location_manager: Arc::clone(&location_manager),
 				p2p: p2p.clone(),
 				event_bus_tx: event_bus.0.clone(),
 			},

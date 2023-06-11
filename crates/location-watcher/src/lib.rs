@@ -1,83 +1,9 @@
-/******************************************************************************
-* Some annotations on how file system events are emitted on each OS			  *
-*******************************************************************************
-*	Events dispatched on Linux:												  *
-*		Create File:														  *
-*			1) EventKind::Create(CreateKind::File)							  *
-*			2) EventKind::Modify(ModifyKind::Metadata(MetadataKind::Any))	  *
-*				or EventKind::Modify(ModifyKind::Data(DataChange::Any))		  *
-*			3) EventKind::Access(AccessKind::Close(AccessMode::Write)))		  *
-*		Create Directory:													  *
-*			1) EventKind::Create(CreateKind::Folder)						  *
-*		Update File:														  *
-*			1) EventKind::Modify(ModifyKind::Data(DataChange::Any))			  *
-*			2) EventKind::Access(AccessKind::Close(AccessMode::Write)))		  *
-*		Update File (rename):												  *
-*			1) EventKind::Modify(ModifyKind::Name(RenameMode::From))		  *
-*			2) EventKind::Modify(ModifyKind::Name(RenameMode::To))			  *
-*			3) EventKind::Modify(ModifyKind::Name(RenameMode::Both))		  *
-*		Update Directory (rename):											  *
-*			1) EventKind::Modify(ModifyKind::Name(RenameMode::From))		  *
-*			2) EventKind::Modify(ModifyKind::Name(RenameMode::To))			  *
-*			3) EventKind::Modify(ModifyKind::Name(RenameMode::Both))		  *
-*		Delete File:														  *
-*			1) EventKind::Remove(RemoveKind::File)							  *
-*		Delete Directory:													  *
-*			1) EventKind::Remove(RemoveKind::Folder)						  *
-*																			  *
-*	Events dispatched on MacOS:												  *
-*		Create File:														  *
-*			1) EventKind::Create(CreateKind::File)							  *
-*			2) EventKind::Modify(ModifyKind::Data(DataChange::Content))		  *
-*		Create Directory:													  *
-*			1) EventKind::Create(CreateKind::Folder)						  *
-*		Update File:														  *
-*			1) EventKind::Modify(ModifyKind::Data(DataChange::Content))		  *
-*		Update File (rename):												  *
-*			1) EventKind::Modify(ModifyKind::Name(RenameMode::Any)) -- From	  *
-*			2) EventKind::Modify(ModifyKind::Name(RenameMode::Any))	-- To	  *
-*		Update Directory (rename):											  *
-*			1) EventKind::Modify(ModifyKind::Name(RenameMode::Any)) -- From	  *
-*			2) EventKind::Modify(ModifyKind::Name(RenameMode::Any))	-- To	  *
-*		Delete File:														  *
-*			1) EventKind::Remove(RemoveKind::File)							  *
-*		Delete Directory:													  *
-*			1) EventKind::Remove(RemoveKind::Folder)						  *
-*																			  *
-*	Events dispatched on Windows:											  *
-*		Create File:														  *
-*			1) EventKind::Create(CreateKind::Any)							  *
-*			2) EventKind::Modify(ModifyKind::Any)							  *
-*		Create Directory:													  *
-*			1) EventKind::Create(CreateKind::Any)							  *
-*		Update File:														  *
-*			1) EventKind::Modify(ModifyKind::Any)							  *
-*		Update File (rename):												  *
-*			1) EventKind::Modify(ModifyKind::Name(RenameMode::From))		  *
-*			2) EventKind::Modify(ModifyKind::Name(RenameMode::To))			  *
-*		Update Directory (rename):											  *
-*			1) EventKind::Modify(ModifyKind::Name(RenameMode::From))		  *
-*			2) EventKind::Modify(ModifyKind::Name(RenameMode::To))			  *
-*		Delete File:														  *
-*			1) EventKind::Remove(RemoveKind::Any)							  *
-*		Delete Directory:													  *
-*			1) EventKind::Remove(RemoveKind::Any)							  *
-*																			  *
-*	Events dispatched on Android:											  *
-*	TODO																	  *
-*																			  *
-*	Events dispatched on iOS:												  *
-*	TODO																	  *
-*																			  *
-******************************************************************************/
-
 use std::{
 	fmt::Display,
 	path::{Path, PathBuf},
 	time::Duration,
 };
 
-use async_trait::async_trait;
 use futures_concurrency::{future::Join, stream::Merge};
 use notify::{Config, Event as NotifyEvent, RecommendedWatcher, RecursiveMode, Watcher};
 use thiserror::Error;
@@ -85,15 +11,12 @@ use tokio::{
 	sync::{mpsc, oneshot},
 	time::{interval_at, Instant, MissedTickBehavior},
 };
-use tokio_stream::{
-	self as stream,
-	wrappers::{IntervalStream, UnboundedReceiverStream},
-	StreamExt,
-};
+use tokio_stream::{self as stream, wrappers::IntervalStream, StreamExt};
 use tokio_util::sync::{CancellationToken, DropGuard};
 use tracing::{debug, error, trace, warn};
 use uuid::Uuid;
 
+mod event;
 mod linux;
 mod macos;
 mod windows;
@@ -116,46 +39,17 @@ const HUNDRED_MILLIS: Duration = Duration::from_millis(100);
 
 pub type LocationPubId = Uuid;
 
-#[derive(Debug)]
-pub struct WatcherEvent {
-	pub location_pub_id: LocationPubId,
-	pub kind: EventKind,
-}
+pub use event::{EventKind, WatcherEvent};
 
-#[derive(Debug)]
-pub enum EventKind {
-	Create(PathBuf),
-	Rename { from: PathBuf, to: PathBuf },
-	Delete(PathBuf),
-}
-
-/// A trait to abstract away how each OS emits file system events
-#[async_trait]
-trait EventHandler {
-	fn new(
-		location_pub_id: LocationPubId,
-		inode_and_device_requester_tx: mpsc::Sender<(
-			LocationPubId,
-			PathBuf,
-			oneshot::Sender<INodeAndDevice>,
-		)>,
-		events_to_emit_tx: mpsc::Sender<WatcherEvent>,
-	) -> Self
-	where
-		Self: Sized;
-
-	/// Handle a file system event.
-	async fn handle_event(&mut self, event: NotifyEvent) -> Result<(), LocationWatcherError>;
-
-	/// As Event Handlers have some inner state, from time to time we need to call this tick method
-	/// so the event handler can update its state.
-	async fn tick(&mut self);
-}
+use event::EventHandler;
 
 #[derive(Error, Debug)]
 pub enum LocationWatcherError {
 	#[error("Notify Error: {0}")]
 	Notify(#[from] notify::Error),
+
+	#[error("Failed to emit event back to Location Manager: {0}")]
+	EmitEvent(WatcherEvent),
 }
 
 #[derive(Debug)]
@@ -196,13 +90,14 @@ impl LocationWatcher {
 		check_location_online_tx: mpsc::Sender<(LocationPubId, oneshot::Sender<bool>)>,
 		event_to_emit_tx: mpsc::Sender<WatcherEvent>,
 	) -> Result<Self, LocationWatcherError> {
-		let (fs_events_tx, fs_events_rx) = mpsc::unbounded_channel();
+		let (fs_events_tx, fs_events_rx) = async_channel::unbounded();
 		let cancel_token = CancellationToken::new();
 
 		let watcher = RecommendedWatcher::new(
 			move |result| {
 				if !fs_events_tx.is_closed() {
-					if fs_events_tx.send(result).is_err() {
+					// It's alright to use `send_blocking` here because we're using a unbounded channel
+					if fs_events_tx.send_blocking(result).is_err() {
 						error!(
 					"Unable to send watcher event to location manager for location: <id='{}'>",
 					location_pub_id
@@ -218,17 +113,41 @@ impl LocationWatcher {
 			Config::default(),
 		)?;
 
-		tokio::spawn(watch_events_loop(
-			location_pub_id,
-			InnerWatchingLoopChannels {
-				check_paths_rejection_tx,
-				inode_and_device_requester_tx,
-				check_location_online_tx,
-				fs_events_rx,
-				event_to_emit_tx,
-			},
-			cancel_token.child_token(),
-		));
+		let inner_cancel_token = cancel_token.child_token();
+		tokio::spawn(async move {
+			let check_paths_rejection_tx = check_paths_rejection_tx;
+			let inode_and_device_requester_tx = inode_and_device_requester_tx;
+			let check_location_online_tx = check_location_online_tx;
+			let fs_events_rx = fs_events_rx;
+			let event_to_emit_tx = event_to_emit_tx;
+			// FIXME: Change this to use scoped tasks to avoid clonning the Senders and just
+
+			// This outer loop guarantees that the inner loop will always be running, except in case of cancellation
+			loop {
+				if let Err(e) = tokio::spawn(watch_events_loop(
+					location_pub_id,
+					InnerWatchingLoopChannels {
+						check_paths_rejection_tx: check_paths_rejection_tx.clone(),
+						inode_and_device_requester_tx: inode_and_device_requester_tx.clone(),
+						check_location_online_tx: check_location_online_tx.clone(),
+						fs_events_rx: fs_events_rx.clone(),
+						event_to_emit_tx: event_to_emit_tx.clone(),
+					},
+					inner_cancel_token.child_token(),
+				))
+				.await
+				{
+					error!(
+						"Error while watching location: <pub_id='{location_pub_id}'>; \
+						Error: {e}; \
+						Restarting the watching loop...",
+					);
+				}
+				if inner_cancel_token.is_cancelled() {
+					break;
+				}
+			}
+		});
 
 		Ok(Self {
 			location_pub_id,
@@ -327,7 +246,7 @@ struct InnerWatchingLoopChannels {
 	inode_and_device_requester_tx:
 		mpsc::Sender<(LocationPubId, PathBuf, oneshot::Sender<INodeAndDevice>)>,
 	check_location_online_tx: mpsc::Sender<(LocationPubId, oneshot::Sender<bool>)>,
-	fs_events_rx: mpsc::UnboundedReceiver<notify::Result<NotifyEvent>>,
+	fs_events_rx: async_channel::Receiver<notify::Result<NotifyEvent>>,
 	event_to_emit_tx: mpsc::Sender<WatcherEvent>,
 }
 
@@ -340,7 +259,7 @@ async fn watch_events_loop(
 		fs_events_rx,
 		event_to_emit_tx,
 	}: InnerWatchingLoopChannels,
-	cancel: CancellationToken,
+	cancel_token: CancellationToken,
 ) {
 	let mut event_handler = Handler::new(
 		location_pub_id,
@@ -359,9 +278,9 @@ async fn watch_events_loop(
 	}
 
 	let mut stream = (
-		UnboundedReceiverStream::new(fs_events_rx).map(StreamMessage::MaybeEvent),
+		fs_events_rx.map(StreamMessage::MaybeEvent),
 		IntervalStream::new(handler_ticker).map(|_| StreamMessage::Tick),
-		stream::once(cancel.cancelled()).map(|_| StreamMessage::Stop),
+		stream::once(cancel_token.cancelled()).map(|_| StreamMessage::Stop),
 	)
 		.merge();
 
@@ -377,15 +296,26 @@ async fn watch_events_loop(
 				)
 				.await
 				{
-					error!("Failed to handle location file system event: <pub_id='{location_pub_id}'>; Error: {e}");
+					error!(
+						"Failed to handle location file system event: \
+						<pub_id='{location_pub_id}'>; Error: {e}"
+					);
 				}
 			}
 			StreamMessage::MaybeEvent(Err(e)) => error!("Watcher error: {e}"),
-			StreamMessage::Tick => event_handler.tick().await,
+			StreamMessage::Tick => {
+				if let Err(errors) = event_handler.tick().await {
+					for e in errors {
+						error!(
+							"Failed to handle location file system event on `tick`: \
+							<pub_id='{location_pub_id}'>; Error: {e}"
+						);
+					}
+				}
+			}
 			StreamMessage::Stop => {
 				debug!(
-					"Stop Location Manager event handler for location: <pub_id='{}'>",
-					location_pub_id
+					"Stopped Location Watcher event handler for location: <pub_id='{location_pub_id}'>",
 				);
 				break;
 			}

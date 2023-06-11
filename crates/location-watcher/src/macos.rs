@@ -1,15 +1,36 @@
-//! On MacOS, we use the FSEvents backend of notify-rs and Rename events are pretty complicated;
-//! There are just (ModifyKind::Name(RenameMode::Any) events and nothing else.
-//! This means that we have to link the old path with the new path to know which file was renamed.
-//! But you can't forget that renames events aren't always the case that I file name was modified,
-//! but its path was modified. So we have to check if the file was moved. When a file is moved
-//! inside the same location, we received 2 events: one for the old path and one for the new path.
-//! But when a file is moved to another location, we only receive the old path event... This
-//! way we have to handle like a file deletion, and the same applies for when a file is moved to our
-//! current location from anywhere else, we just receive the new path rename event, which means a
-//! creation.
+/*!
+ * On MacOS, we use the FSEvents backend of notify-rs and Rename events are pretty complicated;
+ * There are just (ModifyKind::Name(RenameMode::Any) events and nothing else.
+ * This means that we have to link the old path with the new path to know which file was renamed.
+ * But you can't forget that renames events aren't always the case that I file name was modified,
+ * but its path was modified. So we have to check if the file was moved. When a file is moved
+ * inside the same location, we received 2 events: one for the old path and one for the new path.
+ * But when a file is moved to another location, we only receive the old path event... This
+ * way we have to handle like a file deletion, and the same applies for when a file is moved to our
+ * current location from anywhere else, we just receive the new path rename event, which means a
+ * creation.
+ *
+ * ## Events dispatched on MacOS:
+ * - Create File:
+ *     1) `EventKind::Create(CreateKind::File)`
+ *     2) `EventKind::Modify(ModifyKind::Data(DataChange::Content))`
+ * - Create Directory:
+ *     1) `EventKind::Create(CreateKind::Folder)`
+ * - Update File:
+ *     1) `EventKind::Modify(ModifyKind::Data(DataChange::Content))`
+ * - Update File (rename):
+ *     1) `EventKind::Modify(ModifyKind::Name(RenameMode::Any))` --> From
+ *     2) `EventKind::Modify(ModifyKind::Name(RenameMode::Any))` --> To
+ * - Update Directory (rename):
+ *     1) `EventKind::Modify(ModifyKind::Name(RenameMode::Any))` --> From
+ *     2) `EventKind::Modify(ModifyKind::Name(RenameMode::Any))` --> To
+ * - Delete File:
+ *     1) `EventKind::Remove(RemoveKind::File)`
+ * - Delete Directory:
+ *     1) `EventKind::Remove(RemoveKind::Folder)`
+ */
 
-use std::{
+ use std::{
 	collections::{BTreeMap, HashMap},
 	path::PathBuf,
 };
@@ -22,7 +43,8 @@ use tokio::{
 };
 
 use super::{
-	EventHandler, INodeAndDevice, InstantAndPath, LocationPubId, LocationWatcherError, WatcherEvent,
+	event::{EventHandler, EventKind, WatcherEvent},
+	INodeAndDevice, InstantAndPath, LocationPubId, LocationWatcherError,
 };
 
 pub(super) struct MacOsEventHandler {
@@ -70,7 +92,7 @@ impl EventHandler for MacOsEventHandler {
 		todo!()
 	}
 
-	async fn tick(&mut self) {
+	async fn tick(&mut self) -> Result<(), Vec<LocationWatcherError>> {
 		todo!()
 	}
 }

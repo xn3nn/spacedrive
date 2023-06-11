@@ -10,23 +10,20 @@ rust-version = "1.68.1"
 
 [features]
 default = []
-mobile = [
-] # This feature allows features to be disabled when the Core is running on mobile.
-ffmpeg = [
-  "dep:ffmpeg-next",
-  "dep:sd-ffmpeg",
-] # This feature controls whether the Spacedrive Core contains functionality which requires FFmpeg.
-location-watcher = ["dep:notify"]
+mobile = [] # This feature allows features to be disabled when the Core is running on mobile.
+ffmpeg = ["dep:ffmpeg-next", "dep:sd-ffmpeg"] # This feature controls whether the Spacedrive Core contains functionality which requires FFmpeg.
+location-watcher = ["dep:notify", "dep:sd-location-watcher"]
 sync-messages = []
 
 [dependencies]
-sd-ffmpeg = { path = "../crates/ffmpeg", optional = true }
 sd-crypto = { path = "../crates/crypto", features = [
   "rspc",
   "serde",
   "keymanager",
 ] }
+sd-ffmpeg = { path = "../crates/ffmpeg", optional = true }
 sd-file-ext = { path = "../crates/file-ext" }
+sd-location-watcher = { path = "../crates/location-watcher", optional = true }
 sd-sync = { path = "../crates/sync" }
 sd-p2p = { path = "../crates/p2p", features = ["specta", "serde"] }
 
@@ -77,6 +74,10 @@ notify = { version = "5.0.0", default-features = false, features = [
   "macos_fsevent",
 ], optional = true }
 static_assertions = "1.1.0"
+tokio-util = "0.7.7"
+tokio-stream = { version = "0.1.12", features = ["sync", "time"] }
+async-channel = "1.8.0"
+futures-concurrency = "7.2.0"
 
 [target.'cfg(windows)'.dependencies.winapi-util]
 version = "0.1.5"
