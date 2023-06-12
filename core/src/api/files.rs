@@ -3,13 +3,13 @@ use crate::{
 	invalidate_query,
 	location::{file_path_helper::IsolatedFilePathData, find_location, LocationError},
 	object::fs::{
-		copy::FileCopierJobInit, cut::FileCutterJobInit, decrypt::FileDecryptorJobInit,
-		delete::FileDeleterJobInit, encrypt::FileEncryptorJobInit, erase::FileEraserJobInit,
+		copy::FileCopierJobInit, cut::FileCutterJobInit, delete::FileDeleterJobInit,
+		erase::FileEraserJobInit,
 	},
 	prisma::{location, object},
 };
 
-use chrono::{FixedOffset, Utc};
+use chrono::Utc;
 use rspc::{alpha::AlphaRouter, ErrorCode};
 use serde::Deserialize;
 use specta::Type;
@@ -108,9 +108,7 @@ pub(crate) fn mount() -> AlphaRouter<Ctx> {
 						.object()
 						.update(
 							object::id::equals(id),
-							vec![object::date_accessed::set(Some(
-								Utc::now().with_timezone(&FixedOffset::east_opt(0).unwrap()),
-							))],
+							vec![object::date_accessed::set(Some(Utc::now().into()))],
 						)
 						.exec()
 						.await?;
@@ -136,18 +134,18 @@ pub(crate) fn mount() -> AlphaRouter<Ctx> {
 					Ok(())
 				})
 		})
-		.procedure("encryptFiles", {
-			R.with2(library())
-				.mutation(|(_, library), args: FileEncryptorJobInit| async move {
-					library.spawn_job(args).await.map_err(Into::into)
-				})
-		})
-		.procedure("decryptFiles", {
-			R.with2(library())
-				.mutation(|(_, library), args: FileDecryptorJobInit| async move {
-					library.spawn_job(args).await.map_err(Into::into)
-				})
-		})
+		// .procedure("encryptFiles", {
+		// 	R.with2(library())
+		// 		.mutation(|(_, library), args: FileEncryptorJobInit| async move {
+		// 			library.spawn_job(args).await.map_err(Into::into)
+		// 		})
+		// })
+		// .procedure("decryptFiles", {
+		// 	R.with2(library())
+		// 		.mutation(|(_, library), args: FileDecryptorJobInit| async move {
+		// 			library.spawn_job(args).await.map_err(Into::into)
+		// 		})
+		// })
 		.procedure("deleteFiles", {
 			R.with2(library())
 				.mutation(|(_, library), args: FileDeleterJobInit| async move {

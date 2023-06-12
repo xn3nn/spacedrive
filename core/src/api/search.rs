@@ -1,4 +1,7 @@
-use crate::location::file_path_helper::{check_file_path_exists, IsolatedFilePathData};
+use crate::{
+	location::file_path_helper::{check_file_path_exists, IsolatedFilePathData},
+	object::preview::get_thumb_key,
+};
 use std::collections::BTreeSet;
 
 use chrono::{DateTime, FixedOffset, Utc};
@@ -157,11 +160,28 @@ impl ObjectSearchOrdering {
 
 #[derive(Deserialize, Type, Debug, Default)]
 #[serde(rename_all = "camelCase")]
+enum ObjectHiddenFilter {
+	#[default]
+	Exclude,
+	Include,
+}
+
+impl Into<Option<object::WhereParam>> for ObjectHiddenFilter {
+	fn into(self) -> Option<object::WhereParam> {
+		match self {
+			Self::Exclude => Some(object::hidden::not(true)),
+			Self::Include => None,
+		}
+	}
+}
+
+#[derive(Deserialize, Type, Debug, Default)]
+#[serde(rename_all = "camelCase")]
 struct ObjectFilterArgs {
 	#[specta(optional)]
 	favorite: Option<bool>,
-	#[specta(optional)]
-	hidden: Option<bool>,
+	#[serde(default)]
+	hidden: ObjectHiddenFilter,
 	#[specta(optional)]
 	date_accessed: Option<MaybeNot<Option<chrono::DateTime<FixedOffset>>>>,
 	#[serde(default)]
@@ -175,8 +195,8 @@ impl ObjectFilterArgs {
 		chain_optional_iter(
 			[],
 			[
+				self.hidden.into(),
 				self.favorite.map(object::favorite::equals),
-				self.hidden.map(object::hidden::equals),
 				self.date_accessed
 					.map(|date| date.into_prisma(object::date_accessed::equals)),
 				(!self.kind.is_empty())
@@ -304,7 +324,7 @@ pub fn mount() -> AlphaRouter<Ctx> {
 					let mut items = Vec::with_capacity(file_paths.len());
 
 					for file_path in file_paths {
-						let has_thumbnail = if let Some(cas_id) = &file_path.cas_id {
+						let thumbnail_exists_locally = if let Some(cas_id) = &file_path.cas_id {
 							library
 								.thumbnail_exists(cas_id)
 								.await
@@ -314,7 +334,8 @@ pub fn mount() -> AlphaRouter<Ctx> {
 						};
 
 						items.push(ExplorerItem::Path {
-							has_thumbnail,
+							has_local_thumbnail: thumbnail_exists_locally,
+							thumbnail_key: file_path.cas_id.as_ref().map(|i| get_thumb_key(i)),
 							item: file_path,
 						})
 					}
@@ -372,7 +393,7 @@ pub fn mount() -> AlphaRouter<Ctx> {
 							.map(|fp| fp.cas_id.as_ref())
 							.find_map(|c| c);
 
-						let has_thumbnail = if let Some(cas_id) = cas_id {
+						let thumbnail_exists_locally = if let Some(cas_id) = cas_id {
 							library.thumbnail_exists(cas_id).await.map_err(|e| {
 								rspc::Error::with_cause(
 									ErrorCode::InternalServerError,
@@ -385,7 +406,8 @@ pub fn mount() -> AlphaRouter<Ctx> {
 						};
 
 						items.push(ExplorerItem::Object {
-							has_thumbnail,
+							has_local_thumbnail: thumbnail_exists_locally,
+							thumbnail_key: cas_id.map(|i| get_thumb_key(i)),
 							item: object,
 						});
 					}

@@ -108,7 +108,7 @@ const AnimatedDialogOverlay = animated(RDialog.Overlay);
 
 export interface DialogProps<S extends FieldValues>
 	extends RDialog.DialogProps,
-		Omit<FormProps<S>, 'onSubmit'> {
+	Omit<FormProps<S>, 'onSubmit'> {
 	title?: string;
 	dialog: ReturnType<typeof useDialog>;
 	loading?: boolean;
@@ -167,6 +167,7 @@ export function Dialog<S extends FieldValues>({
 							<Form
 								form={form}
 								onSubmit={async (e) => {
+									e?.preventDefault();
 									await onSubmit?.(e);
 									dialog.onSubmit?.();
 									setOpen(false);

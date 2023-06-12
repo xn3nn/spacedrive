@@ -26,14 +26,30 @@ pub async fn load_and_migrate(db_url: &str) -> Result<PrismaClient, MigrationErr
 	{
 		let mut builder = client._db_push();
 
+		if std::env::var("SD_ACCEPT_DATA_LOSS")
+			.map(|v| v == "true")
+			.unwrap_or(false)
+		{
+			builder = builder.accept_data_loss();
+		}
+
 		if std::env::var("SD_FORCE_RESET_DB")
 			.map(|v| v == "true")
 			.unwrap_or(false)
 		{
-			builder = builder.accept_data_loss().force_reset();
+			builder = builder.force_reset();
 		}
 
-		builder.await?;
+		let res = builder.await;
+
+		match res {
+			Ok(_) => {}
+			Err(e @ DbPushError::PossibleDataLoss(_)) => {
+				eprintln!("Pushing Prisma schema may result in data loss. Use `SD_ACCEPT_DATA_LOSS=true` to force it.");
+				Err(e)?;
+			}
+			Err(e) => Err(e)?,
+		}
 	}
 
 	#[cfg(not(debug_assertions))]
@@ -41,35 +57,6 @@ pub async fn load_and_migrate(db_url: &str) -> Result<PrismaClient, MigrationErr
 
 	Ok(client)
 }
-
-// /// This writes a `StoredKey` to prisma
-// /// If the key is marked as memory-only, it is skipped
-// pub async fn write_storedkey_to_db(
-// 	db: &PrismaClient,
-// 	stored_key: &StoredKey,
-// ) -> Result<(), LibraryManagerError> {
-// 	if !stored_key.memory_only {
-// 		db.key()
-// 			.create(
-// 				stored_key.uuid.to_string(),
-// 				encoding::encode(&stored_key.version)?,
-// 				encoding::encode(&stored_key.key_type)?,
-// 				encoding::encode(&stored_key.algorithm)?,
-// 				encoding::encode(&stored_key.hashing_algorithm)?,
-// 				encoding::encode(&stored_key.content_salt)?,
-// 				encoding::encode(&stored_key.master_key)?,
-// 				encoding::encode(&stored_key.master_key_nonce)?,
-// 				encoding::encode(&stored_key.key_nonce)?,
-// 				encoding::encode(&stored_key.key)?,
-// 				encoding::encode(&stored_key.salt)?,
-// 				vec![],
-// 			)
-// 			.exec()
-// 			.await?;
-// 	}
-
-// 	Ok(())
-// }
 
 /// Combines an iterator of `T` and an iterator of `Option<T>`,
 /// removing any `None` values in the process
