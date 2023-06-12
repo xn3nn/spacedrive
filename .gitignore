@@ -31,6 +31,8 @@ docs/public/*.st
 docs/public/*.toml
 dev.db
 
+.task/
+
 !cli/cmd/turbo
 cli/npm/turbo-android-arm64/bin
 cli/npm/turbo-darwin-64/bin
