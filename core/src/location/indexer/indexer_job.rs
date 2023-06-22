@@ -9,7 +9,7 @@ use crate::{
 	util::db::maybe_missing,
 };
 
-use std::{path::Path, sync::Arc};
+use std::{collections::VecDeque, path::Path, sync::Arc};
 
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
@@ -60,16 +60,14 @@ impl StatefulJob for IndexerJob {
 	async fn init(
 		&self,
 		ctx: &mut WorkerContext,
-		state: &mut JobState<Self>,
-	) -> Result<(), JobError> {
-		let location_id = state.init.location.id;
-		let location_path =
-			maybe_missing(&state.init.location.path, "location.path").map(Path::new)?;
+		init: &Self::Init,
+	) -> Result<(Self::Data, VecDeque<Self::Step>), JobError> {
+		let location_id = init.location.id;
+		let location_path = maybe_missing(&init.location.path, "location.path").map(Path::new)?;
 
 		let db = Arc::clone(&ctx.library.db);
 
-		let indexer_rules = state
-			.init
+		let indexer_rules = init
 			.location
 			.indexer_rules
 			.iter()
@@ -77,7 +75,7 @@ impl StatefulJob for IndexerJob {
 			.collect::<Result<Vec<_>, _>>()
 			.map_err(IndexerError::from)?;
 
-		let to_walk_path = match &state.init.sub_path {
+		let to_walk_path = match &init.sub_path {
 			Some(sub_path) if sub_path != Path::new("") && sub_path != Path::new("/") => {
 				let full_path = ensure_sub_path_is_in_location(location_path, sub_path)
 					.await
@@ -128,23 +126,22 @@ impl StatefulJob for IndexerJob {
 		let total_paths = &mut 0;
 		let to_walk_count = to_walk.len();
 
-		state.steps.extend(
-			walked
-				.chunks(BATCH_SIZE)
-				.into_iter()
-				.enumerate()
-				.map(|(i, chunk)| {
-					let chunk_steps = chunk.collect::<Vec<_>>();
+		let steps = walked
+			.chunks(BATCH_SIZE)
+			.into_iter()
+			.enumerate()
+			.map(|(i, chunk)| {
+				let chunk_steps = chunk.collect::<Vec<_>>();
 
-					*total_paths += chunk_steps.len() as u64;
+				*total_paths += chunk_steps.len() as u64;
 
-					IndexerJobStepInput::Save(IndexerJobSaveStep {
-						chunk_idx: i,
-						walked: chunk_steps,
-					})
+				IndexerJobStepInput::Save(IndexerJobSaveStep {
+					chunk_idx: i,
+					walked: chunk_steps,
 				})
-				.chain(to_walk.into_iter().map(IndexerJobStepInput::Walk)),
-		);
+			})
+			.chain(to_walk.into_iter().map(IndexerJobStepInput::Walk))
+			.collect::<VecDeque<_>>();
 
 		IndexerJobData::on_scan_progress(
 			ctx,
@@ -154,7 +151,7 @@ impl StatefulJob for IndexerJob {
 			))],
 		);
 
-		state.data = Some(IndexerJobData {
+		let data = IndexerJobData {
 			indexed_path: to_walk_path,
 			indexer_rules,
 			db_write_time: db_delete_time,
@@ -162,15 +159,15 @@ impl StatefulJob for IndexerJob {
 			total_paths: *total_paths,
 			indexed_count: 0,
 			removed_count,
-			total_save_steps: state.steps.len() as u64 - to_walk_count as u64,
-		});
+			total_save_steps: steps.len() as u64 - to_walk_count as u64,
+		};
 
 		if !errors.is_empty() {
 			Err(JobError::StepCompletedWithErrors(
 				errors.into_iter().map(|e| format!("{e}")).collect(),
 			))
 		} else {
-			Ok(())
+			Ok((data, steps))
 		}
 	}
 

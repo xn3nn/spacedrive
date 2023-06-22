@@ -240,7 +240,9 @@ async fn process_step(
 	let data = state
 		.data
 		.as_mut()
-		.expect("critical error: missing data on job state");
+		.expect("critical error: missing data on job state")
+		.as_mut()
+		.expect("critical error: missing inner data on job state");
 
 	let step_result = inner_process_step(
 		step,

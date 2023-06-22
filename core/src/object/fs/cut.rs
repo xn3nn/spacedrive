@@ -10,7 +10,7 @@ use crate::{
 	util::error::FileIOError,
 };
 
-use std::{hash::Hash, path::PathBuf};
+use std::{collections::VecDeque, hash::Hash, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -53,38 +53,35 @@ impl StatefulJob for FileCutterJob {
 	async fn init(
 		&self,
 		ctx: &mut WorkerContext,
-		state: &mut JobState<Self>,
-	) -> Result<(), JobError> {
+		init: &Self::Init,
+	) -> Result<(Self::Data, VecDeque<Self::Step>), JobError> {
 		let Library { db, .. } = &ctx.library;
 
 		let (sources_location_path, targets_location_path) =
 			fetch_source_and_target_location_paths(
 				db,
-				state.init.source_location_id,
-				state.init.target_location_id,
+				init.source_location_id,
+				init.target_location_id,
 			)
 			.await?;
 
 		let full_target_directory_path = push_location_relative_path(
 			targets_location_path,
-			&state.init.target_location_relative_directory_path,
+			&init.target_location_relative_directory_path,
 		);
 
-		state.data = Some(FileCutterJobState {
+		let data = FileCutterJobState {
 			full_target_directory_path,
-		});
+		};
 
-		state.steps = get_many_files_datas(
-			db,
-			&sources_location_path,
-			&state.init.sources_file_path_ids,
-		)
-		.await?
-		.into();
+		let steps: VecDeque<_> =
+			get_many_files_datas(db, &sources_location_path, &init.sources_file_path_ids)
+				.await?
+				.into();
 
-		ctx.progress(vec![JobReportUpdate::TaskCount(state.steps.len())]);
+		ctx.progress(vec![JobReportUpdate::TaskCount(steps.len())]);
 
-		Ok(())
+		Ok((data, steps))
 	}
 
 	async fn execute_step(

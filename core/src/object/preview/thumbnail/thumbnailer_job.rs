@@ -56,7 +56,7 @@ impl JobInitData for ThumbnailerJobInit {
 #[async_trait::async_trait]
 impl StatefulJob for ThumbnailerJob {
 	type Init = ThumbnailerJobInit;
-	type Data = ThumbnailerJobState;
+	type Data = Option<ThumbnailerJobState>;
 	type Step = ThumbnailerJobStep;
 
 	const NAME: &'static str = "thumbnailer";
@@ -68,20 +68,20 @@ impl StatefulJob for ThumbnailerJob {
 	async fn init(
 		&self,
 		ctx: &mut WorkerContext,
-		state: &mut JobState<Self>,
-	) -> Result<(), JobError> {
+		init: &Self::Init,
+	) -> Result<(Self::Data, VecDeque<Self::Step>), JobError> {
 		let Library { db, .. } = &ctx.library;
 
 		let thumbnail_dir = init_thumbnail_dir(ctx.library.config().data_directory()).await?;
 		// .join(THUMBNAIL_CACHE_DIR_NAME);
 
-		let location_id = state.init.location.id;
-		let location_path = match &state.init.location.path {
+		let location_id = init.location.id;
+		let location_path = match &init.location.path {
 			Some(v) => PathBuf::from(v),
-			None => return Ok(()),
+			None => return Ok((None, VecDeque::new())),
 		};
 
-		let (path, iso_file_path) = match &state.init.sub_path {
+		let (path, iso_file_path) = match &init.sub_path {
 			Some(sub_path) if sub_path != Path::new("") && sub_path != Path::new("/") => {
 				let full_path = ensure_sub_path_is_in_location(&location_path, sub_path)
 					.await
@@ -148,7 +148,7 @@ impl StatefulJob for ThumbnailerJob {
 			JobReportUpdate::Message(format!("Preparing to process {} files", all_files.len())),
 		]);
 
-		state.data = Some(ThumbnailerJobState {
+		let data = Some(ThumbnailerJobState {
 			thumbnail_dir,
 			location_path,
 			report: ThumbnailerJobReport {
@@ -158,9 +158,8 @@ impl StatefulJob for ThumbnailerJob {
 				thumbnails_skipped: 0,
 			},
 		});
-		state.steps.extend(all_files);
 
-		Ok(())
+		Ok((data, all_files))
 	}
 
 	async fn execute_step(
@@ -168,11 +167,19 @@ impl StatefulJob for ThumbnailerJob {
 		ctx: &mut WorkerContext,
 		state: &mut JobState<Self>,
 	) -> Result<(), JobError> {
-		process_step(state, ctx).await
+		if extract_job_data!(state).is_some() {
+			process_step(state, ctx).await
+		} else {
+			Ok(())
+		}
 	}
 
 	async fn finalize(&mut self, ctx: &mut WorkerContext, state: &mut JobState<Self>) -> JobResult {
-		finalize_thumbnailer(extract_job_data!(state), ctx)
+		if let Some(state) = extract_job_data!(state) {
+			finalize_thumbnailer(state, ctx)
+		} else {
+			Ok(None)
+		}
 	}
 }
 

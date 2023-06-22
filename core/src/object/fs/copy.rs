@@ -12,7 +12,7 @@ use crate::{
 	},
 };
 
-use std::{hash::Hash, path::PathBuf};
+use std::{collections::VecDeque, hash::Hash, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -65,51 +65,47 @@ impl StatefulJob for FileCopierJob {
 	async fn init(
 		&self,
 		ctx: &mut WorkerContext,
-		state: &mut JobState<Self>,
-	) -> Result<(), JobError> {
+		init: &Self::Init,
+	) -> Result<(Self::Data, VecDeque<Self::Step>), JobError> {
 		let Library { db, .. } = &ctx.library;
 
 		let (sources_location_path, targets_location_path) =
 			fetch_source_and_target_location_paths(
 				db,
-				state.init.source_location_id,
-				state.init.target_location_id,
+				init.source_location_id,
+				init.target_location_id,
 			)
 			.await?;
 
-		state.steps = get_many_files_datas(
-			db,
-			&sources_location_path,
-			&state.init.sources_file_path_ids,
-		)
-		.await?
-		.into_iter()
-		.flat_map(|file_data| {
-			// add the currently viewed subdirectory to the location root
-			let mut full_target_path = join_location_relative_path(
-				&targets_location_path,
-				&state.init.target_location_relative_directory_path,
-			);
+		let steps = get_many_files_datas(db, &sources_location_path, &init.sources_file_path_ids)
+			.await?
+			.into_iter()
+			.flat_map(|file_data| {
+				// add the currently viewed subdirectory to the location root
+				let mut full_target_path = join_location_relative_path(
+					&targets_location_path,
+					&init.target_location_relative_directory_path,
+				);
 
-			full_target_path.push(construct_target_filename(
-				&file_data,
-				&state.init.target_file_name_suffix,
-			)?);
+				full_target_path.push(construct_target_filename(
+					&file_data,
+					&init.target_file_name_suffix,
+				)?);
 
-			Ok::<_, MissingFieldError>(FileCopierJobStep {
-				source_file_data: file_data,
-				target_full_path: full_target_path,
+				Ok::<_, MissingFieldError>(FileCopierJobStep {
+					source_file_data: file_data,
+					target_full_path: full_target_path,
+				})
 			})
-		})
-		.collect();
+			.collect::<VecDeque<_>>();
 
-		state.data = Some(FileCopierJobState {
+		let data = FileCopierJobState {
 			sources_location_path,
-		});
+		};
 
-		ctx.progress(vec![JobReportUpdate::TaskCount(state.steps.len())]);
+		ctx.progress(vec![JobReportUpdate::TaskCount(steps.len())]);
 
-		Ok(())
+		Ok((data, steps))
 	}
 
 	async fn execute_step(

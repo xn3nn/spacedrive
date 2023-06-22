@@ -8,7 +8,7 @@ use crate::{
 	util::{db::maybe_missing, error::FileIOError},
 };
 
-use std::hash::Hash;
+use std::{collections::VecDeque, hash::Hash};
 
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -44,22 +44,21 @@ impl StatefulJob for FileDeleterJob {
 	async fn init(
 		&self,
 		ctx: &mut WorkerContext,
-		state: &mut JobState<Self>,
-	) -> Result<(), JobError> {
+		init: &Self::Init,
+	) -> Result<(Self::Data, VecDeque<Self::Step>), JobError> {
 		let Library { db, .. } = &ctx.library;
 
-		state.steps = get_many_files_datas(
+		let steps: VecDeque<_> = get_many_files_datas(
 			db,
-			get_location_path_from_location_id(db, state.init.location_id).await?,
-			&state.init.file_path_ids,
+			get_location_path_from_location_id(db, init.location_id).await?,
+			&init.file_path_ids,
 		)
 		.await?
-		.into_iter()
-		.collect();
+		.into();
 
-		ctx.progress(vec![JobReportUpdate::TaskCount(state.steps.len())]);
+		ctx.progress(vec![JobReportUpdate::TaskCount(steps.len())]);
 
-		Ok(())
+		Ok(((), steps))
 	}
 
 	async fn execute_step(

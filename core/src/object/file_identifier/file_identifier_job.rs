@@ -13,6 +13,7 @@ use crate::{
 };
 
 use std::{
+	collections::VecDeque,
 	hash::{Hash, Hasher},
 	path::{Path, PathBuf},
 };
@@ -72,18 +73,17 @@ impl StatefulJob for FileIdentifierJob {
 	async fn init(
 		&self,
 		ctx: &mut WorkerContext,
-		state: &mut JobState<Self>,
-	) -> Result<(), JobError> {
+		init: &Self::Init,
+	) -> Result<(Self::Data, VecDeque<Self::Step>), JobError> {
 		let Library { db, .. } = &ctx.library;
 
 		info!("Identifying orphan File Paths...");
 
-		let location_id = state.init.location.id;
+		let location_id = init.location.id;
 
-		let location_path =
-			maybe_missing(&state.init.location.path, "location.path").map(Path::new)?;
+		let location_path = maybe_missing(&init.location.path, "location.path").map(Path::new)?;
 
-		let maybe_sub_iso_file_path = match &state.init.sub_path {
+		let maybe_sub_iso_file_path = match &init.sub_path {
 			Some(sub_path) if sub_path != Path::new("") && sub_path != Path::new("/") => {
 				let full_path = ensure_sub_path_is_in_location(location_path, sub_path)
 					.await
@@ -113,7 +113,7 @@ impl StatefulJob for FileIdentifierJob {
 			count_orphan_file_paths(db, location_id, &maybe_sub_iso_file_path).await?;
 
 		// Initializing `state.data` here because we need a complete state in case of early finish
-		state.data = Some(FileIdentifierJobState {
+		let mut data = FileIdentifierJobState {
 			report: FileIdentifierReport {
 				location_path: location_path.to_path_buf(),
 				total_orphan_paths: orphan_count,
@@ -121,9 +121,7 @@ impl StatefulJob for FileIdentifierJob {
 			},
 			cursor: 0,
 			maybe_sub_iso_file_path,
-		});
-
-		let data = extract_job_data_mut!(state);
+		};
 
 		if orphan_count == 0 {
 			return Err(JobError::EarlyFinish {
@@ -157,9 +155,7 @@ impl StatefulJob for FileIdentifierJob {
 
 		data.cursor = first_path.id;
 
-		state.steps.extend((0..task_count).map(|_| ()));
-
-		Ok(())
+		Ok((data, (0..task_count).map(|_| ()).collect()))
 	}
 
 	async fn execute_step(

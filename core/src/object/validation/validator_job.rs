@@ -17,6 +17,7 @@ use crate::{
 };
 
 use std::{
+	collections::VecDeque,
 	hash::{Hash, Hasher},
 	path::{Path, PathBuf},
 };
@@ -74,16 +75,16 @@ impl StatefulJob for ObjectValidatorJob {
 	async fn init(
 		&self,
 		ctx: &mut WorkerContext,
-		state: &mut JobState<Self>,
-	) -> Result<(), JobError> {
+		init: &Self::Init,
+	) -> Result<(Self::Data, VecDeque<Self::Step>), JobError> {
 		let Library { db, .. } = &ctx.library;
 
-		let location_id = state.init.location.id;
+		let location_id = init.location.id;
 
 		let location_path =
-			maybe_missing(&state.init.location.path, "location.path").map(PathBuf::from)?;
+			maybe_missing(&init.location.path, "location.path").map(PathBuf::from)?;
 
-		let maybe_sub_iso_file_path = match &state.init.sub_path {
+		let maybe_sub_iso_file_path = match &init.sub_path {
 			Some(sub_path) if sub_path != Path::new("") && sub_path != Path::new("/") => {
 				let full_path = ensure_sub_path_is_in_location(&location_path, sub_path)
 					.await
@@ -109,33 +110,33 @@ impl StatefulJob for ObjectValidatorJob {
 			_ => None,
 		};
 
-		state.steps.extend(
-			db.file_path()
-				.find_many(chain_optional_iter(
-					[
-						file_path::location_id::equals(Some(state.init.location.id)),
-						file_path::is_dir::equals(Some(false)),
-						file_path::integrity_checksum::equals(None),
-					],
-					[maybe_sub_iso_file_path.and_then(|iso_sub_path| {
-						iso_sub_path
-							.materialized_path_for_children()
-							.map(file_path::materialized_path::starts_with)
-					})],
-				))
-				.select(file_path_for_object_validator::select())
-				.exec()
-				.await?,
-		);
+		let steps: VecDeque<_> = db
+			.file_path()
+			.find_many(chain_optional_iter(
+				[
+					file_path::location_id::equals(Some(init.location.id)),
+					file_path::is_dir::equals(Some(false)),
+					file_path::integrity_checksum::equals(None),
+				],
+				[maybe_sub_iso_file_path.and_then(|iso_sub_path| {
+					iso_sub_path
+						.materialized_path_for_children()
+						.map(file_path::materialized_path::starts_with)
+				})],
+			))
+			.select(file_path_for_object_validator::select())
+			.exec()
+			.await?
+			.into();
 
-		state.data = Some(ObjectValidatorJobState {
+		let data = ObjectValidatorJobState {
 			location_path,
-			task_count: state.steps.len(),
-		});
+			task_count: steps.len(),
+		};
 
-		ctx.progress(vec![JobReportUpdate::TaskCount(state.steps.len())]);
+		ctx.progress(vec![JobReportUpdate::TaskCount(steps.len())]);
 
-		Ok(())
+		Ok((data, steps))
 	}
 
 	async fn execute_step(

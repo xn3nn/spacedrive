@@ -56,8 +56,8 @@ pub trait StatefulJob: Send + Sync + Sized {
 	async fn init(
 		&self,
 		ctx: &mut WorkerContext,
-		state: &mut JobState<Self>,
-	) -> Result<(), JobError>;
+		init: &Self::Init,
+	) -> Result<(Self::Data, VecDeque<Self::Step>), JobError>;
 
 	/// is called for each step in the job. These steps are created in the `Self::init` method.
 	async fn execute_step(
@@ -275,15 +275,19 @@ impl<SJob: StatefulJob> DynJob for Job<SJob> {
 
 		// Checking if we have a brand new job, or if we are resuming an old one.
 		if self.state.data.is_none() {
-			if let Err(e) = self.stateful_job.init(ctx, &mut self.state).await {
-				match e {
+			match self.stateful_job.init(ctx, &self.state.init).await {
+				Ok((data, steps)) => {
+					self.state.data = Some(data);
+					self.state.steps = steps;
+				}
+				Err(e) => match e {
 					JobError::EarlyFinish { .. } => {
 						info!("{e}");
 						job_should_run = false;
 					}
 					JobError::StepCompletedWithErrors(errors_text) => errors.extend(errors_text),
 					other => return Err(other),
-				}
+				},
 			}
 		}
 

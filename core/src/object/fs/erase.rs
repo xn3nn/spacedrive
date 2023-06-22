@@ -9,7 +9,7 @@ use crate::{
 	util::{db::maybe_missing, error::FileIOError},
 };
 
-use std::{hash::Hash, path::PathBuf};
+use std::{collections::VecDeque, hash::Hash, path::PathBuf};
 
 use futures::future::try_join_all;
 use serde::{Deserialize, Serialize};
@@ -63,24 +63,24 @@ impl StatefulJob for FileEraserJob {
 	async fn init(
 		&self,
 		ctx: &mut WorkerContext,
-		state: &mut JobState<Self>,
-	) -> Result<(), JobError> {
+		init: &Self::Init,
+	) -> Result<(Self::Data, VecDeque<Self::Step>), JobError> {
 		let Library { db, .. } = &ctx.library;
 
-		let location_path = get_location_path_from_location_id(db, state.init.location_id).await?;
+		let location_path = get_location_path_from_location_id(db, init.location_id).await?;
 
-		state.steps = get_many_files_datas(db, &location_path, &state.init.file_path_ids)
+		let steps: VecDeque<_> = get_many_files_datas(db, &location_path, &init.file_path_ids)
 			.await?
 			.into();
 
-		state.data = Some(FileEraserJobData {
+		let data = FileEraserJobData {
 			location_path,
 			diretories_to_remove: vec![],
-		});
+		};
 
-		ctx.progress(vec![JobReportUpdate::TaskCount(state.steps.len())]);
+		ctx.progress(vec![JobReportUpdate::TaskCount(steps.len())]);
 
-		Ok(())
+		Ok((data, steps))
 	}
 
 	async fn execute_step(
