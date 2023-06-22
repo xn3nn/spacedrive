@@ -15,11 +15,13 @@ use uuid::Uuid;
 
 mod error;
 mod manager;
+mod modern;
 mod report;
 mod worker;
 
 pub use error::*;
 pub use manager::*;
+pub use modern::*;
 pub use report::*;
 pub use worker::*;
 
