@@ -142,7 +142,7 @@ impl StatefulJob for ObjectValidatorJob {
 		Ok((data, steps))
 	}
 
-	async fn execute_step_raw(
+	async fn execute_step(
 		&self,
 		ctx: &mut WorkerContext,
 		data: &mut Self::Data,

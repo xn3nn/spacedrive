@@ -15,13 +15,13 @@ use uuid::Uuid;
 
 mod error;
 mod manager;
-mod modern;
+// mod modern;
 mod report;
 mod worker;
 
 pub use error::*;
 pub use manager::*;
-pub use modern::*;
+// pub use modern::*;
 pub use report::*;
 pub use worker::*;
 
@@ -62,35 +62,13 @@ pub trait StatefulJob: Send + Sync + Sized {
 	) -> Result<(Self::Data, VecDeque<Self::Step>), JobError>;
 
 	/// is called for each step in the job. These steps are created in the `Self::init` method.
-	async fn execute_step_raw(
+	async fn execute_step(
 		&self,
 		ctx: &mut WorkerContext,
 		data: &mut Self::Data,
 		steps: &mut VecDeque<Self::Step>,
 		step_number: usize,
-	) -> Result<(), JobError> {
-		unreachable!();
-	}
-
-	// TODO: Remove this
-	/// is called for each step in the job. These steps are created in the `Self::init` method.
-	async fn execute_step(
-		&self,
-		ctx: &mut WorkerContext,
-		state: &mut JobState<Self>,
-	) -> Result<(), JobError> {
-		Self::execute_step_raw(
-			self,
-			ctx,
-			state
-				.data
-				.as_mut()
-				.expect("critical error: missing data on job state"),
-			&mut state.steps,
-			state.step_number,
-		)
-		.await
-	}
+	) -> Result<(), JobError>;
 
 	/// is called after all steps have been executed
 	async fn finalize(&mut self, ctx: &mut WorkerContext, state: &mut JobState<Self>) -> JobResult;
@@ -347,7 +325,18 @@ impl<SJob: StatefulJob> DynJob for Job<SJob> {
 			}
 
 			// process job step and handle errors if any
-			let step_result = self.stateful_job.execute_step(ctx, &mut self.state).await;
+			let step_result = self
+				.stateful_job
+				.execute_step(
+					ctx,
+					self.state
+						.data
+						.as_mut()
+						.expect("critical error: missing data on job state"),
+					&mut self.state.steps,
+					self.state.step_number,
+				)
+				.await;
 			match step_result {
 				Err(JobError::EarlyFinish { .. }) => {
 					step_result

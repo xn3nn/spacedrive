@@ -61,7 +61,7 @@ impl StatefulJob for FileDeleterJob {
 		Ok(((), steps))
 	}
 
-	async fn execute_step_raw(
+	async fn execute_step(
 		&self,
 		ctx: &mut WorkerContext,
 		_: &mut Self::Data,

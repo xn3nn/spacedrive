@@ -1,7 +1,7 @@
 use crate::{
 	api::CoreEvent,
 	invalidate_query,
-	job::{JobError, JobReportUpdate, JobResult, JobState, StatefulJob, WorkerContext},
+	job::{JobError, JobReportUpdate, JobResult, StatefulJob, WorkerContext},
 	library::Library,
 	location::file_path_helper::{file_path_for_thumbnailer, FilePathError, IsolatedFilePathData},
 	prisma::location,

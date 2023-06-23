@@ -1,5 +1,5 @@
 use crate::{
-	extract_job_data, invalidate_query,
+	invalidate_query,
 	job::{
 		JobError, JobInitData, JobReportUpdate, JobResult, JobState, StatefulJob, WorkerContext,
 	},
@@ -84,7 +84,7 @@ impl StatefulJob for FileCutterJob {
 		Ok((data, steps))
 	}
 
-	async fn execute_step_raw(
+	async fn execute_step(
 		&self,
 		ctx: &mut WorkerContext,
 		data: &mut Self::Data,

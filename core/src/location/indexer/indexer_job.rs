@@ -1,5 +1,5 @@
 use crate::{
-	extract_job_data_mut, file_paths_db_fetcher_fn,
+	file_paths_db_fetcher_fn,
 	job::{JobError, JobInitData, JobResult, JobState, StatefulJob, WorkerContext},
 	location::file_path_helper::{
 		ensure_file_path_exists, ensure_sub_path_is_directory, ensure_sub_path_is_in_location,
@@ -173,7 +173,7 @@ impl StatefulJob for IndexerJob {
 	}
 
 	/// Process each chunk of entries in the indexer job, writing to the `file_path` table
-	async fn execute_step_raw(
+	async fn execute_step(
 		&self,
 		ctx: &mut WorkerContext,
 		data: &mut Self::Data,

@@ -1,5 +1,5 @@
 use crate::{
-	extract_job_data, extract_job_data_mut,
+	extract_job_data,
 	job::{
 		JobError, JobInitData, JobReportUpdate, JobResult, JobState, StatefulJob, WorkerContext,
 	},
@@ -160,7 +160,7 @@ impl StatefulJob for FileIdentifierJob {
 		Ok((data, (0..task_count).map(|_| ()).collect()))
 	}
 
-	async fn execute_step_raw(
+	async fn execute_step(
 		&self,
 		ctx: &mut WorkerContext,
 		FileIdentifierJobState {
