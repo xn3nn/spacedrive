@@ -1,7 +1,7 @@
 use crate::{
 	api::CoreEvent,
 	invalidate_query,
-	job::{JobError, JobReportUpdate, JobResult, JobState, WorkerContext},
+	job::{JobError, JobReportUpdate, JobResult, JobState, StatefulJob, WorkerContext},
 	library::Library,
 	location::file_path_helper::{file_path_for_thumbnailer, FilePathError, IsolatedFilePathData},
 	prisma::location,
@@ -9,6 +9,7 @@ use crate::{
 };
 
 use std::{
+	collections::VecDeque,
 	error::Error,
 	ops::Deref,
 	path::{Path, PathBuf},
@@ -80,6 +81,7 @@ static FILTERED_IMAGE_EXTENSIONS: Lazy<Vec<Extension>> = Lazy::new(|| {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ThumbnailerJobState {
+	location: location::Data,
 	thumbnail_dir: PathBuf,
 	location_path: PathBuf,
 	report: ThumbnailerJobReport,
@@ -224,10 +226,12 @@ fn finalize_thumbnailer(data: &ThumbnailerJobState, ctx: &mut WorkerContext) -> 
 }
 
 async fn process_step(
-	state: &mut JobState<ThumbnailerJob>,
 	ctx: &mut WorkerContext,
+	data: &mut ThumbnailerJobState,
+	steps: &mut VecDeque<<ThumbnailerJob as StatefulJob>::Step>,
+	step_number: usize,
 ) -> Result<(), JobError> {
-	let step = &state.steps[0];
+	let step = &steps[0];
 
 	ctx.progress(vec![JobReportUpdate::Message(format!(
 		"Processing {}",
@@ -237,25 +241,22 @@ async fn process_step(
 		)?
 	))]);
 
-	let data = state
-		.data
-		.as_mut()
-		.expect("critical error: missing data on job state")
-		.as_mut()
-		.expect("critical error: missing inner data on job state");
+	// let data = data
+	// 	.as_mut()
+	// 	.expect("critical error: missing data on job state")
+	// 	.as_mut()
+	// 	.expect("critical error: missing inner data on job state");
 
 	let step_result = inner_process_step(
 		step,
 		&data.location_path,
 		&data.thumbnail_dir,
-		&state.init.location,
+		&data.location,
 		&ctx.library,
 	)
 	.await;
 
-	ctx.progress(vec![JobReportUpdate::CompletedTaskCount(
-		state.step_number + 1,
-	)]);
+	ctx.progress(vec![JobReportUpdate::CompletedTaskCount(step_number + 1)]);
 
 	match step_result {
 		Ok(thumbnail_was_created) => {

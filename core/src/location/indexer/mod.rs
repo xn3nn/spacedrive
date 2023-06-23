@@ -57,6 +57,8 @@ impl Hash for IndexerJobInit {
 /// contains some metadata for logging purposes.
 #[derive(Serialize, Deserialize)]
 pub struct IndexerJobData {
+	// TODO: Don't store location as it could change during job execution?
+	location: location_with_indexer_rules::Data,
 	indexed_path: PathBuf,
 	indexer_rules: Vec<rules::IndexerRule>,
 	db_write_time: Duration,

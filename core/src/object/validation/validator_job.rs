@@ -36,6 +36,8 @@ pub struct ObjectValidatorJob {}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ObjectValidatorJobState {
+	// TODO: Only store minimal set of data as this could change during job execution
+	pub location: location::Data,
 	pub location_path: PathBuf,
 	pub task_count: usize,
 }
@@ -130,6 +132,7 @@ impl StatefulJob for ObjectValidatorJob {
 			.into();
 
 		let data = ObjectValidatorJobState {
+			location: init.location.clone(),
 			location_path,
 			task_count: steps.len(),
 		};
@@ -139,15 +142,16 @@ impl StatefulJob for ObjectValidatorJob {
 		Ok((data, steps))
 	}
 
-	async fn execute_step(
+	async fn execute_step_raw(
 		&self,
 		ctx: &mut WorkerContext,
-		state: &mut JobState<Self>,
+		data: &mut Self::Data,
+		steps: &mut VecDeque<Self::Step>,
+		step_number: usize,
 	) -> Result<(), JobError> {
 		let Library { db, sync, .. } = &ctx.library;
 
-		let file_path = &state.steps[0];
-		let data = extract_job_data!(state);
+		let file_path = &steps[0];
 
 		// this is to skip files that already have checksums
 		// i'm unsure what the desired behaviour is in this case
@@ -155,7 +159,7 @@ impl StatefulJob for ObjectValidatorJob {
 		// This if is just to make sure, we already queried objects where integrity_checksum is null
 		if file_path.integrity_checksum.is_none() {
 			let full_path = data.location_path.join(IsolatedFilePathData::try_from((
-				state.init.location.id,
+				data.location.id,
 				file_path,
 			))?);
 			let checksum = file_checksum(&full_path)
@@ -179,9 +183,7 @@ impl StatefulJob for ObjectValidatorJob {
 			.await?;
 		}
 
-		ctx.progress(vec![JobReportUpdate::CompletedTaskCount(
-			state.step_number + 1,
-		)]);
+		ctx.progress(vec![JobReportUpdate::CompletedTaskCount(step_number + 1)]);
 
 		Ok(())
 	}

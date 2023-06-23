@@ -149,6 +149,7 @@ impl StatefulJob for ThumbnailerJob {
 		]);
 
 		let data = Some(ThumbnailerJobState {
+			location: init.location.clone(),
 			thumbnail_dir,
 			location_path,
 			report: ThumbnailerJobReport {
@@ -162,13 +163,15 @@ impl StatefulJob for ThumbnailerJob {
 		Ok((data, all_files))
 	}
 
-	async fn execute_step(
+	async fn execute_step_raw(
 		&self,
 		ctx: &mut WorkerContext,
-		state: &mut JobState<Self>,
+		data: &mut Self::Data,
+		steps: &mut VecDeque<Self::Step>,
+		step_number: usize,
 	) -> Result<(), JobError> {
-		if extract_job_data!(state).is_some() {
-			process_step(state, ctx).await
+		if let Some(data) = data {
+			process_step(ctx, data, steps, step_number).await
 		} else {
 			Ok(())
 		}

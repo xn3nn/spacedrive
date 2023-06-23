@@ -28,6 +28,7 @@ pub struct FileCopierJob {}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FileCopierJobState {
+	source_location_id: location::id::Type,
 	sources_location_path: PathBuf,
 }
 
@@ -100,6 +101,7 @@ impl StatefulJob for FileCopierJob {
 			.collect::<VecDeque<_>>();
 
 		let data = FileCopierJobState {
+			source_location_id: init.source_location_id.clone(),
 			sources_location_path,
 		};
 
@@ -108,17 +110,17 @@ impl StatefulJob for FileCopierJob {
 		Ok((data, steps))
 	}
 
-	async fn execute_step(
+	async fn execute_step_raw(
 		&self,
 		ctx: &mut WorkerContext,
-		state: &mut JobState<Self>,
+		data: &mut Self::Data,
+		steps: &mut VecDeque<Self::Step>,
+		step_number: usize,
 	) -> Result<(), JobError> {
 		let FileCopierJobStep {
 			source_file_data,
 			target_full_path,
-		} = &state.steps[0];
-
-		let data = extract_job_data!(state);
+		} = &steps[0];
 
 		if maybe_missing(source_file_data.file_path.is_dir, "file_path.is_dir")? {
 			fs::create_dir_all(target_full_path)
@@ -133,23 +135,23 @@ impl StatefulJob for FileCopierJob {
 			while let Some(children_entry) = read_dir
 				.next_entry()
 				.await
-				.map_err(|e| FileIOError::from((&state.steps[0].source_file_data.full_path, e)))?
+				.map_err(|e| FileIOError::from((&steps[0].source_file_data.full_path, e)))?
 			{
 				let children_path = children_entry.path();
-				let target_children_full_path = state.steps[0].target_full_path.join(
+				let target_children_full_path = steps[0].target_full_path.join(
 					children_path
-						.strip_prefix(&state.steps[0].source_file_data.full_path)
+						.strip_prefix(&steps[0].source_file_data.full_path)
 						.map_err(|_| JobError::Path)?,
 				);
 
 				// Currently not supporting file_name suffixes children files in a directory being copied
-				state.steps.push_back(FileCopierJobStep {
+				steps.push_back(FileCopierJobStep {
 					target_full_path: target_children_full_path,
 					source_file_data: get_file_data_from_isolated_file_path(
 						&ctx.library.db,
 						&data.sources_location_path,
 						&IsolatedFilePathData::new(
-							state.init.source_location_id,
+							data.source_location_id,
 							&data.sources_location_path,
 							&children_path,
 							children_entry
@@ -163,7 +165,7 @@ impl StatefulJob for FileCopierJob {
 					.await?,
 				});
 
-				ctx.progress(vec![JobReportUpdate::TaskCount(state.steps.len())]);
+				ctx.progress(vec![JobReportUpdate::TaskCount(steps.len())]);
 			}
 		} else {
 			if source_file_data.full_path.parent().ok_or(JobError::Path)?
@@ -198,9 +200,7 @@ impl StatefulJob for FileCopierJob {
 			}
 		}
 
-		ctx.progress(vec![JobReportUpdate::CompletedTaskCount(
-			state.step_number + 1,
-		)]);
+		ctx.progress(vec![JobReportUpdate::CompletedTaskCount(step_number + 1)]);
 
 		Ok(())
 	}

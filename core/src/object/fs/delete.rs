@@ -61,12 +61,14 @@ impl StatefulJob for FileDeleterJob {
 		Ok(((), steps))
 	}
 
-	async fn execute_step(
+	async fn execute_step_raw(
 		&self,
 		ctx: &mut WorkerContext,
-		state: &mut JobState<Self>,
+		_: &mut Self::Data,
+		steps: &mut VecDeque<Self::Step>,
+		step_number: usize,
 	) -> Result<(), JobError> {
-		let step = &state.steps[0];
+		let step = &steps[0];
 
 		// need to handle stuff such as querying prisma for all paths of a file, and deleting all of those if requested (with a checkbox in the ui)
 		// maybe a files.countOccurances/and or files.getPath(location_id, path_id) to show how many of these files would be deleted (and where?)
@@ -94,9 +96,7 @@ impl StatefulJob for FileDeleterJob {
 			}
 		}
 
-		ctx.progress(vec![JobReportUpdate::CompletedTaskCount(
-			state.step_number + 1,
-		)]);
+		ctx.progress(vec![JobReportUpdate::CompletedTaskCount(step_number + 1)]);
 
 		Ok(())
 	}

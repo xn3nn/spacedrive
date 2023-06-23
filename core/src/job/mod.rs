@@ -62,11 +62,35 @@ pub trait StatefulJob: Send + Sync + Sized {
 	) -> Result<(Self::Data, VecDeque<Self::Step>), JobError>;
 
 	/// is called for each step in the job. These steps are created in the `Self::init` method.
+	async fn execute_step_raw(
+		&self,
+		ctx: &mut WorkerContext,
+		data: &mut Self::Data,
+		steps: &mut VecDeque<Self::Step>,
+		step_number: usize,
+	) -> Result<(), JobError> {
+		unreachable!();
+	}
+
+	// TODO: Remove this
+	/// is called for each step in the job. These steps are created in the `Self::init` method.
 	async fn execute_step(
 		&self,
 		ctx: &mut WorkerContext,
 		state: &mut JobState<Self>,
-	) -> Result<(), JobError>;
+	) -> Result<(), JobError> {
+		Self::execute_step_raw(
+			self,
+			ctx,
+			state
+				.data
+				.as_mut()
+				.expect("critical error: missing data on job state"),
+			&mut state.steps,
+			state.step_number,
+		)
+		.await
+	}
 
 	/// is called after all steps have been executed
 	async fn finalize(&mut self, ctx: &mut WorkerContext, state: &mut JobState<Self>) -> JobResult;
@@ -430,6 +454,7 @@ impl<SJob: StatefulJob> DynJob for Job<SJob> {
 	}
 }
 
+// TODO: Remove this
 #[macro_export]
 macro_rules! extract_job_data {
 	($state:ident) => {{
@@ -440,6 +465,7 @@ macro_rules! extract_job_data {
 	}};
 }
 
+// TODO: Remove this
 #[macro_export]
 macro_rules! extract_job_data_mut {
 	($state:ident) => {{

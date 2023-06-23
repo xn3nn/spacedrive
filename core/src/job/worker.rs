@@ -340,63 +340,6 @@ impl Worker {
 						}));
 					}
 				}
-				// WorkerEvent::Completed(done_tx, metadata) => {
-				// 	worker.report.status = JobStatus::Completed;
-				// 	worker.report.data = None;
-				// 	worker.report.metadata = metadata;
-				// 	worker.report.completed_at = Some(Utc::now());
-				// 	if let Err(e) = worker.report.update(&library).await {
-				// 		error!("failed to update job report: {:#?}", e);
-				// 	}
-
-				// 	invalidate_query!(library, "jobs.reports");
-
-				// 	info!("{}", worker.report);
-
-				// 	done_tx
-				// 		.send(())
-				// 		.expect("critical error: failed to send worker completion");
-
-				// 	break;
-				// }
-				// WorkerEvent::CompletedWithErrors(done_tx, metadata, errors) => {
-				// 	worker.report.status = JobStatus::CompletedWithErrors;
-				// 	worker.report.errors_text = errors;
-				// 	worker.report.data = None;
-				// 	worker.report.metadata = metadata;
-				// 	worker.report.completed_at = Some(Utc::now());
-				// 	if let Err(e) = worker.report.update(&library).await {
-				// 		error!("failed to update job report: {:#?}", e);
-				// 	}
-
-				// 	invalidate_query!(library, "jobs.reports");
-
-				// 	info!("{}", worker.report);
-
-				// 	done_tx
-				// 		.send(())
-				// 		.expect("critical error: failed to send worker completion");
-
-				// 	break;
-				// }
-				// WorkerEvent::Failed(done_tx) => {
-				// 	worker.report.status = JobStatus::Failed;
-				// 	worker.report.data = None;
-				// 	if let Err(e) = worker.report.update(&library).await {
-				// 		error!("failed to update job report: {:#?}", e);
-				// 	}
-
-				// 	invalidate_query!(library, "library.list");
-				// 	invalidate_query!(library, "jobs.reports");
-
-				// 	warn!("{}", worker.report);
-
-				// 	done_tx
-				// 		.send(())
-				// 		.expect("critical error: failed to send worker completion");
-
-				// 	break;
-				// }
 				WorkerEvent::Paused(state) => {
 					debug!("Setting worker status to paused");
 

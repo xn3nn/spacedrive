@@ -49,6 +49,7 @@ impl Hash for FileIdentifierJobInit {
 
 #[derive(Serialize, Deserialize)]
 pub struct FileIdentifierJobState {
+	location: location::Data,
 	cursor: file_path::id::Type,
 	report: FileIdentifierReport,
 	maybe_sub_iso_file_path: Option<IsolatedFilePathData<'static>>,
@@ -114,6 +115,7 @@ impl StatefulJob for FileIdentifierJob {
 
 		// Initializing `state.data` here because we need a complete state in case of early finish
 		let mut data = FileIdentifierJobState {
+			location: init.location.clone(),
 			report: FileIdentifierReport {
 				location_path: location_path.to_path_buf(),
 				total_orphan_paths: orphan_count,
@@ -158,20 +160,18 @@ impl StatefulJob for FileIdentifierJob {
 		Ok((data, (0..task_count).map(|_| ()).collect()))
 	}
 
-	async fn execute_step(
+	async fn execute_step_raw(
 		&self,
 		ctx: &mut WorkerContext,
-		state: &mut JobState<Self>,
-	) -> Result<(), JobError> {
-		let FileIdentifierJobState {
+		FileIdentifierJobState {
+			location,
 			ref mut cursor,
 			ref mut report,
 			ref maybe_sub_iso_file_path,
-		} = extract_job_data_mut!(state);
-
-		let step_number = state.step_number;
-		let location = &state.init.location;
-
+		}: &mut Self::Data,
+		_steps: &mut VecDeque<Self::Step>,
+		step_number: usize,
+	) -> Result<(), JobError> {
 		// get chunk of orphans to process
 		let file_paths = get_orphan_file_paths(
 			&ctx.library.db,

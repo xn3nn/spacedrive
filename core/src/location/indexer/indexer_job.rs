@@ -152,6 +152,7 @@ impl StatefulJob for IndexerJob {
 		);
 
 		let data = IndexerJobData {
+			location: init.location.clone(),
 			indexed_path: to_walk_path,
 			indexer_rules,
 			db_write_time: db_delete_time,
@@ -172,14 +173,14 @@ impl StatefulJob for IndexerJob {
 	}
 
 	/// Process each chunk of entries in the indexer job, writing to the `file_path` table
-	async fn execute_step(
+	async fn execute_step_raw(
 		&self,
 		ctx: &mut WorkerContext,
-		state: &mut JobState<Self>,
+		data: &mut Self::Data,
+		steps: &mut VecDeque<Self::Step>,
+		_step_number: usize,
 	) -> Result<(), JobError> {
-		let data = extract_job_data_mut!(state);
-
-		match &state.steps[0] {
+		match &steps[0] {
 			IndexerJobStepInput::Save(step) => {
 				let start_time = Instant::now();
 
@@ -195,16 +196,15 @@ impl StatefulJob for IndexerJob {
 				);
 
 				let count =
-					execute_indexer_save_step(&state.init.location, step, &ctx.library.clone())
-						.await?;
+					execute_indexer_save_step(&data.location, step, &ctx.library.clone()).await?;
 
 				data.indexed_count += count as u64;
 				data.db_write_time += start_time.elapsed();
 			}
 			IndexerJobStepInput::Walk(to_walk_entry) => {
-				let location_id = state.init.location.id;
+				let location_id = data.location.id;
 				let location_path =
-					maybe_missing(&state.init.location.path, "location.path").map(Path::new)?;
+					maybe_missing(&data.location.path, "location.path").map(Path::new)?;
 
 				let db = Arc::clone(&ctx.library.db);
 
@@ -235,9 +235,9 @@ impl StatefulJob for IndexerJob {
 				data.db_write_time += db_delete_time.elapsed();
 
 				let _old_total = data.total_paths;
-				let _old_steps_count = state.steps.len() as u64;
+				let _old_steps_count = steps.len() as u64;
 
-				state.steps.extend(
+				steps.extend(
 					walked
 						.chunks(BATCH_SIZE)
 						.into_iter()

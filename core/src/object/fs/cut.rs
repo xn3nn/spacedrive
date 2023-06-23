@@ -84,14 +84,14 @@ impl StatefulJob for FileCutterJob {
 		Ok((data, steps))
 	}
 
-	async fn execute_step(
+	async fn execute_step_raw(
 		&self,
 		ctx: &mut WorkerContext,
-		state: &mut JobState<Self>,
+		data: &mut Self::Data,
+		steps: &mut VecDeque<Self::Step>,
+		step_number: usize,
 	) -> Result<(), JobError> {
-		let data = extract_job_data!(state);
-
-		let step = &state.steps[0];
+		let step = &steps[0];
 
 		let full_output = data
 			.full_target_directory_path
@@ -126,9 +126,7 @@ impl StatefulJob for FileCutterJob {
 					.await
 					.map_err(|e| FileIOError::from((&step.full_path, e)))?;
 
-				ctx.progress(vec![JobReportUpdate::CompletedTaskCount(
-					state.step_number + 1,
-				)]);
+				ctx.progress(vec![JobReportUpdate::CompletedTaskCount(step_number + 1)]);
 
 				Ok(())
 			}

@@ -71,7 +71,6 @@ impl<Job: StatefulJob> ModernJob for ModernJobCompat<Job> {
 		Box::pin(stream! {
 			match self.state {
 				ModernJobCompatState::Init => {
-					self.
 					todo!();
 				}
 				ModernJobCompatState::Step(step) => {
