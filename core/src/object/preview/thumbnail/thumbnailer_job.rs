@@ -1,8 +1,5 @@
 use crate::{
-	extract_job_data,
-	job::{
-		JobError, JobInitData, JobReportUpdate, JobResult, JobState, StatefulJob, WorkerContext,
-	},
+	job::{JobError, JobInitData, JobReportUpdate, JobResult, StatefulJob, WorkerContext},
 	library::Library,
 	location::file_path_helper::{
 		ensure_file_path_exists, ensure_sub_path_is_directory, ensure_sub_path_is_in_location,
@@ -177,9 +174,9 @@ impl StatefulJob for ThumbnailerJob {
 		}
 	}
 
-	async fn finalize(&mut self, ctx: &mut WorkerContext, state: &mut JobState<Self>) -> JobResult {
-		if let Some(state) = extract_job_data!(state) {
-			finalize_thumbnailer(state, ctx)
+	async fn finalize(&mut self, ctx: &mut WorkerContext, data: &mut Self::Data) -> JobResult {
+		if let Some(data) = data {
+			finalize_thumbnailer(data, ctx)
 		} else {
 			Ok(None)
 		}

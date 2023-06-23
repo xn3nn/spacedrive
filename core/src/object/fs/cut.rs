@@ -21,7 +21,7 @@ use super::{fetch_source_and_target_location_paths, get_many_files_datas, FileDa
 
 pub struct FileCutterJob {}
 
-#[derive(Serialize, Deserialize, Hash, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, Type)]
 pub struct FileCutterJobInit {
 	pub source_location_id: location::id::Type,
 	pub target_location_id: location::id::Type,
@@ -31,6 +31,7 @@ pub struct FileCutterJobInit {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FileCutterJobState {
+	init: FileCutterJobInit,
 	full_target_directory_path: PathBuf,
 }
 
@@ -71,6 +72,7 @@ impl StatefulJob for FileCutterJob {
 		);
 
 		let data = FileCutterJobState {
+			init: init.clone(),
 			full_target_directory_path,
 		};
 
@@ -135,9 +137,9 @@ impl StatefulJob for FileCutterJob {
 		}
 	}
 
-	async fn finalize(&mut self, ctx: &mut WorkerContext, state: &mut JobState<Self>) -> JobResult {
+	async fn finalize(&mut self, ctx: &mut WorkerContext, data: &mut Self::Data) -> JobResult {
 		invalidate_query!(ctx.library, "search.paths");
 
-		Ok(Some(serde_json::to_value(&state.init)?))
+		Ok(Some(serde_json::to_value(&data.init)?))
 	}
 }

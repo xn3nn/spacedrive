@@ -274,9 +274,9 @@ impl StatefulJob for IndexerJob {
 		Ok(())
 	}
 
-	async fn finalize(&mut self, ctx: &mut WorkerContext, state: &mut JobState<Self>) -> JobResult {
+	async fn finalize(&mut self, ctx: &mut WorkerContext, data: &mut Self::Data) -> JobResult {
 		let location_path =
-			maybe_missing(&state.init.location.path, "location.path").map(Path::new)?;
+			maybe_missing(&data.init.location.path, "location.path").map(Path::new)?;
 
 		finalize_indexer(location_path, state, ctx)
 	}

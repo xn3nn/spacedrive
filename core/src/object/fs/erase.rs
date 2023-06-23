@@ -1,8 +1,6 @@
 use crate::{
-	extract_job_data_mut, invalidate_query,
-	job::{
-		JobError, JobInitData, JobReportUpdate, JobResult, JobState, StatefulJob, WorkerContext,
-	},
+	invalidate_query,
+	job::{JobError, JobInitData, JobReportUpdate, JobResult, StatefulJob, WorkerContext},
 	library::Library,
 	location::file_path_helper::IsolatedFilePathData,
 	prisma::{file_path, location},
@@ -29,7 +27,7 @@ use super::{
 pub struct FileEraserJob {}
 
 #[serde_as]
-#[derive(Serialize, Deserialize, Hash, Type)]
+#[derive(Clone, Serialize, Deserialize, Hash, Type)]
 pub struct FileEraserJobInit {
 	pub location_id: location::id::Type,
 	pub file_path_ids: Vec<file_path::id::Type>,
@@ -44,10 +42,7 @@ impl JobInitData for FileEraserJobInit {
 
 #[derive(Serialize, Deserialize)]
 pub struct FileEraserJobData {
-	location_id: location::id::Type,
-	// #[specta(type = String)]
-	// #[serde_as(as = "DisplayFromStr")]
-	passes: usize,
+	init: FileEraserJobInit,
 	location_path: PathBuf,
 	diretories_to_remove: Vec<PathBuf>,
 }
@@ -78,8 +73,7 @@ impl StatefulJob for FileEraserJob {
 			.into();
 
 		let data = FileEraserJobData {
-			location_id: init.location_id.clone(),
-			passes: init.passes.clone(),
+			init: init.clone(),
 			location_path,
 			diretories_to_remove: vec![],
 		};
@@ -174,21 +168,16 @@ impl StatefulJob for FileEraserJob {
 		Ok(())
 	}
 
-	async fn finalize(&mut self, ctx: &mut WorkerContext, state: &mut JobState<Self>) -> JobResult {
-		try_join_all(
-			extract_job_data_mut!(state)
-				.diretories_to_remove
-				.drain(..)
-				.map(|data| async {
-					fs::remove_dir_all(&data)
-						.await
-						.map_err(|e| FileIOError::from((data, e)))
-				}),
-		)
+	async fn finalize(&mut self, ctx: &mut WorkerContext, data: &mut Self::Data) -> JobResult {
+		try_join_all(data.diretories_to_remove.drain(..).map(|data| async {
+			fs::remove_dir_all(&data)
+				.await
+				.map_err(|e| FileIOError::from((data, e)))
+		}))
 		.await?;
 
 		invalidate_query!(ctx.library, "search.paths");
 
-		Ok(Some(serde_json::to_value(&state.init)?))
+		Ok(Some(serde_json::to_value(&data.init)?))
 	}
 }

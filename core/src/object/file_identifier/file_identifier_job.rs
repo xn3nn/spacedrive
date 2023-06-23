@@ -216,8 +216,8 @@ impl StatefulJob for FileIdentifierJob {
 		Ok(())
 	}
 
-	async fn finalize(&mut self, _: &mut WorkerContext, state: &mut JobState<Self>) -> JobResult {
-		let report = &extract_job_data!(state).report;
+	async fn finalize(&mut self, _: &mut WorkerContext, data: &mut Self::Data) -> JobResult {
+		let report = &data.report;
 
 		info!("Finalizing identifier job: {report:?}");
 

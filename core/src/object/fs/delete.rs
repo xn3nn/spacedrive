@@ -32,7 +32,7 @@ impl JobInitData for FileDeleterJobInit {
 #[async_trait::async_trait]
 impl StatefulJob for FileDeleterJob {
 	type Init = FileDeleterJobInit;
-	type Data = ();
+	type Data = FileDeleterJobInit;
 	type Step = FileData;
 
 	const NAME: &'static str = "file_deleter";
@@ -58,7 +58,7 @@ impl StatefulJob for FileDeleterJob {
 
 		ctx.progress(vec![JobReportUpdate::TaskCount(steps.len())]);
 
-		Ok(((), steps))
+		Ok((init, steps))
 	}
 
 	async fn execute_step(
@@ -101,9 +101,9 @@ impl StatefulJob for FileDeleterJob {
 		Ok(())
 	}
 
-	async fn finalize(&mut self, ctx: &mut WorkerContext, state: &mut JobState<Self>) -> JobResult {
+	async fn finalize(&mut self, ctx: &mut WorkerContext, init: &mut Self::Data) -> JobResult {
 		invalidate_query!(ctx.library, "search.paths");
 
-		Ok(Some(serde_json::to_value(&state.init)?))
+		Ok(Some(serde_json::to_value(&init)?))
 	}
 }

@@ -71,7 +71,7 @@ pub trait StatefulJob: Send + Sync + Sized {
 	) -> Result<(), JobError>;
 
 	/// is called after all steps have been executed
-	async fn finalize(&mut self, ctx: &mut WorkerContext, state: &mut JobState<Self>) -> JobResult;
+	async fn finalize(&mut self, ctx: &mut WorkerContext, data: &mut Self::Data) -> JobResult;
 }
 
 #[async_trait::async_trait]
@@ -357,7 +357,16 @@ impl<SJob: StatefulJob> DynJob for Job<SJob> {
 			self.state.step_number += 1;
 		}
 
-		let metadata = self.stateful_job.finalize(ctx, &mut self.state).await?;
+		let metadata = self
+			.stateful_job
+			.finalize(
+				ctx,
+				&mut self
+					.data
+					.as_mut()
+					.expect("critical error: missing data on job state"),
+			)
+			.await?;
 
 		let mut next_jobs = mem::take(&mut self.next_jobs);
 

@@ -1,8 +1,5 @@
 use crate::{
-	extract_job_data,
-	job::{
-		JobError, JobInitData, JobReportUpdate, JobResult, JobState, StatefulJob, WorkerContext,
-	},
+	job::{JobError, JobInitData, JobReportUpdate, JobResult, StatefulJob, WorkerContext},
 	library::Library,
 	location::file_path_helper::{
 		ensure_file_path_exists, ensure_sub_path_is_directory, ensure_sub_path_is_in_location,
@@ -36,14 +33,13 @@ pub struct ObjectValidatorJob {}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ObjectValidatorJobState {
-	// TODO: Only store minimal set of data as this could change during job execution
-	pub location: location::Data,
+	pub init: ObjectValidatorJobInit,
 	pub location_path: PathBuf,
 	pub task_count: usize,
 }
 
 // The validator can
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ObjectValidatorJobInit {
 	pub location: location::Data,
 	pub sub_path: Option<PathBuf>,
@@ -132,7 +128,7 @@ impl StatefulJob for ObjectValidatorJob {
 			.into();
 
 		let data = ObjectValidatorJobState {
-			location: init.location.clone(),
+			init: init.clone(),
 			location_path,
 			task_count: steps.len(),
 		};
@@ -159,7 +155,7 @@ impl StatefulJob for ObjectValidatorJob {
 		// This if is just to make sure, we already queried objects where integrity_checksum is null
 		if file_path.integrity_checksum.is_none() {
 			let full_path = data.location_path.join(IsolatedFilePathData::try_from((
-				data.location.id,
+				data.init.location.id,
 				file_path,
 			))?);
 			let checksum = file_checksum(&full_path)
@@ -188,17 +184,11 @@ impl StatefulJob for ObjectValidatorJob {
 		Ok(())
 	}
 
-	async fn finalize(
-		&mut self,
-		_ctx: &mut WorkerContext,
-		state: &mut JobState<Self>,
-	) -> JobResult {
-		let data = extract_job_data!(state);
+	async fn finalize(&mut self, _ctx: &mut WorkerContext, data: &mut Self::Data) -> JobResult {
 		info!(
 			"finalizing validator job at {}{}: {} tasks",
 			data.location_path.display(),
-			state
-				.init
+			data.init
 				.sub_path
 				.as_ref()
 				.map(|p| format!("{}", p.display()))
@@ -206,6 +196,6 @@ impl StatefulJob for ObjectValidatorJob {
 			data.task_count
 		);
 
-		Ok(Some(serde_json::to_value(&state.init)?))
+		Ok(Some(serde_json::to_value(&data.init)?))
 	}
 }
