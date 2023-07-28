@@ -1,14 +1,16 @@
 use std::{
 	any::type_name,
 	fs::File,
-	io::{self, BufReader, Seek, Write},
-	path::Path,
+	io::{self, Seek, Write},
+	path::{Path, PathBuf},
 };
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{Map, Value};
 use specta::Type;
 use thiserror::Error;
+
+use super::db::MissingFieldError;
 
 /// is used to decode the configuration and work out what migrations need to be applied before the config can be properly loaded.
 /// This allows us to migrate breaking changes to the config format between Spacedrive releases.
@@ -23,10 +25,12 @@ pub struct BaseConfig {
 
 /// System for managing app level migrations on a config file so we can introduce breaking changes to the app without the user needing to reset their whole system.
 #[async_trait::async_trait]
-pub trait Migrate: Sized + DeserializeOwned + Serialize + Default {
+pub trait Migrate: Sized + DeserializeOwned + Serialize {
 	const CURRENT_VERSION: u32;
 
 	type Ctx: Sync;
+
+	fn default(path: PathBuf) -> Result<Self, MigratorError>;
 
 	async fn migrate(
 		from_version: u32,
@@ -37,31 +41,22 @@ pub trait Migrate: Sized + DeserializeOwned + Serialize + Default {
 	async fn load_and_migrate(path: &Path, ctx: &Self::Ctx) -> Result<Self, MigratorError> {
 		match path.try_exists()? {
 			true => {
-				let mut file = File::options().read(true).write(true).open(path)?;
-				let mut cfg: BaseConfig = match serde_json::from_reader(BufReader::new(&mut file)) {
+				let mut file = File::options().write(true).read(true).open(path)?;
+				let mut cfg: BaseConfig = match serde_json::from_reader(&mut file) {
 					Ok(cfg) => cfg,
 					Err(err) => {
 						// This is for backwards compatibility for the backwards compatibility cause the super super old system store the version as a string.
-						{
-							file.rewind()?;
-							let mut y = match serde_json::from_reader::<_, Value>(BufReader::new(
-								&mut file,
-							)) {
-								Ok(y) => y,
-								Err(_) => {
-									return Err(err.into());
-								}
-							};
+						file.rewind()?;
+						let mut cfg = serde_json::from_reader::<_, Value>(file)?;
 
-							if let Some(obj) = y.as_object_mut() {
-								if let Some(_) = obj.get("version").and_then(|v| v.as_str()) {
-									return Err(MigratorError::HasSuperLegacyConfig); // This is just to make the error nicer
-								} else {
-									return Err(err.into());
-								}
+						if let Some(obj) = cfg.as_object_mut() {
+							if obj.contains_key("version") {
+								return Err(MigratorError::HasSuperLegacyConfig); // This is just to make the error nicer
 							} else {
 								return Err(err.into());
 							}
+						} else {
+							return Err(err.into());
 						}
 					}
 				};
@@ -74,9 +69,10 @@ pub trait Migrate: Sized + DeserializeOwned + Serialize + Default {
 				let is_latest = cfg.version == Self::CURRENT_VERSION;
 				for v in (cfg.version + 1)..=Self::CURRENT_VERSION {
 					cfg.version = v;
-					match Self::migrate(v, &mut cfg.other, &ctx).await {
+					match Self::migrate(v, &mut cfg.other, ctx).await {
 						Ok(()) => (),
 						Err(err) => {
+							file.set_len(0)?; // Truncate the file
 							file.write_all(serde_json::to_string(&cfg)?.as_bytes())?; // Writes updated version
 							return Err(err);
 						}
@@ -84,13 +80,14 @@ pub trait Migrate: Sized + DeserializeOwned + Serialize + Default {
 				}
 
 				if !is_latest {
+					file.set_len(0)?; // Truncate the file
 					file.write_all(serde_json::to_string(&cfg)?.as_bytes())?; // Writes updated version
 				}
 
 				Ok(serde_json::from_value(Value::Object(cfg.other))?)
 			}
 			false => Ok(serde_json::from_value(Value::Object(
-				Self::default().save(path)?.other,
+				Self::default(path.into())?.save(path)?.other,
 			))?),
 		}
 	}
@@ -114,12 +111,12 @@ pub trait Migrate: Sized + DeserializeOwned + Serialize + Default {
 
 #[derive(Error, Debug)]
 pub enum MigratorError {
-	#[error("error saving or loading the config from the filesystem: {0}")]
+	#[error("Io - error saving or loading the config from the filesystem: {0}")]
 	Io(#[from] io::Error),
-	#[error("error serializing or deserializing the JSON in the config file: {0}")]
+	#[error("Json - error serializing or deserializing the JSON in the config file: {0}")]
 	Json(#[from] serde_json::Error),
 	#[error(
-		"the config file is for a newer version of the app. Please update to the latest version to load it!"
+		"YourAppIsOutdated - the config file is for a newer version of the app. Please update to the latest version to load it!"
 	)]
 	YourAppIsOutdated,
 	#[error("Type '{0}' as generic `Migrator::T` must be serialiable to a Serde object!")]
@@ -128,11 +125,16 @@ pub enum MigratorError {
 	Database(#[from] prisma_client_rust::QueryError),
 	#[error("We detected a Spacedrive config from a super early version of the app!")]
 	HasSuperLegacyConfig,
+	#[error("file '{}' was not found by the migrator!", .0.display())]
+	ConfigFileMissing(PathBuf),
+	#[error("missing-field: {0}")]
+	MissingField(#[from] MissingFieldError),
 	#[error("custom migration error: {0}")]
 	Custom(String),
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::panic)]
 mod test {
 	use std::{fs, io::Read, path::PathBuf};
 
@@ -153,10 +155,14 @@ mod test {
 
 		type Ctx = ();
 
+		fn default(_path: PathBuf) -> Result<Self, MigratorError> {
+			Ok(<Self as Default>::default())
+		}
+
 		async fn migrate(
 			to_version: u32,
 			config: &mut Map<String, Value>,
-			ctx: &Self::Ctx,
+			_ctx: &Self::Ctx,
 		) -> Result<(), MigratorError> {
 			match to_version {
 				0 => Ok(()),
@@ -217,12 +223,13 @@ mod test {
 				"version": 0
 			}))
 			.unwrap(),
-		);
+		)
+		.unwrap();
 		assert!(p.exists(), "config file was not initialised");
 		assert_eq!(file_as_str(&p), r#"{"version":0}"#);
 
 		// Load + migrate config
-		let config = MyConfigType::load_and_migrate(&p, &()).await.unwrap();
+		let _config = MyConfigType::load_and_migrate(&p, &()).await.unwrap();
 
 		assert_eq!(
 			file_as_str(&p),

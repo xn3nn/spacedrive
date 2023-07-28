@@ -1,96 +1,163 @@
-use crate::{attribute::Attribute, prelude::*};
+use prisma_client_rust_sdk::{prelude::*, prisma::prisma_models::walkers::RefinedFieldWalker};
 
-pub enum ModelType {
-	Owned,
-	SharedUnique,
-	SharedAtomic,
-	Relation,
-}
+use crate::{ModelSyncType, ModelWithSyncType};
 
-pub fn model_sync_type(model: &dml::Model, dml: &dml::Datamodel) -> ModelType {
-	let type_attribute = model
-		.documentation
-		.as_ref()
-		.map(Attribute::parse)
-		.unwrap()
-		.unwrap();
+pub fn module((model, sync_type): ModelWithSyncType) -> Module {
+	let model_name_snake = snake_ident(model.name());
 
-	match type_attribute.name {
-		"owned" => ModelType::Owned,
-		"shared" => ModelType::SharedUnique, // TODO: fix
-		"relation" => ModelType::Relation,
-		_ => unreachable!(),
-	}
-}
-pub fn module(model: &dml::Model, dml: &dml::Datamodel) -> TokenStream {
-	let model_name_snake = snake_ident(&model.name);
+	let sync_id = sync_type.as_ref().map(|sync_type| {
+		let fields = sync_type.sync_id();
+		let fields = fields.iter().flat_map(|field| {
+			let name_snake = snake_ident(field.name());
 
-	let set_params_enum = set_params_enum(model, dml);
+			let typ = match field.refine() {
+				RefinedFieldWalker::Scalar(_) => field.type_tokens(&quote!(self)),
+				RefinedFieldWalker::Relation(relation) => {
+					let relation_model_name_snake = snake_ident(relation.related_model().name());
+					Some(quote!(super::#relation_model_name_snake::SyncId))
+				}
+			};
 
-	let actions_struct = actions_struct(model, dml);
+			Some(quote!(pub #name_snake: #typ))
+		});
 
-	quote! {
-		pub mod #model_name_snake {
-			#set_params_enum
+		let model_stuff = match sync_type {
+			ModelSyncType::Relation { item, group } => {
+				let item_name_snake = snake_ident(item.name());
+				let item_model_name_snake = snake_ident(item.related_model().name());
 
-			#actions_struct
+				let group_name_snake = snake_ident(group.name());
+				let group_model_name_snake = snake_ident(group.related_model().name());
+
+				Some(quote! {
+					impl sd_sync::RelationSyncId for SyncId {
+						type ItemSyncId = super::#item_model_name_snake::SyncId;
+						type GroupSyncId = super::#group_model_name_snake::SyncId;
+
+						fn split(&self) -> (&Self::ItemSyncId, &Self::GroupSyncId) {
+							(
+								&self.#item_name_snake,
+								&self.#group_name_snake
+							)
+						}
+					}
+
+					impl sd_sync::RelationSyncModel for #model_name_snake::Types {
+						type SyncId = SyncId;
+					}
+				})
+			}
+			ModelSyncType::Shared { .. } => Some(quote! {
+				   impl sd_sync::SharedSyncModel for #model_name_snake::Types {
+					   type SyncId = SyncId;
+				   }
+			}),
+			_ => None,
+		};
+
+		quote! {
+			#[derive(serde::Serialize, serde::Deserialize, Clone)]
+			pub struct SyncId {
+				#(#fields),*
+			}
+
+			impl sd_sync::SyncId for SyncId {
+				type Model = #model_name_snake::Types;
+			}
+
+			#model_stuff
 		}
-	}
-}
-
-pub fn set_params_enum(model: &dml::Model, dml: &dml::Datamodel) -> TokenStream {
-	quote! {
-		pub enum SetParam {}
-	}
-}
-
-pub fn create_fn(model: &dml::Model, dml: &dml::Datamodel) -> TokenStream {
-	let required_scalar_fields = model.required_scalar_fields();
-
-	let args = required_scalar_fields.iter().map(|field| {
-		let name = snake_ident(field.name());
-		let typ = field.type_tokens(quote!(crate::prisma::));
-
-		quote!(#name: #typ)
 	});
 
-	match model_sync_type(model, dml) {
-		ModelType::Owned => {
-			quote! {
-				pub fn create(&self, #(#args),*, _params: Vec<SetParam>) {
+	let set_param_impl = {
+		let field_matches = model.fields().filter_map(|field| {
+				let field_name_snake = snake_ident(field.name());
 
+				match field.refine() {
+					RefinedFieldWalker::Scalar(scalar_field) => {
+						(!scalar_field.is_in_required_relation()).then(|| quote! {
+							#model_name_snake::#field_name_snake::set(::serde_json::from_value(val).unwrap()),
+						})
+					},
+					RefinedFieldWalker::Relation(relation_field) => {
+						let relation_model_name_snake = snake_ident(relation_field.related_model().name());
+
+						match relation_field.referenced_fields() {
+							Some(i)  => {
+								if i.count() == 1 {
+									Some(quote! {{
+										let val: std::collections::HashMap<String, ::serde_json::Value> = ::serde_json::from_value(val).unwrap();
+										let val = val.into_iter().next().unwrap();
+
+										#model_name_snake::#field_name_snake::connect(
+											#relation_model_name_snake::UniqueWhereParam::deserialize(&val.0, val.1).unwrap()
+										)
+									}})
+								} else { None }
+							},
+							_ => None
+						}
+					},
+				}.map(|body| quote!(#model_name_snake::#field_name_snake::NAME => #body))
+			});
+
+		match field_matches.clone().count() {
+			0 => quote!(),
+			_ => quote! {
+				impl #model_name_snake::SetParam {
+					pub fn deserialize(field: &str, val: ::serde_json::Value) -> Option<Self> {
+						Some(match field {
+							#(#field_matches)*
+							_ => return None
+						})
+					}
 				}
-			}
+			},
 		}
-		ModelType::SharedUnique => {
-			quote! {
-				pub fn create(&self, #(#args),*, _params: Vec<SetParam>) {}
-			}
-		}
-		ModelType::SharedAtomic => {
-			quote! {
-				pub fn create(&self, _params: Vec<SetParam>) {}
-			}
-		}
-		ModelType::Relation => {
-			quote! {
-				pub fn create(&self, _params: Vec<SetParam>) {}
-			}
-		}
-		_ => todo!(),
-	}
-}
+	};
 
-pub fn actions_struct(model: &dml::Model, dml: &dml::Datamodel) -> TokenStream {
-	let create_fn = create_fn(model, dml);
+	let unique_param_impl = {
+		let field_matches = model
+			.unique_criterias()
+			.flat_map(|criteria| match &criteria.fields().next() {
+				Some(field) if criteria.fields().len() == 1 => {
+					let field_name_snake = snake_ident(field.name());
 
-	quote! {
-		pub struct Actions<'a> {
-			pub(super) client: &'a super::#CRDT_CLIENT
-		}
+					Some(quote!(#model_name_snake::#field_name_snake::NAME =>
+						#model_name_snake::#field_name_snake::equals(
+							::serde_json::from_value(val).unwrap()
+						),
+					))
+				}
+				_ => None,
+			})
+			.collect::<Vec<_>>();
 
-		impl<'a> Actions<'a> {
-			#create_fn
+		match field_matches.len() {
+			0 => quote!(),
+			_ => quote! {
+				impl #model_name_snake::UniqueWhereParam {
+					pub fn deserialize(field: &str, val: ::serde_json::Value) -> Option<Self> {
+						Some(match field {
+							#(#field_matches)*
+							_ => return None
+						})
+					}
+				}
+			},
 		}
-	}
+	};
+
+	Module::new(
+		model.name(),
+		quote! {
+			use super::prisma::*;
+
+			#sync_id
+
+			#set_param_impl
+
+			#unique_param_impl
+		},
+	)
 }

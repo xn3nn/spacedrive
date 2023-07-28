@@ -8,16 +8,12 @@ const Row = tw.p`overflow-hidden text-ellipsis space-x-1`;
 const OperationItem = ({ op }: { op: CRDTOperation }) => {
 	let contents = null;
 
-	if ('record_id' in op.typ) {
+	if ('model' in op.typ) {
 		let subContents = null;
 
-		if (op.typ.data === null) {
-			subContents = 'Delete';
-		} else if (op.typ.data === 'a' || 'u' in op.typ.data) {
-			subContents = 'Create';
-		} else {
-			subContents = `Update - ${op.typ.data.field}`;
-		}
+		if (op.typ.data === 'd') subContents = 'Delete';
+		else if (op.typ.data === 'c') subContents = 'Create';
+		else subContents = `Update - ${op.typ.data.u.field}`;
 
 		contents = (
 			<>

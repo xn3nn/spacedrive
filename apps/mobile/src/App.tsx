@@ -19,6 +19,8 @@ import { useSnapshot } from 'valtio';
 import {
 	ClientContextProvider,
 	LibraryContextProvider,
+	NotificationContextProvider,
+	P2PContextProvider,
 	RspcProvider,
 	initPlausible,
 	useClientContext,
@@ -30,6 +32,7 @@ import { useTheme } from './hooks/useTheme';
 import { changeTwTheme, tw } from './lib/tailwind';
 import RootNavigator from './navigation';
 import OnboardingNavigator from './navigation/OnboardingNavigator';
+import { P2P } from './screens/p2p';
 import { currentLibraryStore } from './utils/nav';
 
 dayjs.extend(advancedFormat);
@@ -42,7 +45,7 @@ initPlausible({ platformType: 'mobile' });
 changeTwTheme('dark');
 
 function AppNavigation() {
-	const { library } = useClientContext();
+	const { libraries, library } = useClientContext();
 
 	// TODO: Make sure library has actually been loaded by this point - precache with useCachedLibraries?
 	// if (library === undefined) throw new Error("Tried to render AppNavigation before libraries fetched!")
@@ -53,6 +56,10 @@ function AppNavigation() {
 	const [currentPath, setCurrentPath] = useState<string>('/');
 
 	usePlausiblePageViewMonitor({ currentPath });
+
+	if (library === null && libraries.data) {
+		currentLibraryStore.id = libraries.data[0]?.uuid ?? null;
+	}
 
 	return (
 		<NavigationContainer
@@ -107,7 +114,12 @@ function AppContainer() {
 					<BottomSheetModalProvider>
 						<StatusBar style="light" />
 						<ClientContextProvider currentLibraryId={id}>
-							<AppNavigation />
+							<P2PContextProvider>
+								<P2P />
+								<NotificationContextProvider>
+									<AppNavigation />
+								</NotificationContextProvider>
+							</P2PContextProvider>
 						</ClientContextProvider>
 					</BottomSheetModalProvider>
 				</MenuProvider>

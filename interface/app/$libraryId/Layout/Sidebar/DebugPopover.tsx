@@ -1,5 +1,16 @@
-import { getDebugState, useBridgeQuery, useDebugState, useLibraryMutation } from '@sd/client';
-import { Button, Popover, Select, SelectOption, Switch } from '@sd/ui';
+import { SiCheckmarx } from '@icons-pack/react-simple-icons';
+import {
+	features,
+	getDebugState,
+	isEnabled,
+	toggleFeatureFlag,
+	useBridgeMutation,
+	useBridgeQuery,
+	useDebugState,
+	useFeatureFlags,
+	useLibraryMutation
+} from '@sd/client';
+import { Button, Dropdown, DropdownMenu, Popover, Select, SelectOption, Switch } from '@sd/ui';
 import { usePlatform } from '~/util/Platform';
 import Setting from '../../settings/Setting';
 
@@ -19,7 +30,7 @@ export default () => {
 				</h1>
 			}
 		>
-			<div className="block h-96 w-[430px]">
+			<div className="no-scrollbar block h-96 w-[430px] overflow-y-scroll pb-4">
 				<Setting
 					mini
 					title="rspc Logger"
@@ -97,7 +108,9 @@ export default () => {
 						<SelectOption value="enabled">Enabled</SelectOption>
 					</Select>
 				</Setting>
+				<FeatureFlagSelector />
 				<InvalidateDebugPanel />
+				<TestNotifications />
 
 				{/* {platform.showDevtools && (
 					<SettingContainer
@@ -132,6 +145,47 @@ function InvalidateDebugPanel() {
 					Invalidate
 				</Button>
 			</div>
+		</Setting>
+	);
+}
+
+function FeatureFlagSelector() {
+	useFeatureFlags(); // Subscribe to changes
+
+	return (
+		<DropdownMenu.Root
+			trigger={
+				<Dropdown.Button variant="gray">
+					<span className="truncate">Feature Flags</span>
+				</Dropdown.Button>
+			}
+			className="mt-1 shadow-none data-[side=bottom]:slide-in-from-top-2 dark:divide-menu-selected/30 dark:border-sidebar-line dark:bg-sidebar-box"
+			alignToTrigger
+		>
+			{features.map((feat) => (
+				<div key={feat} className="flex text-white">
+					{isEnabled(feat) && <SiCheckmarx />}
+
+					<DropdownMenu.Item
+						label={feat}
+						iconProps={{ weight: 'bold', size: 16 }}
+						onClick={() => toggleFeatureFlag(feat)}
+						className="font-medium"
+					/>
+				</div>
+			))}
+		</DropdownMenu.Root>
+	);
+}
+
+function TestNotifications() {
+	const coreNotif = useBridgeMutation(['notifications.test']);
+	const libraryNotif = useLibraryMutation(['notifications.testLibrary']);
+
+	return (
+		<Setting mini title="Notifications" description="Test the notification system">
+			<Button onClick={() => coreNotif.mutate(undefined)}>Core</Button>
+			<Button onClick={() => libraryNotif.mutate(null)}>Library</Button>
 		</Setting>
 	);
 }

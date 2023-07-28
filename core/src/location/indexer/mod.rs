@@ -1,27 +1,26 @@
 use crate::{
-	invalidate_query,
-	job::{JobReportUpdate, JobResult, JobState, StatefulJob, WorkerContext},
 	library::Library,
-	prisma::{file_path, PrismaClient},
+	prisma::{file_path, location, PrismaClient},
 	sync,
-	util::{db::uuid_to_bytes, error::FileIOError},
+	util::{
+		db::{device_to_db, inode_to_db, uuid_to_bytes},
+		error::FileIOError,
+	},
 };
 
-use std::{
-	hash::{Hash, Hasher},
-	path::{Path, PathBuf},
-	time::Duration,
-};
+use std::path::Path;
 
+use chrono::Utc;
 use rspc::ErrorCode;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use sd_sync::*;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use thiserror::Error;
-use tracing::info;
+use tracing::trace;
 
 use super::{
 	file_path_helper::{file_path_just_pub_id, FilePathError, IsolatedFilePathData},
-	location_with_indexer_rules, LocationId,
+	location_with_indexer_rules,
 };
 
 pub mod indexer_job;
@@ -32,54 +31,8 @@ mod walk;
 use rules::IndexerRuleError;
 use walk::WalkedEntry;
 
+pub use indexer_job::IndexerJobInit;
 pub use shallow::*;
-
-/// `IndexerJobInit` receives a `location::Data` object to be indexed
-/// and possibly a `sub_path` to be indexed. The `sub_path` is used when
-/// we want do index just a part of a location.
-#[derive(Serialize, Deserialize)]
-pub struct IndexerJobInit {
-	pub location: location_with_indexer_rules::Data,
-	pub sub_path: Option<PathBuf>,
-}
-
-impl Hash for IndexerJobInit {
-	fn hash<H: Hasher>(&self, state: &mut H) {
-		self.location.id.hash(state);
-		if let Some(ref sub_path) = self.sub_path {
-			sub_path.hash(state);
-		}
-	}
-}
-/// `IndexerJobData` contains the state of the indexer job, which includes a `location_path` that
-/// is cached and casted on `PathBuf` from `local_path` column in the `location` table. It also
-/// contains some metadata for logging purposes.
-#[derive(Serialize, Deserialize)]
-pub struct IndexerJobData {
-	indexed_path: PathBuf,
-	indexer_rules: Vec<rules::IndexerRule>,
-	db_write_time: Duration,
-	scan_read_time: Duration,
-	total_paths: u64,
-	total_save_steps: u64,
-	indexed_count: u64,
-	removed_count: u64,
-}
-
-impl IndexerJobData {
-	fn on_scan_progress(ctx: &mut WorkerContext, progress: Vec<ScanProgress>) {
-		ctx.progress_debounced(
-			progress
-				.iter()
-				.map(|p| match p.clone() {
-					ScanProgress::ChunkCount(c) => JobReportUpdate::TaskCount(c),
-					ScanProgress::SavedChunks(p) => JobReportUpdate::CompletedTaskCount(p),
-					ScanProgress::Message(m) => JobReportUpdate::Message(m),
-				})
-				.collect(),
-		)
-	}
-}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct IndexerJobSaveStep {
@@ -87,11 +40,10 @@ pub struct IndexerJobSaveStep {
 	walked: Vec<WalkedEntry>,
 }
 
-#[derive(Clone)]
-pub enum ScanProgress {
-	ChunkCount(usize),
-	SavedChunks(usize),
-	Message(String),
+#[derive(Serialize, Deserialize, Debug)]
+pub struct IndexerJobUpdateStep {
+	chunk_idx: usize,
+	to_update: Vec<WalkedEntry>,
 }
 
 /// Error type for the indexer module
@@ -104,7 +56,7 @@ pub enum IndexerError {
 	SubPathNotFound(Box<Path>),
 
 	// Internal Errors
-	#[error("database error")]
+	#[error("Database Error: {}", .0.to_string())]
 	Database(#[from] prisma_client_rust::QueryError),
 	#[error(transparent)]
 	FileIO(#[from] FileIOError),
@@ -151,41 +103,69 @@ async fn execute_indexer_save_step(
 
 			use file_path::*;
 
+			let pub_id = uuid_to_bytes(entry.pub_id);
+
+			let (sync_params, db_params): (Vec<_>, Vec<_>) = [
+				(
+					(
+						location::NAME,
+						json!(sync::location::SyncId {
+							pub_id: pub_id.clone()
+						}),
+					),
+					location_id::set(Some(location.id)),
+				),
+				(
+					(materialized_path::NAME, json!(materialized_path)),
+					materialized_path::set(Some(materialized_path.to_string())),
+				),
+				((name::NAME, json!(name)), name::set(Some(name.to_string()))),
+				((is_dir::NAME, json!(*is_dir)), is_dir::set(Some(*is_dir))),
+				(
+					(extension::NAME, json!(extension)),
+					extension::set(Some(extension.to_string())),
+				),
+				(
+					(
+						size_in_bytes_bytes::NAME,
+						json!(entry.metadata.size_in_bytes.to_be_bytes().to_vec()),
+					),
+					size_in_bytes_bytes::set(Some(
+						entry.metadata.size_in_bytes.to_be_bytes().to_vec(),
+					)),
+				),
+				(
+					(inode::NAME, json!(entry.metadata.inode.to_le_bytes())),
+					inode::set(Some(inode_to_db(entry.metadata.inode))),
+				),
+				(
+					(device::NAME, json!(entry.metadata.device.to_le_bytes())),
+					device::set(Some(device_to_db(entry.metadata.device))),
+				),
+				(
+					(date_created::NAME, json!(entry.metadata.created_at)),
+					date_created::set(Some(entry.metadata.created_at.into())),
+				),
+				(
+					(date_modified::NAME, json!(entry.metadata.modified_at)),
+					date_modified::set(Some(entry.metadata.modified_at.into())),
+				),
+				(
+					(date_indexed::NAME, json!(Utc::now())),
+					date_indexed::set(Some(Utc::now().into())),
+				),
+			]
+			.into_iter()
+			.unzip();
+
 			(
-				sync.unique_shared_create(
+				sync.shared_create(
 					sync::file_path::SyncId {
 						pub_id: uuid_to_bytes(entry.pub_id),
 					},
-					[
-						(materialized_path::NAME, json!(materialized_path)),
-						(name::NAME, json!(name)),
-						(is_dir::NAME, json!(*is_dir)),
-						(extension::NAME, json!(extension)),
-						(
-							size_in_bytes::NAME,
-							json!(entry.metadata.size_in_bytes.to_string()),
-						),
-						(inode::NAME, json!(entry.metadata.inode.to_le_bytes())),
-						(device::NAME, json!(entry.metadata.device.to_le_bytes())),
-						(date_created::NAME, json!(entry.metadata.created_at)),
-						(date_modified::NAME, json!(entry.metadata.modified_at)),
-					],
+					sync_params,
 				),
-				file_path::create_unchecked(
-					uuid_to_bytes(entry.pub_id),
-					location.id,
-					materialized_path.to_string(),
-					name.to_string(),
-					extension.to_string(),
-					entry.metadata.inode.to_le_bytes().into(),
-					entry.metadata.device.to_le_bytes().into(),
-					vec![
-						is_dir::set(*is_dir),
-						size_in_bytes::set(entry.metadata.size_in_bytes.to_string()),
-						date_created::set(entry.metadata.created_at.into()),
-						date_modified::set(entry.metadata.modified_at.into()),
-					],
-				),
+				file_path::create_unchecked(pub_id, db_params),
 			)
 		})
 		.unzip();
@@ -194,63 +174,104 @@ async fn execute_indexer_save_step(
 		.write_ops(
 			db,
 			(
-				sync_stuff,
+				sync_stuff.into_iter().flatten().collect(),
 				db.file_path().create_many(paths).skip_duplicates(),
 			),
 		)
 		.await?;
 
-	info!("Inserted {count} records");
+	trace!("Inserted {count} records");
 
 	Ok(count)
 }
 
-fn finalize_indexer<SJob, Init, Step>(
-	location_path: impl AsRef<Path>,
-	state: &JobState<SJob>,
-	ctx: WorkerContext,
-) -> JobResult
-where
-	SJob: StatefulJob<Init = Init, Data = IndexerJobData, Step = Step>,
-	Init: Serialize + DeserializeOwned + Send + Sync + Hash,
-	Step: Serialize + DeserializeOwned + Send + Sync,
-{
-	let data = state
-		.data
-		.as_ref()
-		.expect("critical error: missing data on job state");
+async fn execute_indexer_update_step(
+	update_step: &IndexerJobUpdateStep,
+	library: &Library,
+) -> Result<i64, IndexerError> {
+	let Library { sync, db, .. } = &library;
 
-	info!(
-		"scan of {} completed in {:?}. {} new files found, \
-			indexed {} files in db. db write completed in {:?}",
-		location_path.as_ref().display(),
-		data.scan_read_time,
-		data.total_paths,
-		data.indexed_count,
-		data.db_write_time,
-	);
+	let (sync_stuff, paths_to_update): (Vec<_>, Vec<_>) = update_step
+		.to_update
+		.iter()
+		.map(|entry| {
+			let IsolatedFilePathData { is_dir, .. } = &entry.iso_file_path;
 
-	if data.indexed_count > 0 || data.removed_count > 0 {
-		invalidate_query!(ctx.library, "search.paths");
-	}
+			use file_path::*;
 
-	Ok(Some(serde_json::to_value(state)?))
-}
+			let pub_id = uuid_to_bytes(entry.pub_id);
 
-fn update_notifier_fn(batch_size: usize, ctx: &mut WorkerContext) -> impl FnMut(&Path, usize) + '_ {
-	move |path, total_entries| {
-		IndexerJobData::on_scan_progress(
-			ctx,
-			vec![
-				ScanProgress::Message(format!("Scanning {}", path.display())),
-				ScanProgress::ChunkCount(total_entries / batch_size),
-			],
-		);
-	}
+			let (sync_params, db_params): (Vec<_>, Vec<_>) = [
+				// As this file was updated while Spacedrive was offline, we mark the object_id as null
+				// So this file_path will be updated at file identifier job
+				(
+					(object_id::NAME, serde_json::Value::Null),
+					object::disconnect(),
+				),
+				((is_dir::NAME, json!(*is_dir)), is_dir::set(Some(*is_dir))),
+				(
+					(
+						size_in_bytes_bytes::NAME,
+						json!(entry.metadata.size_in_bytes.to_be_bytes().to_vec()),
+					),
+					size_in_bytes_bytes::set(Some(
+						entry.metadata.size_in_bytes.to_be_bytes().to_vec(),
+					)),
+				),
+				(
+					(inode::NAME, json!(entry.metadata.inode.to_le_bytes())),
+					inode::set(Some(inode_to_db(entry.metadata.inode))),
+				),
+				(
+					(device::NAME, json!(entry.metadata.device.to_le_bytes())),
+					device::set(Some(device_to_db(entry.metadata.device))),
+				),
+				(
+					(date_created::NAME, json!(entry.metadata.created_at)),
+					date_created::set(Some(entry.metadata.created_at.into())),
+				),
+				(
+					(date_modified::NAME, json!(entry.metadata.modified_at)),
+					date_modified::set(Some(entry.metadata.modified_at.into())),
+				),
+			]
+			.into_iter()
+			.unzip();
+
+			(
+				sync_params
+					.into_iter()
+					.map(|(field, value)| {
+						sync.shared_update(
+							sync::file_path::SyncId {
+								pub_id: pub_id.clone(),
+							},
+							field,
+							value,
+						)
+					})
+					.collect::<Vec<_>>(),
+				db.file_path()
+					.update(file_path::pub_id::equals(pub_id), db_params)
+					.select(file_path::select!({ id })),
+			)
+		})
+		.unzip();
+
+	let updated = sync
+		.write_ops(
+			db,
+			(sync_stuff.into_iter().flatten().collect(), paths_to_update),
+		)
+		.await?;
+
+	trace!("Updated {updated:?} records");
+
+	Ok(updated.len() as i64)
 }
 
 fn iso_file_path_factory(
-	location_id: LocationId,
+	location_id: location::id::Type,
 	location_path: &Path,
 ) -> impl Fn(&Path, bool) -> Result<IsolatedFilePathData<'static>, IndexerError> + '_ {
 	move |path, is_dir| {
@@ -273,17 +294,32 @@ async fn remove_non_existing_file_paths(
 }
 
 // TODO: Change this macro to a fn when we're able to return
-// `impl Fn(Vec<file_path::WhereParam>) -> impl Future<Output = Result<Vec<file_path_to_isolate::Data>, IndexerError>>`
+// `impl Fn(Vec<file_path::WhereParam>) -> impl Future<Output = Result<Vec<file_path_walker::Data>, IndexerError>>`
 // Maybe when TAITs arrive
 #[macro_export]
 macro_rules! file_paths_db_fetcher_fn {
 	($db:expr) => {{
 		|found_paths| async {
-			$db.file_path()
-				.find_many(found_paths)
-				.select($crate::location::file_path_helper::file_path_to_isolate::select())
-				.exec()
+			// Each found path is a AND with 4 terms, and SQLite has a expression tree limit of 1000 terms
+			// so we will use chunks of 200 just to be safe
+
+			// FIXME: Can't pass this chunks variable direct to _batch because of lifetime issues
+			let chunks = found_paths
+				.into_iter()
+				.chunks(200)
+				.into_iter()
+				.map(|founds| {
+					$db.file_path()
+						.find_many(vec![::prisma_client_rust::operator::or(
+							founds.collect::<Vec<_>>(),
+						)])
+						.select($crate::location::file_path_helper::file_path_walker::select())
+				})
+				.collect::<Vec<_>>();
+
+			$db._batch(chunks)
 				.await
+				.map(|fetched| fetched.into_iter().flatten().collect::<Vec<_>>())
 				.map_err(Into::into)
 		}
 	}};
@@ -295,26 +331,70 @@ macro_rules! file_paths_db_fetcher_fn {
 // FIXME: (fogodev) I was receiving this error here https://github.com/rust-lang/rust/issues/74497
 #[macro_export]
 macro_rules! to_remove_db_fetcher_fn {
-	($location_id:expr, $location_path:expr, $db:expr) => {{
+	($location_id:expr, $db:expr) => {{
 		|iso_file_path, unique_location_id_materialized_path_name_extension_params| async {
 			let iso_file_path: $crate::location::file_path_helper::IsolatedFilePathData<'static> =
 				iso_file_path;
-			$db.file_path()
-				.find_many(vec![
-					$crate::prisma::file_path::location_id::equals($location_id),
-					$crate::prisma::file_path::materialized_path::equals(
-						iso_file_path
-							.materialized_path_for_children()
-							.expect("the received isolated file path must be from a directory"),
-					),
-					::prisma_client_rust::operator::not(
-						unique_location_id_materialized_path_name_extension_params,
-					),
-				])
-				.select($crate::location::file_path_helper::file_path_just_pub_id::select())
-				.exec()
+
+			// FIXME: Can't pass this chunks variable direct to _batch because of lifetime issues
+			let chunks = unique_location_id_materialized_path_name_extension_params
+				.into_iter()
+				.chunks(200)
+				.into_iter()
+				.map(|unique_params| {
+					$db.file_path()
+						.find_many(vec![
+							$crate::prisma::file_path::location_id::equals(Some($location_id)),
+							$crate::prisma::file_path::materialized_path::equals(Some(
+								iso_file_path.materialized_path_for_children().expect(
+									"the received isolated file path must be from a directory",
+								),
+							)),
+							::prisma_client_rust::operator::not(vec![
+								::prisma_client_rust::operator::or(unique_params.collect()),
+							]),
+						])
+						.select($crate::location::file_path_helper::file_path_just_pub_id::select())
+				})
+				.collect::<::std::vec::Vec<_>>();
+
+			$db._batch(chunks)
 				.await
-				.map_err(Into::into)
+				.map(|to_remove| {
+					// This is an intersection between all sets
+					let mut sets = to_remove
+						.into_iter()
+						.map(|fetched_vec| {
+							fetched_vec
+								.into_iter()
+								.map(|fetched| {
+									::uuid::Uuid::from_slice(&fetched.pub_id)
+										.expect("file_path.pub_id is invalid!")
+								})
+								.collect::<::std::collections::HashSet<_>>()
+						})
+						.collect::<Vec<_>>();
+
+					let mut intersection = ::std::collections::HashSet::new();
+					while let Some(set) = sets.pop() {
+						for pub_id in set {
+							// Remove returns true if the element was present in the set
+							if sets.iter_mut().all(|set| set.remove(&pub_id)) {
+								intersection.insert(pub_id);
+							}
+						}
+					}
+
+					intersection
+						.into_iter()
+						.map(|pub_id| {
+							$crate::location::file_path_helper::file_path_just_pub_id::Data {
+								pub_id: pub_id.as_bytes().to_vec(),
+							}
+						})
+						.collect()
+				})
+				.map_err(::std::convert::Into::into)
 		}
 	}};
 }

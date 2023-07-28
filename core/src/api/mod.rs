@@ -1,14 +1,13 @@
+use crate::{job::JobProgressEvent, node::SanitisedNodeConfig, Node};
 use rspc::{alpha::Rspc, Config};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::sync::Arc;
 
-use crate::{node::NodeConfig, Node};
-
 use utils::{InvalidRequests, InvalidateOperationEvent};
 
 #[allow(non_upper_case_globals)]
-pub(self) const R: Rspc<Ctx> = Rspc::new();
+pub(crate) const R: Rspc<Ctx> = Rspc::new();
 
 pub type Ctx = Arc<Node>;
 pub type Router = rspc::Router<Ctx>;
@@ -17,6 +16,7 @@ pub type Router = rspc::Router<Ctx>;
 #[derive(Debug, Clone, Serialize, Type)]
 pub enum CoreEvent {
 	NewThumbnail { thumb_key: Vec<String> },
+	JobProgress(JobProgressEvent),
 	InvalidateOperation(InvalidateOperationEvent),
 }
 
@@ -27,7 +27,9 @@ mod keys;
 mod libraries;
 mod locations;
 mod nodes;
+pub mod notifications;
 mod p2p;
+mod preferences;
 mod search;
 mod sync;
 mod tags;
@@ -37,7 +39,7 @@ pub mod volumes;
 #[derive(Serialize, Deserialize, Debug, Type)]
 struct NodeState {
 	#[serde(flatten)]
-	config: NodeConfig,
+	config: SanitisedNodeConfig,
 	data_path: String,
 }
 
@@ -59,7 +61,7 @@ pub(crate) fn mount() -> Arc<Router> {
 		.procedure("nodeState", {
 			R.query(|ctx, _: ()| async move {
 				Ok(NodeState {
-					config: ctx.config.get().await,
+					config: ctx.config.get().await.into(),
 					// We are taking the assumption here that this value is only used on the frontend for display purposes
 					data_path: ctx
 						.config
@@ -82,6 +84,8 @@ pub(crate) fn mount() -> Arc<Router> {
 		.merge("p2p.", p2p::mount())
 		.merge("nodes.", nodes::mount())
 		.merge("sync.", sync::mount())
+		.merge("preferences.", preferences::mount())
+		.merge("notifications.", notifications::mount())
 		.merge("invalidation.", utils::mount_invalidate())
 		.build(
 			#[allow(clippy::let_and_return)]
@@ -98,6 +102,7 @@ pub(crate) fn mount() -> Arc<Router> {
 			},
 		)
 		.arced();
+
 	InvalidRequests::validate(r.clone()); // This validates all invalidation calls.
 
 	r

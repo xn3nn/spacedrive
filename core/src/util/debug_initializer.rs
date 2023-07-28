@@ -8,10 +8,11 @@ use std::{
 
 use crate::{
 	job::JobManagerError,
-	library::{LibraryConfig, LibraryManagerError},
+	library::{LibraryManagerError, LibraryName},
 	location::{
 		delete_location, scan_location, LocationCreateArgs, LocationError, LocationManagerError,
 	},
+	node::NodeConfig,
 	prisma::location,
 	util::AbortOnDrop,
 };
@@ -37,7 +38,7 @@ pub struct LocationInitConfig {
 #[serde(rename_all = "camelCase")]
 pub struct LibraryInitConfig {
 	id: Uuid,
-	name: String,
+	name: LibraryName,
 	description: Option<String>,
 	#[serde(default)]
 	reset_locations_on_startup: bool,
@@ -93,11 +94,15 @@ impl InitConfig {
 		Ok(None)
 	}
 
-	pub async fn apply(self, library_manager: &LibraryManager) -> Result<(), InitConfigError> {
+	pub async fn apply(
+		self,
+		library_manager: &LibraryManager,
+		node_cfg: NodeConfig,
+	) -> Result<(), InitConfigError> {
 		info!("Initializing app from file: {:?}", self.path);
 
 		for lib in self.libraries {
-			let name = lib.name.clone();
+			let name = lib.name.to_string();
 			let _guard = AbortOnDrop(tokio::spawn(async move {
 				loop {
 					info!("Initializing library '{name}' from 'sd_init.json'...");
@@ -109,13 +114,7 @@ impl InitConfig {
 				Some(lib) => lib,
 				None => {
 					let library = library_manager
-						.create_with_uuid(
-							lib.id,
-							LibraryConfig {
-								name: lib.name,
-								description: lib.description.unwrap_or("".to_string()),
-							},
-						)
+						.create_with_uuid(lib.id, lib.name, lib.description, node_cfg.clone(), true)
 						.await?;
 
 					match library_manager.get_library(library.uuid).await {
@@ -123,7 +122,7 @@ impl InitConfig {
 						None => {
 							warn!(
 								"Debug init error: library '{}' was not found after being created!",
-								library.config.name
+								library.config.name.as_ref()
 							);
 							return Ok(());
 						}
@@ -144,7 +143,7 @@ impl InitConfig {
 				if let Some(location) = library
 					.db
 					.location()
-					.find_first(vec![location::path::equals(loc.path.clone())])
+					.find_first(vec![location::path::equals(Some(loc.path.clone()))])
 					.exec()
 					.await?
 				{

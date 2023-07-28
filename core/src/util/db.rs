@@ -75,3 +75,55 @@ pub fn chain_optional_iter<T>(
 pub fn uuid_to_bytes(uuid: Uuid) -> Vec<u8> {
 	uuid.as_bytes().to_vec()
 }
+
+pub fn from_bytes_to_uuid(bytes: &[u8]) -> Uuid {
+	Uuid::from_slice(bytes).expect("corrupted uuid in database")
+}
+
+pub fn inode_from_db(db_inode: &[u8]) -> u64 {
+	u64::from_le_bytes(db_inode.try_into().expect("corrupted inode in database"))
+}
+
+pub fn device_from_db(db_device: &[u8]) -> u64 {
+	u64::from_le_bytes(db_device.try_into().expect("corrupted device in database"))
+}
+
+pub fn inode_to_db(inode: u64) -> Vec<u8> {
+	inode.to_le_bytes().to_vec()
+}
+
+pub fn device_to_db(device: u64) -> Vec<u8> {
+	device.to_le_bytes().to_vec()
+}
+
+#[derive(Error, Debug)]
+#[error("Missing field {0}")]
+pub struct MissingFieldError(&'static str);
+
+pub trait OptionalField: Sized {
+	type Out;
+
+	fn transform(self) -> Option<Self::Out>;
+}
+
+impl<T> OptionalField for Option<T> {
+	type Out = T;
+
+	fn transform(self) -> Option<T> {
+		self
+	}
+}
+impl<'a, T> OptionalField for &'a Option<T> {
+	type Out = &'a T;
+
+	fn transform(self) -> Option<Self::Out> {
+		self.as_ref()
+	}
+}
+
+pub fn maybe_missing<T: OptionalField>(
+	data: T,
+	field: &'static str,
+) -> Result<T::Out, MissingFieldError> {
+	data.transform().ok_or(MissingFieldError(field))
+}

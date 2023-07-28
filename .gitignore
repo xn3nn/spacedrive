@@ -66,11 +66,11 @@ yalc.lock
 todos.md
 examples/*/*.lock
 /target
-prisma*.rs
 
 playwright-report
 
 /sdserver_data
+/sdserver_data2
 .spacedrive
 dev.db-journal
 .build/

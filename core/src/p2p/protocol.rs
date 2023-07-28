@@ -3,77 +3,52 @@ use tokio::io::AsyncReadExt;
 use uuid::Uuid;
 
 use sd_p2p::{
-	spaceblock::{SpacedropRequest, SpacedropRequestError},
-	spacetime::SpaceTimeStream,
+	proto::{decode, encode},
+	spaceblock::{SpaceblockRequest, SpacedropRequestError},
+	spacetime::UnicastStream,
 };
 
 /// TODO
 #[derive(Debug, PartialEq, Eq)]
 pub enum Header {
+	// TODO: Split out cause this is a broadcast
 	Ping,
-	Spacedrop(SpacedropRequest),
-	Sync(Uuid, u32),
-}
-
-#[derive(Debug, Error)]
-pub enum SyncRequestError {
-	#[error("io error reading library id: {0}")]
-	LibraryIdIoError(std::io::Error),
-	#[error("io error decoding library id: {0}")]
-	ErrorDecodingLibraryId(uuid::Error),
-	#[error("io error reading sync payload len: {0}")]
-	PayloadLenIoError(std::io::Error),
+	Spacedrop(SpaceblockRequest),
+	Pair,
+	Sync(Uuid),
 }
 
 #[derive(Debug, Error)]
 pub enum HeaderError {
 	#[error("io error reading discriminator: {0}")]
-	DiscriminatorIoError(std::io::Error),
+	DiscriminatorIo(std::io::Error),
 	#[error("invalid discriminator '{0}'")]
-	InvalidDiscriminator(u8),
+	DiscriminatorInvalid(u8),
 	#[error("error reading spacedrop request: {0}")]
-	SpacedropRequestError(#[from] SpacedropRequestError),
+	SpacedropRequest(#[from] SpacedropRequestError),
 	#[error("error reading sync request: {0}")]
-	SyncRequestError(#[from] SyncRequestError),
-	#[error("invalid request. Spacedrop requires a unicast stream!")]
-	SpacedropOverMulticastIsForbidden,
+	SyncRequest(decode::Error),
 }
 
 impl Header {
-	pub async fn from_stream(stream: &mut SpaceTimeStream) -> Result<Self, HeaderError> {
+	pub async fn from_stream(stream: &mut UnicastStream) -> Result<Self, HeaderError> {
 		let discriminator = stream
 			.read_u8()
 			.await
-			.map_err(HeaderError::DiscriminatorIoError)?;
+			.map_err(HeaderError::DiscriminatorIo)?;
 
 		match discriminator {
-			0 => match stream {
-				SpaceTimeStream::Unicast(stream) => Ok(Self::Spacedrop(
-					SpacedropRequest::from_stream(stream).await?,
-				)),
-				_ => Err(HeaderError::SpacedropOverMulticastIsForbidden),
-			},
+			0 => Ok(Self::Spacedrop(
+				SpaceblockRequest::from_stream(stream).await?,
+			)),
 			1 => Ok(Self::Ping),
-			2 => {
-				let mut uuid = [0u8; 16];
-				stream
-					.read_exact(&mut uuid)
+			2 => Ok(Self::Pair),
+			3 => Ok(Self::Sync(
+				decode::uuid(stream)
 					.await
-					.map_err(SyncRequestError::LibraryIdIoError)?;
-
-				let mut len = [0; 4];
-				stream
-					.read_exact(&mut len)
-					.await
-					.map_err(SyncRequestError::PayloadLenIoError)?;
-				let len = u32::from_le_bytes(len);
-
-				Ok(Self::Sync(
-					Uuid::from_slice(&uuid).map_err(SyncRequestError::ErrorDecodingLibraryId)?,
-					len,
-				))
-			}
-			d => Err(HeaderError::InvalidDiscriminator(d)),
+					.map_err(HeaderError::SyncRequest)?,
+			)),
+			d => Err(HeaderError::DiscriminatorInvalid(d)),
 		}
 	}
 
@@ -85,41 +60,38 @@ impl Header {
 				bytes
 			}
 			Self::Ping => vec![1],
-			Self::Sync(uuid, len) => {
-				let mut bytes = vec![2];
-				bytes.extend_from_slice(uuid.as_bytes());
-
-				let len_buf = len.to_le_bytes();
-				debug_assert_eq!(len_buf.len(), 4); // TODO: Is this bad because `len` is usize??
-				bytes.extend_from_slice(&len_buf);
-
+			Self::Pair => vec![2],
+			Self::Sync(uuid) => {
+				let mut bytes = vec![3];
+				encode::uuid(&mut bytes, uuid);
 				bytes
 			}
 		}
 	}
 }
 
-// TODO: Unit test it because binary protocols are error prone
-// #[cfg(test)]
-// mod tests {
-// 	use super::*;
+#[cfg(test)]
+mod tests {
+	// use super::*;
 
-// 	#[test]
-// 	fn test_proto() {
-// 		assert_eq!(
-// 			Header::from_bytes(&Header::Ping.to_bytes()),
-// 			Ok(Header::Ping)
-// 		);
+	#[test]
+	fn test_header() {
+		// TODO: Finish this
 
-// 		assert_eq!(
-// 			Header::from_bytes(&Header::Spacedrop.to_bytes()),
-// 			Ok(Header::Spacedrop)
-// 		);
+		// 	assert_eq!(
+		// 		Header::from_bytes(&Header::Ping.to_bytes()),
+		// 		Ok(Header::Ping)
+		// 	);
 
-// 		let uuid = Uuid::new_v4();
-// 		assert_eq!(
-// 			Header::from_bytes(&Header::Sync(uuid).to_bytes()),
-// 			Ok(Header::Sync(uuid))
-// 		);
-// 	}
-// }
+		// 	assert_eq!(
+		// 		Header::from_bytes(&Header::Spacedrop.to_bytes()),
+		// 		Ok(Header::Spacedrop)
+		// 	);
+
+		// 	let uuid = Uuid::new_v4();
+		// 	assert_eq!(
+		// 		Header::from_bytes(&Header::Sync(uuid).to_bytes()),
+		// 		Ok(Header::Sync(uuid))
+		// 	);
+	}
+}

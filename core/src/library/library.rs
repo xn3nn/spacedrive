@@ -1,7 +1,14 @@
 use crate::{
+<<<<<<< HEAD
 	api::CoreEvent,
 	crypto::KeyManager,
 	job::{IntoJob, JobInitData, JobManagerError, StatefulJob},
+=======
+	api::{
+		notifications::{Notification, NotificationData, NotificationId},
+		CoreEvent,
+	},
+>>>>>>> main
 	location::{
 		file_path_helper::{file_path_to_full_path, IsolatedFilePathData},
 		LocationManager,
@@ -10,16 +17,20 @@ use crate::{
 	object::{orphan_remover::OrphanRemoverActor, preview::get_thumbnail_path},
 	prisma::{file_path, location, PrismaClient},
 	sync::SyncManager,
-	util::error::FileIOError,
+	util::{db::maybe_missing, error::FileIOError},
 	NodeContext,
 };
 
 use std::{
+	collections::HashMap,
 	fmt::{Debug, Formatter},
 	path::{Path, PathBuf},
 	sync::Arc,
 };
 
+use chrono::{DateTime, Utc};
+use sd_p2p::spacetunnel::Identity;
+use sd_prisma::prisma::notification;
 use tokio::{fs, io};
 use tracing::warn;
 use uuid::Uuid;
@@ -31,8 +42,6 @@ use super::{LibraryConfig, LibraryManagerError};
 pub struct Library {
 	/// id holds the ID of the current library.
 	pub id: Uuid,
-	/// local_id holds the local ID of the current library.
-	pub local_id: i32,
 	/// config holds the configuration of the current library.
 	pub config: LibraryConfig,
 	/// db holds the database client for the current library.
@@ -40,10 +49,10 @@ pub struct Library {
 	pub sync: Arc<SyncManager>,
 	/// key manager that provides encryption keys to functions that require them
 	// pub key_manager: Arc<KeyManager>,
-	/// node_local_id holds the local ID of the node which is running the library.
-	pub node_local_id: i32,
 	/// node_context holds the node context for the node which this library is running on.
-	pub(super) node_context: NodeContext,
+	pub node_context: NodeContext,
+	/// p2p identity
+	pub identity: Arc<Identity>,
 	pub orphan_remover: OrphanRemoverActor,
 }
 
@@ -55,27 +64,11 @@ impl Debug for Library {
 			.field("id", &self.id)
 			.field("config", &self.config)
 			.field("db", &self.db)
-			.field("node_local_id", &self.node_local_id)
 			.finish()
 	}
 }
 
 impl Library {
-	pub(crate) async fn spawn_job<SJob, Init>(
-		&self,
-		jobable: impl IntoJob<SJob>,
-	) -> Result<(), JobManagerError>
-	where
-		SJob: StatefulJob<Init = Init> + 'static,
-		Init: JobInitData + 'static,
-	{
-		self.node_context
-			.jobs
-			.clone()
-			.ingest(self, jobable.into_job())
-			.await
-	}
-
 	pub(crate) fn emit(&self, event: CoreEvent) {
 		if let Err(e) = self.node_context.event_bus_tx.send(event) {
 			warn!("Error sending event to event bus: {e:?}");
@@ -101,20 +94,92 @@ impl Library {
 	}
 
 	/// Returns the full path of a file
-	pub async fn get_file_path(&self, id: i32) -> Result<Option<PathBuf>, LibraryManagerError> {
-		Ok(self
+	pub async fn get_file_paths(
+		&self,
+		ids: Vec<file_path::id::Type>,
+	) -> Result<HashMap<file_path::id::Type, Option<PathBuf>>, LibraryManagerError> {
+		let mut out = ids
+			.iter()
+			.copied()
+			.map(|id| (id, None))
+			.collect::<HashMap<_, _>>();
+
+		out.extend(
+			self.db
+				.file_path()
+				.find_many(vec![
+					// TODO(N): This isn't gonna work with removable media and this will likely permanently break if the DB is restored from a backup.
+					file_path::location::is(vec![location::instance_id::equals(Some(
+						self.config.instance_id,
+					))]),
+					file_path::id::in_vec(ids),
+				])
+				.select(file_path_to_full_path::select())
+				.exec()
+				.await?
+				.into_iter()
+				.flat_map(|file_path| {
+					let location = maybe_missing(&file_path.location, "file_path.location")?;
+
+					Ok::<_, LibraryManagerError>((
+						file_path.id,
+						location
+							.path
+							.as_ref()
+							.map(|location_path| {
+								IsolatedFilePathData::try_from((location.id, &file_path))
+									.map(|data| Path::new(&location_path).join(data))
+							})
+							.transpose()?,
+					))
+				}),
+		);
+
+		Ok(out)
+	}
+
+	/// Create a new notification which will be stored into the DB and emitted to the UI.
+	pub async fn emit_notification(&self, data: NotificationData, expires: Option<DateTime<Utc>>) {
+		let result = match self
 			.db
-			.file_path()
-			.find_first(vec![
-				file_path::location::is(vec![location::node_id::equals(self.node_local_id)]),
-				file_path::id::equals(id),
-			])
-			.select(file_path_to_full_path::select())
+			.notification()
+			.create(
+				match rmp_serde::to_vec(&data).map_err(|err| err.to_string()) {
+					Ok(data) => data,
+					Err(err) => {
+						warn!(
+							"Failed to serialize notification data for library '{}': {}",
+							self.id, err
+						);
+						return;
+					}
+				},
+				expires
+					.map(|e| vec![notification::expires_at::set(Some(e.fixed_offset()))])
+					.unwrap_or_else(Vec::new),
+			)
 			.exec()
-			.await?
-			.map(|record| {
-				Path::new(&record.location.path)
-					.join(IsolatedFilePathData::from((record.location.id, &record)))
-			}))
+			.await
+		{
+			Ok(result) => result,
+			Err(err) => {
+				warn!(
+					"Failed to create notification in library '{}': {}",
+					self.id, err
+				);
+				return;
+			}
+		};
+
+		self.node_context
+			.notifications
+			.0
+			.send(Notification {
+				id: NotificationId::Library(self.id, result.id as u32),
+				data,
+				read: false,
+				expires,
+			})
+			.ok();
 	}
 }
