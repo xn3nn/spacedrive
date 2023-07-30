@@ -262,7 +262,6 @@ impl From<FromData<file_path::Data>> for file_path::CreateUnchecked {
 				file_path::inode::set(data.inode),
 				file_path::device::set(data.device),
 				file_path::object_id::set(data.object_id),
-				file_path::key_id::set(data.key_id),
 				file_path::date_created::set(data.date_created),
 				file_path::date_modified::set(data.date_modified),
 				file_path::date_indexed::set(data.date_indexed),
@@ -278,7 +277,6 @@ impl From<FromData<object::Data>> for object::CreateUnchecked {
 			_params: vec![
 				object::id::set(data.id),
 				object::kind::set(data.kind),
-				object::key_id::set(data.key_id),
 				object::hidden::set(data.hidden),
 				object::favorite::set(data.favorite),
 				object::important::set(data.important),
