@@ -163,6 +163,8 @@ model FilePath {
 
     // permissions       String?
 
+    key_id Int?
+
     date_created  DateTime?
     date_modified DateTime?
     date_indexed  DateTime?
@@ -196,7 +198,7 @@ model Object {
     // has_generated_video_preview Boolean  @default(false)
     // integration with ipfs
     // ipfs_id           String?
-    // plain text note
+    // plain text notes
     note          String?
     // the original known creation date of this object
     date_created  DateTime?

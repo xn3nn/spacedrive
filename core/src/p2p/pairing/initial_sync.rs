@@ -265,6 +265,7 @@ impl From<FromData<file_path::Data>> for file_path::CreateUnchecked {
 				file_path::date_created::set(data.date_created),
 				file_path::date_modified::set(data.date_modified),
 				file_path::date_indexed::set(data.date_indexed),
+				file_path::key_id::set(data.key_id),
 			],
 		}
 	}
