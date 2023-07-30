@@ -13,6 +13,8 @@ default = []
 location-watcher = ["dep:notify"]
 sync-messages = []
 heif = ["dep:sd-heif"]
+ffmpeg = ["dep:sd-ffmpeg"]
+mobile = []
 
 [dependencies]
 sd-crypto = { path = "../crates/crypto", features = [
@@ -49,8 +51,9 @@ tokio = { workspace = true, features = [
 	"process",
 ] }
 
+bincode = { version = "2.0.0-rc.3", features = ["serde"] }
 base64 = "0.21.2"
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0.178", features = ["derive"] }
 chrono = { version = "0.4.25", features = ["serde"] }
 serde_json = "1.0"
 futures = "0.3"

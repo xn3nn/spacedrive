@@ -457,10 +457,7 @@ impl LibraryManager {
 				.await?;
 		}
 
-		// TODO: Move this reconciliation into P2P and do reconciliation of both local and remote nodes.
-
-		// let key_manager = Arc::new(KeyManager::new(vec![]).await?);
-		// seed_keymanager(&db, &key_manager).await?;
+		// TODO: Move this reconciliation into P2P and do reconciliation of both local and remote nodes.s
 
 		let (sync_manager, sync_rx) = SyncManager::new(&db, instance_id);
 
@@ -473,7 +470,7 @@ impl LibraryManager {
 		let library = Library {
 			id,
 			config,
-			// key_manager,
+			key_manager: Arc::new(KeyManager::new(db.clone())),
 			sync: Arc::new(sync_manager),
 			orphan_remover: OrphanRemoverActor::spawn(db.clone()),
 			db,

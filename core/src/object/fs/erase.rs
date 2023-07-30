@@ -93,13 +93,8 @@ impl StatefulJob for FileEraserJobInit {
 
 		let mut new_metadata = Self::RunMetadata::default();
 
-<<<<<<< HEAD
-				sd_crypto::sys::fs::erase_async(&mut file, file_len as usize, state.init.passes)
-					.await?;
-=======
 		if maybe_missing(step.file_path.is_dir, "file_path.is_dir")? {
 			let mut more_steps = Vec::new();
->>>>>>> main
 
 			let mut dir = tokio::fs::read_dir(&step.full_path)
 				.await
@@ -149,7 +144,7 @@ impl StatefulJob for FileEraserJobInit {
 				.map_err(|e| FileIOError::from((&step.full_path, e)))?
 				.len();
 
-			sd_crypto::fs::erase::erase(&mut file, file_len as usize, init.passes).await?;
+			sd_crypto::sys::fs::erase_async(&mut file, file_len as usize, init.passes).await?;
 
 			file.set_len(0)
 				.await

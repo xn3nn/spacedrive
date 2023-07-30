@@ -29,7 +29,7 @@ pub struct KeyManager {
 	db: Arc<PrismaClient>,
 }
 
-#[derive(Clone, Encode, Decode)]
+#[derive(Clone, bincode::Encode, bincode::Decode)]
 pub struct MountedKey {
 	version: KeyVersion,
 	#[bincode(with_serde)]

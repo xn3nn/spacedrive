@@ -1,14 +1,9 @@
 use crate::{
-<<<<<<< HEAD
-	api::CoreEvent,
-	crypto::KeyManager,
-	job::{IntoJob, JobInitData, JobManagerError, StatefulJob},
-=======
 	api::{
 		notifications::{Notification, NotificationData, NotificationId},
 		CoreEvent,
 	},
->>>>>>> main
+	crypto::KeyManager,
 	location::{
 		file_path_helper::{file_path_to_full_path, IsolatedFilePathData},
 		LocationManager,
@@ -48,7 +43,7 @@ pub struct Library {
 	pub db: Arc<PrismaClient>,
 	pub sync: Arc<SyncManager>,
 	/// key manager that provides encryption keys to functions that require them
-	// pub key_manager: Arc<KeyManager>,
+	pub key_manager: Arc<KeyManager>,
 	/// node_context holds the node context for the node which this library is running on.
 	pub node_context: NodeContext,
 	/// p2p identity
