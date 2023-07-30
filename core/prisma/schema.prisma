@@ -4,15 +4,15 @@ datasource db {
 }
 
 generator client {
-    provider    = "cargo prisma"
-    output      = "../../crates/prisma/src/prisma"
-    module_path = "sd_prisma::prisma"
+    provider      = "cargo prisma"
+    output        = "../../crates/prisma/src/prisma"
+    module_path   = "sd_prisma::prisma"
     client_format = "folder"
 }
 
 generator sync {
-    provider = "cargo prisma-sync"
-    output   = "../../crates/prisma/src/prisma_sync"
+    provider      = "cargo prisma-sync"
+    output        = "../../crates/prisma/src/prisma_sync"
     client_format = "folder"
 }
 
@@ -161,14 +161,11 @@ model FilePath {
     object_id Int?
     object    Object? @relation(fields: [object_id], references: [id], onDelete: Restrict)
 
-    key_id Int? // replacement for encryption
     // permissions       String?
 
     date_created  DateTime?
     date_modified DateTime?
     date_indexed  DateTime?
-
-    // key Key? @relation(fields: [key_id], references: [id])
 
     @@unique([location_id, materialized_path, name, extension])
     @@unique([location_id, inode, device])
@@ -184,7 +181,6 @@ model Object {
     // Enum: sd_file_ext::kind::ObjectKind
     kind   Int?
 
-    key_id        Int?
     // handy ways to mark an object
     hidden        Boolean?
     favorite      Boolean?
@@ -214,7 +210,7 @@ model Object {
     // comments   Comment[]
     media_data MediaData?
 
-    // key Key? @relation(fields: [key_id], references: [id])
+    Key Key? @relation(fields: [id], references: [id])
 
     @@map("object")
 }
@@ -229,44 +225,26 @@ model Object {
 // }
 
 /// @shared(id: uuid)
-// model Key {
-//     id                Int       @id @default(autoincrement())
-//     // uuid to identify the key
-//     uuid              String    @unique
-//     version           String
-//     key_type          String
-//     // the name that the user sets
-//     name              String?
-//     // is this key the default for encryption?
-//     // was not tagged as unique as i'm not too sure if PCR will handle it
-//     // can always be tagged as unique, the keys API will need updating to use `find_unique()`
-//     default           Boolean   @default(false)
-//     // nullable if concealed for security
-//     date_created      DateTime? @default(now())
-//     // encryption algorithm used to encrypt the key
-//     algorithm         String
-//     // hashing algorithm used for hashing the key with the content salt
-//     hashing_algorithm String
-//     // salt used for encrypting data with this key
-//     content_salt      Bytes
-//     // the *encrypted* master key (48 bytes)
-//     master_key        Bytes
-//     // the nonce used for encrypting the master key
-//     master_key_nonce  Bytes
-//     // the nonce used for encrypting the key
-//     key_nonce         Bytes
-//     // the *encrypted* key
-//     key               Bytes
-//     // the salt used for deriving the KEK (used for encrypting the master key) from the root key
-//     salt              Bytes
 
-//     automount Boolean @default(false)
+model Key {
+    id   Int   @id @default(autoincrement())
+    uuid Bytes @unique
 
-//     objects    Object[]
-//     file_paths FilePath[]
+    version           Int // key version
+    key_type          Int // type of key
+    name              String? // user-chosen name
+    algorithm         Bytes // encryption algorithm used to encrypt the key
+    hashing_algorithm Bytes // hashing algorithm used for hashing the key with the salt
+    key               Bytes // the *encrypted* key
+    salt              Bytes // the salt/encrypted word (which acts as a salt once decrypted + hashed)
 
-//     @@map("key")
-// }
+    automount Boolean @default(false)
+
+    objects     Object[]
+    mounted_key MountedKey?
+
+    @@map("key")
+}
 
 // mounted keys are separate and local as they should really stay on-device
 /// @local
@@ -278,7 +256,7 @@ model MountedKey {
     key       Bytes // the *encrypted* key
     salt      Bytes // the salt/encrypted word (which acts as a salt once decrypted + hashed)
 
-    associated_key Key @relation(fields: [uuid], references: [uuid], onDelete: Cascade, onUpdate: NoAction)
+    associated_key Key @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
     @@map("mounted_key")
 }
