@@ -106,15 +106,14 @@ export function Dialogs() {
 const AnimatedDialogContent = animated(RDialog.Content);
 const AnimatedDialogOverlay = animated(RDialog.Overlay);
 
-export interface DialogProps<S extends FieldValues>
+export interface DialogProps<TIn extends FieldValues, TOut extends FieldValues>
 	extends RDialog.DialogProps,
-		Omit<FormProps<S>, 'onSubmit'> {
+		FormProps<TIn, TOut> {
 	title?: string;
 	dialog: ReturnType<typeof useDialog>;
 	loading?: boolean;
 	trigger?: ReactNode;
 	ctaLabel?: string;
-	onSubmit?: ReturnType<UseFormHandleSubmit<S>>;
 	children?: ReactNode;
 	ctaDanger?: boolean;
 	closeLabel?: string;
@@ -125,13 +124,13 @@ export interface DialogProps<S extends FieldValues>
 	buttonsSideContent?: ReactNode;
 }
 
-export function Dialog<S extends FieldValues>({
+export function Dialog<TIn extends FieldValues, TOut extends FieldValues>({
 	form,
 	dialog,
 	onSubmit,
 	onCancelled = true,
 	...props
-}: DialogProps<S>) {
+}: DialogProps<TIn, TOut>) {
 	const stateSnap = useSnapshot(dialog.state);
 
 	const transitions = useTransition(stateSnap.open, {

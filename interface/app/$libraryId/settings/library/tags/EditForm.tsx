@@ -2,7 +2,7 @@ import { Trash } from 'phosphor-react';
 import { Tag, useLibraryMutation } from '@sd/client';
 import { Button, Form, InputField, Switch, Tooltip, dialogManager, useZodForm, z } from '@sd/ui';
 import { ColorPicker } from '~/components';
-import { useDebouncedFormWatch } from '~/hooks';
+import { useFormWatchDebounced } from '~/hooks';
 import Setting from '../../Setting';
 import DeleteDialog from './DeleteDialog';
 
@@ -32,7 +32,7 @@ export default ({ tag, onDelete }: Props) => {
 		reValidateMode: 'onChange'
 	});
 
-	useDebouncedFormWatch(form, (data) => {
+	useFormWatchDebounced(form, (data) => {
 		updateTag.mutate({
 			name: data.name ?? null,
 			color: data.color ?? null,

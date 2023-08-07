@@ -24,7 +24,6 @@ export default (props: Props) => {
 			dialog={useDialog(props)}
 			title="Delete a file"
 			description="Warning: This will delete your file forever, we don't have a trash can yet..."
-			loading={deleteFile.isLoading}
 			ctaLabel="Delete"
 			ctaDanger
 			className="w-[200px]"

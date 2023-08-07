@@ -1,14 +1,18 @@
-import { Laptop, Node } from '@sd/assets/icons';
+import { Laptop } from '@sd/assets/icons';
 import { getDebugState, useBridgeMutation, useBridgeQuery, useDebugState } from '@sd/client';
 import { Button, Card, Input, Switch, tw } from '@sd/ui';
 import { useZodForm, z } from '@sd/ui/src/forms';
-import { useDebouncedFormWatch } from '~/hooks';
+import { useFormWatchDebounced } from '~/hooks';
 import { usePlatform } from '~/util/Platform';
 import { Heading } from '../Layout';
 import Setting from '../Setting';
 
 const NodePill = tw.div`px-1.5 py-[2px] rounded text-xs font-medium bg-app-selected`;
 const NodeSettingLabel = tw.div`mb-1 text-xs font-medium`;
+
+const schema = z.object({
+	name: z.string().min(1)
+});
 
 export const Component = () => {
 	const node = useBridgeQuery(['nodeState']);
@@ -17,15 +21,13 @@ export const Component = () => {
 	const editNode = useBridgeMutation('nodes.edit');
 
 	const form = useZodForm({
-		schema: z.object({
-			name: z.string().min(1)
-		}),
+		schema,
 		defaultValues: {
 			name: node.data?.name || ''
 		}
 	});
 
-	useDebouncedFormWatch(form, async (value) => {
+	useFormWatchDebounced(form, async (value) => {
 		await editNode.mutateAsync({
 			name: value.name || null
 		});

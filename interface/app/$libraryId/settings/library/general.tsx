@@ -1,7 +1,7 @@
 import { MaybeUndefined, useBridgeMutation, useLibraryContext } from '@sd/client';
 import { Button, Input, Switch, Tooltip, dialogManager } from '@sd/ui';
 import { useZodForm, z } from '@sd/ui/src/forms';
-import { useDebouncedFormWatch } from '~/hooks';
+import { useFormWatchDebounced } from '~/hooks';
 import { Heading } from '../Layout';
 import Setting from '../Setting';
 import DeleteLibraryDialog from '../node/libraries/DeleteDialog';
@@ -29,7 +29,7 @@ export const Component = () => {
 		}
 	});
 
-	useDebouncedFormWatch(form, (value) =>
+	useFormWatchDebounced(form, (value) =>
 		editLibrary.mutate({
 			id: library.uuid,
 			name: value.name ?? null,

@@ -12,7 +12,7 @@ import {
 } from '@sd/client';
 import { Dialog, ErrorMessage, InputField, UseDialogProps, useDialog, useZodForm, z } from '@sd/ui';
 import { showAlertDialog } from '~/components';
-import { useCallbackToWatchForm } from '~/hooks';
+import { useFormWatchAsync } from '~/hooks';
 import { Platform, usePlatform } from '~/util/Platform';
 import IndexerRuleEditor from './IndexerRuleEditor';
 
@@ -157,8 +157,8 @@ export const AddLocationDialog = ({
 		[form]
 	);
 
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	useCallbackToWatchForm(
+	useFormWatchAsync(
+		form,
 		useDebouncedCallback(async (values, { name }) => {
 			if (name === 'path') {
 				// Remote errors should only be cleared when path changes,
@@ -176,8 +176,7 @@ export const AddLocationDialog = ({
 			} catch (error) {
 				handleAddError(error);
 			}
-		}, 200),
-		[form, method, addLocation, handleAddError]
+		}, 200)
 	);
 
 	const onSubmit = form.handleSubmit(async (values) => {

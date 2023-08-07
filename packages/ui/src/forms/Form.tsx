@@ -16,19 +16,20 @@ import {
 } from 'react-hook-form';
 import { z } from 'zod';
 
-export interface FormProps<T extends FieldValues> extends Omit<ComponentProps<'form'>, 'onSubmit'> {
-	form: UseFormReturn<T>;
+export interface FormProps<TIn extends FieldValues, TOut extends FieldValues>
+	extends Omit<ComponentProps<'form'>, 'onSubmit'> {
+	form: UseFormReturn<TIn, undefined, TOut>;
 	disabled?: boolean;
-	onSubmit?: ReturnType<UseFormHandleSubmit<T>>;
+	onSubmit?: ReturnType<UseFormHandleSubmit<TIn, TOut>>;
 }
 
-export const Form = <T extends FieldValues>({
+export const Form = <TIn extends FieldValues, TOut extends FieldValues>({
 	form,
 	disabled,
 	onSubmit,
 	children,
 	...props
-}: FormProps<T>) => {
+}: FormProps<TIn, TOut>) => {
 	return (
 		<FormProvider {...form}>
 			<form
@@ -62,7 +63,7 @@ export const useZodForm = <S extends z.ZodSchema = z.ZodObject<Record<string, ne
 ) => {
 	const { schema, ...formProps } = props ?? {};
 
-	return useForm<z.infer<S>>({
+	return useForm<z.input<S>, undefined, z.infer<S>>({
 		...formProps,
 		resolver: zodResolver(schema || z.object({}))
 	});
