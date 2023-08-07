@@ -40,18 +40,17 @@ export function useFormWatchAsync<
 	TOut extends FieldValues = FieldValues
 >(
 	form: UseFormReturn<TIn, TContext, TOut>,
-	callback: (...args: Parameters<WatchObserver<TIn>>) => any
+	callback: (value: TIn, info: Parameters<WatchObserver<TIn>>[1]) => any
 ) {
-	const latestValue = useRef<Parameters<typeof callback>[0]>({} as any);
-
 	// Create a promise chain to make sure async callbacks are called in order
 	const chain = useRef<Promise<void>>();
 
 	// Writing during render is usually not okay but doing so for purposes of initialization is okay
-	chain.current ??= new Promise(() => callback(latestValue.current, {}));
+	chain.current ??= new Promise(() => callback(form.getValues(), {}));
 
-	useFormWatch(form, (value, info) => {
-		latestValue.current = value;
-		chain.current = chain.current?.then(() => callback(latestValue.current, info));
+	console.log(form.getValues());
+
+	useFormWatch(form, (_, info) => {
+		chain.current = chain.current?.then(() => callback(form.getValues(), info));
 	});
 }

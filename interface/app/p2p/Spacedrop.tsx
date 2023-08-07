@@ -1,12 +1,5 @@
 import { useEffect } from 'react';
-import {
-	useBridgeMutation,
-	useBridgeSubscription,
-	useDiscoveredPeers,
-	useFeatureFlag,
-	useP2PEvents,
-	withFeatureFlag
-} from '@sd/client';
+import { useBridgeMutation, useDiscoveredPeers, useP2PEvents } from '@sd/client';
 import {
 	Dialog,
 	InputField,
@@ -43,14 +36,13 @@ export function SpacedropUI() {
 	return null;
 }
 
+const schema = z.object({
+	target_peer: z.string()
+});
+
 function SpacedropDialog(props: UseDialogProps) {
 	const discoveredPeers = useDiscoveredPeers();
-	const form = useZodForm({
-		// We aren't using this but it's required for the Dialog :(
-		schema: z.object({
-			target_peer: z.string()
-		})
-	});
+	const form = useZodForm({ schema });
 
 	const doSpacedrop = useBridgeMutation('p2p.spacedrop');
 
@@ -85,14 +77,14 @@ function SpacedropDialog(props: UseDialogProps) {
 	);
 }
 
+const requestSchema = z.object({
+	file_path: z.string()
+});
 function SpacedropRequestDialog(
 	props: { dropId: string; name: string; peerId: string } & UseDialogProps
 ) {
 	const form = useZodForm({
-		// We aren't using this but it's required for the Dialog :(
-		schema: z.object({
-			file_path: z.string()
-		})
+		schema: requestSchema
 	});
 
 	const acceptSpacedrop = useBridgeMutation('p2p.acceptSpacedrop');

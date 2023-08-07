@@ -49,7 +49,7 @@ importers:
         version: 5.0.4
       vite:
         specifier: ^4.3.9
-        version: 4.3.9(less@4.2.0)
+        version: 4.3.9(@types/node@18.15.1)
 
   apps/desktop:
     dependencies:
@@ -196,8 +196,8 @@ importers:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
       react-hook-form:
-        specifier: ^7.43.9
-        version: 7.43.9(react@18.2.0)
+        specifier: ^7.45.4
+        version: 7.45.4(react@18.2.0)
       react-tsparticles:
         specifier: ^2.10.1
         version: 2.10.1(react@18.2.0)
@@ -285,7 +285,7 @@ importers:
         version: 4.4.7(@types/react@18.0.38)(react-native-gesture-handler@2.9.0)(react-native-reanimated@2.14.4)(react-native@0.71.3)(react@18.2.0)
       '@hookform/resolvers':
         specifier: ^3.1.0
-        version: 3.1.0(react-hook-form@7.43.9)
+        version: 3.1.0(react-hook-form@7.45.4)
       '@react-native-async-storage/async-storage':
         specifier: ~1.17.12
         version: 1.17.12(react-native@0.71.3)
@@ -362,8 +362,8 @@ importers:
         specifier: 18.2.0
         version: 18.2.0
       react-hook-form:
-        specifier: ^7.43.9
-        version: 7.43.9(react@18.2.0)
+        specifier: ^7.45.4
+        version: 7.45.4(react@18.2.0)
       react-native:
         specifier: 0.71.3
         version: 0.71.3(@babel/core@7.22.1)(@babel/preset-env@7.22.9)(react@18.2.0)
@@ -566,7 +566,7 @@ importers:
         version: 5.0.4
       vite:
         specifier: ^4.0.4
-        version: 4.3.9(less@4.2.0)
+        version: 4.3.9(@types/node@18.15.1)
       vite-plugin-html:
         specifier: ^3.2.0
         version: 3.2.0(vite@4.3.9)
@@ -606,7 +606,7 @@ importers:
         version: 4.8.2
       vite:
         specifier: ^4.0.4
-        version: 4.3.9(less@4.2.0)
+        version: 4.3.9(@types/node@18.15.1)
 
   interface:
     dependencies:
@@ -962,6 +962,9 @@ importers:
       react-dom:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
+      react-hook-form:
+        specifier: ^7.45.4
+        version: 7.45.4(react@18.2.0)
       react-loading-icons:
         specifier: ^1.1.0
         version: 1.1.0
@@ -7137,14 +7140,6 @@ packages:
       tailwindcss: 3.3.2
     dev: false
 
-  /@hookform/resolvers@3.1.0(react-hook-form@7.43.9):
-    resolution: {integrity: sha512-z0A8K+Nxq+f83Whm/ajlwE6VtQlp/yPHZnXw7XWVPIGm1Vx0QV8KThU3BpbBRfAZ7/dYqCKKBNnQh85BkmBKkA==}
-    peerDependencies:
-      react-hook-form: ^7.0.0
-    dependencies:
-      react-hook-form: 7.43.9(react@18.2.0)
-    dev: false
-
   /@hookform/resolvers@3.1.0(react-hook-form@7.45.4):
     resolution: {integrity: sha512-z0A8K+Nxq+f83Whm/ajlwE6VtQlp/yPHZnXw7XWVPIGm1Vx0QV8KThU3BpbBRfAZ7/dYqCKKBNnQh85BkmBKkA==}
     peerDependencies:
@@ -10095,7 +10090,7 @@ packages:
       remark-slug: 6.1.0
       rollup: 3.24.1
       typescript: 5.0.4
-      vite: 4.3.9(less@4.2.0)
+      vite: 4.3.9(@types/node@18.15.1)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -10697,7 +10692,7 @@ packages:
       react: 18.2.0
       react-docgen: 6.0.0-alpha.3
       react-dom: 18.2.0(react@18.2.0)
-      vite: 4.3.9(less@4.2.0)
+      vite: 4.3.9(@types/node@18.15.1)
     transitivePeerDependencies:
       - '@preact/preset-vite'
       - supports-color
@@ -12113,7 +12108,7 @@ packages:
       '@babel/plugin-transform-react-jsx-source': 7.22.5(@babel/core@7.22.1)
       magic-string: 0.26.7
       react-refresh: 0.14.0
-      vite: 4.3.9(@types/node@18.15.1)
+      vite: 4.3.9(sass@1.55.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -22335,15 +22330,6 @@ packages:
       react: 18.2.0
     dev: false
 
-  /react-hook-form@7.43.9(react@18.2.0):
-    resolution: {integrity: sha512-AUDN3Pz2NSeoxQ7Hs6OhQhDr6gtF9YRuutGDwPQqhSUAHJSgGl2VeY3qN19MG0SucpjgDiuMJ4iC5T5uB+eaNQ==}
-    engines: {node: '>=12.22.0'}
-    peerDependencies:
-      react: ^16.8.0 || ^17 || ^18
-    dependencies:
-      react: 18.2.0
-    dev: false
-
   /react-hook-form@7.45.4(react@18.2.0):
     resolution: {integrity: sha512-HGDV1JOOBPZj10LB3+OZgfDBTn+IeEsNOKiq/cxbQAIbKaiJUe/KV8DBUzsx0Gx/7IG/orWqRRm736JwOfUSWQ==}
     engines: {node: '>=12.22.0'}
@@ -26056,7 +26042,7 @@ packages:
     dependencies:
       '@rollup/pluginutils': 4.2.1
       '@svgr/core': 6.5.1
-      vite: 4.3.9(@types/node@18.15.1)
+      vite: 4.3.9(sass@1.55.0)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -26070,7 +26056,7 @@ packages:
       globrex: 0.1.2
       recrawl-sync: 2.2.3
       tsconfig-paths: 4.2.0
-      vite: 4.3.9(less@4.2.0)
+      vite: 4.3.9(@types/node@18.15.1)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -26153,6 +26139,7 @@ packages:
       rollup: 3.24.1
     optionalDependencies:
       fsevents: 2.3.2
+    dev: true
 
   /vite@4.3.9(less@4.2.0):
     resolution: {integrity: sha512-qsTNZjO9NoJNW7KnOrgYwczm0WctJ8m/yqYAMAK9Lxt4SoySUfS5S8ia9K7JHpa3KEeMfyF8LoJ3c5NeBJy6pg==}

@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import { CaretDown } from 'phosphor-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Controller, get } from 'react-hook-form';
+import { Controller, DeepPartial, get } from 'react-hook-form';
 import { useDebouncedCallback } from 'use-debounce';
 import {
 	UnionToTuple,
@@ -75,7 +75,10 @@ export const AddLocationDialog = ({
 		[listIndexerRules.data]
 	);
 
-	const form = useZodForm({ schema, defaultValues: { path, method, indexerRulesIds } });
+	const form = useZodForm({
+		schema
+		// defaultValues: { path, method, indexerRulesIds }
+	});
 
 	useEffect(() => {
 		// Update form values when default value changes and the user hasn't made any changes
@@ -174,6 +177,7 @@ export const AddLocationDialog = ({
 			try {
 				await addLocation(values, true);
 			} catch (error) {
+				console.log(error);
 				handleAddError(error);
 			}
 		}, 200)
