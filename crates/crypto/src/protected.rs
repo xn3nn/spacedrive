@@ -28,7 +28,7 @@
 //! let value = protected_data.expose();
 //! ```
 //!
-use std::{fmt::Debug, mem::swap};
+use std::{fmt::Debug, mem};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
@@ -56,14 +56,8 @@ where
 	}
 }
 
-impl From<Vec<u8>> for Protected<Vec<u8>> {
-	fn from(value: Vec<u8>) -> Self {
-		Self(value)
-	}
-}
-
-impl From<String> for Protected<String> {
-	fn from(value: String) -> Self {
+impl<T: Zeroize> From<T> for Protected<T> {
+	fn from(value: T) -> Self {
 		Self(value)
 	}
 }
@@ -74,7 +68,7 @@ where
 {
 	pub fn into_inner(mut self) -> T {
 		let mut out = Default::default();
-		swap(&mut self.0, &mut out);
+		mem::swap(&mut self.0, &mut out);
 		out
 	}
 }
