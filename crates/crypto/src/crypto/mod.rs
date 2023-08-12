@@ -68,8 +68,8 @@ mod tests {
 			AAD_LEN, AEAD_TAG_LEN, AES_256_GCM_NONCE_LEN, BLOCK_LEN, KEY_LEN,
 			XCHACHA20_POLY1305_NONCE_LEN,
 		},
+		rng::CryptoRng,
 		types::{Aad, Algorithm, EncryptedKey, Key, Nonce},
-		utils::generate_vec,
 	};
 
 	const KEY: Key = Key::new([0x23; KEY_LEN]);
@@ -282,7 +282,7 @@ mod tests {
 	#[test]
 	#[cfg_attr(miri, ignore)]
 	fn aes_256_gcm_encrypt_and_decrypt_5_blocks() {
-		let buf = generate_vec(BLOCK_LEN * 5);
+		let buf = CryptoRng::generate_vec(BLOCK_LEN * 5);
 
 		let mut reader = Cursor::new(&buf);
 		let mut writer = Cursor::new(Vec::new());
@@ -338,7 +338,7 @@ mod tests {
 	#[test]
 	#[cfg_attr(miri, ignore)]
 	fn aes_256_gcm_encrypt_and_decrypt_5_blocks_with_aad() {
-		let buf = generate_vec(BLOCK_LEN * 5);
+		let buf = CryptoRng::generate_vec(BLOCK_LEN * 5);
 
 		let mut reader = Cursor::new(&buf);
 		let mut writer = Cursor::new(Vec::new());
@@ -367,7 +367,7 @@ mod tests {
 	#[cfg(feature = "async")]
 	#[cfg_attr(miri, ignore)]
 	async fn aes_256_gcm_encrypt_and_decrypt_5_blocks_async() {
-		let buf = generate_vec(BLOCK_LEN * 5);
+		let buf = CryptoRng::generate_vec(BLOCK_LEN * 5);
 
 		let mut reader = Cursor::new(&buf);
 		let mut writer = Cursor::new(Vec::new());
@@ -398,7 +398,7 @@ mod tests {
 	#[cfg(feature = "async")]
 	#[cfg_attr(miri, ignore)]
 	async fn aes_256_gcm_encrypt_and_decrypt_5_blocks_with_aad_async() {
-		let buf = generate_vec(BLOCK_LEN * 5);
+		let buf = CryptoRng::generate_vec(BLOCK_LEN * 5);
 
 		let mut reader = Cursor::new(&buf);
 		let mut writer = Cursor::new(Vec::new());
@@ -578,7 +578,7 @@ mod tests {
 	#[test]
 	#[cfg_attr(miri, ignore)]
 	fn xchacha20_poly1305_encrypt_and_decrypt_5_blocks() {
-		let buf = generate_vec(BLOCK_LEN * 5);
+		let buf = CryptoRng::generate_vec(BLOCK_LEN * 5);
 
 		let mut reader = Cursor::new(&buf);
 		let mut writer = Cursor::new(Vec::new());
@@ -654,7 +654,7 @@ mod tests {
 	#[test]
 	#[cfg_attr(miri, ignore)]
 	fn xchacha20_poly1305_encrypt_and_decrypt_5_blocks_with_aad() {
-		let buf = generate_vec(BLOCK_LEN * 5);
+		let buf = CryptoRng::generate_vec(BLOCK_LEN * 5);
 
 		let mut reader = Cursor::new(&buf);
 		let mut writer = Cursor::new(Vec::new());
@@ -693,7 +693,7 @@ mod tests {
 	#[cfg(feature = "async")]
 	#[cfg_attr(miri, ignore)]
 	async fn xchacha20_poly1305_encrypt_and_decrypt_5_blocks_async() {
-		let buf = generate_vec(BLOCK_LEN * 5);
+		let buf = CryptoRng::generate_vec(BLOCK_LEN * 5);
 
 		let mut reader = Cursor::new(&buf);
 		let mut writer = Cursor::new(Vec::new());
@@ -734,7 +734,7 @@ mod tests {
 	#[cfg(feature = "async")]
 	#[cfg_attr(miri, ignore)]
 	async fn xchacha20_poly1305_encrypt_and_decrypt_5_blocks_with_aad_async() {
-		let buf = generate_vec(BLOCK_LEN * 5);
+		let buf = CryptoRng::generate_vec(BLOCK_LEN * 5);
 
 		let mut reader = Cursor::new(&buf);
 		let mut writer = Cursor::new(Vec::new());

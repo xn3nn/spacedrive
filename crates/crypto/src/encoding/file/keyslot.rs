@@ -1,8 +1,8 @@
 use crate::{
 	crypto::{Decryptor, Encryptor},
 	hashing::Hasher,
+	rng::CryptoRng,
 	types::{Aad, Algorithm, DerivationContext, EncryptedKey, HashingAlgorithm, Key, Nonce, Salt},
-	utils::generate_fixed,
 	Result,
 };
 
@@ -65,7 +65,7 @@ impl Keyslot {
 			hash_salt: Salt::generate(),
 			hashing_algorithm: HashingAlgorithm::default(),
 			encrypted_key: EncryptedKey::new(
-				generate_fixed(),
+				CryptoRng::generate_fixed(),
 				Nonce::generate(Algorithm::default()),
 			),
 			salt: Salt::generate(),

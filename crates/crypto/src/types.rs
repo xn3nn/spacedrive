@@ -6,7 +6,8 @@ use std::fmt::{Debug, Display, Write};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::ct::{Choice, ConstantTimeEq, ConstantTimeEqNull};
-use crate::utils::{generate_fixed, ToArray};
+use crate::rng::CryptoRng;
+use crate::utils::ToArray;
 use crate::{Error, Protected};
 
 use crate::primitives::{
@@ -120,9 +121,9 @@ impl Nonce {
 	#[must_use]
 	pub fn generate(algorithm: Algorithm) -> Self {
 		match algorithm {
-			Algorithm::Aes256Gcm => Self::Aes256Gcm(generate_fixed()),
-			Algorithm::Aes256GcmSiv => Self::Aes256GcmSiv(generate_fixed()),
-			Algorithm::XChaCha20Poly1305 => Self::XChaCha20Poly1305(generate_fixed()),
+			Algorithm::Aes256Gcm => Self::Aes256Gcm(CryptoRng::generate_fixed()),
+			Algorithm::Aes256GcmSiv => Self::Aes256GcmSiv(CryptoRng::generate_fixed()),
+			Algorithm::XChaCha20Poly1305 => Self::XChaCha20Poly1305(CryptoRng::generate_fixed()),
 		}
 	}
 
@@ -250,7 +251,7 @@ impl Key {
 
 	#[must_use]
 	pub fn generate() -> Self {
-		Self::new(generate_fixed())
+		Self::new(CryptoRng::generate_fixed())
 	}
 
 	pub fn validate(&self) -> crate::Result<()> {
@@ -322,7 +323,7 @@ impl SecretKey {
 
 	#[must_use]
 	pub fn generate() -> Self {
-		Self::new(generate_fixed())
+		Self::new(CryptoRng::generate_fixed())
 	}
 }
 
@@ -440,7 +441,7 @@ pub enum Aad {
 impl Aad {
 	#[must_use]
 	pub fn generate() -> Self {
-		Self::Standard(generate_fixed())
+		Self::Standard(CryptoRng::generate_fixed())
 	}
 
 	#[must_use]
@@ -477,7 +478,7 @@ pub struct Salt([u8; SALT_LEN]);
 impl Salt {
 	#[must_use]
 	pub fn generate() -> Self {
-		Self(generate_fixed())
+		Self(CryptoRng::generate_fixed())
 	}
 
 	#[must_use]

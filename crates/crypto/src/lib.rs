@@ -27,6 +27,7 @@ pub mod error;
 pub mod hashing;
 pub mod primitives;
 pub mod protected;
+pub mod rng;
 pub mod types;
 pub mod utils;
 
