@@ -1,4 +1,4 @@
-use rand::{seq::index, RngCore, SeedableRng};
+use rand::{seq::index, Rng, RngCore, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
@@ -67,27 +67,58 @@ impl Drop for CryptoRng {
 
 pub const WORDS: &str = include_str!("../assets/eff_large_wordlist.txt");
 
+#[derive(Default, Clone)]
+pub enum MnemonicDelimiter {
+	#[default]
+	None,
+	Dash,
+	Period,
+	Comma,
+	CommaSpace,
+}
+
 #[derive(Zeroize, ZeroizeOnDrop, Clone)]
 pub struct Mnemonic(Vec<String>);
 
 impl Mnemonic {
+	#[must_use]
 	fn get_all_words<'a>() -> Vec<&'a str> {
 		WORDS.lines().collect()
 	}
 
-	pub fn generate_word() -> Result<Mnemonic> {
+	#[must_use]
+	pub fn generate_word() -> Self {
 		// let i = index::sample(&mut CryptoRng::from_entropy(), WORDS.len(), 1);
 		// Ok(Mnemonic::get_all_words()[i.index(0)]))
-		todo!()
+		let index = CryptoRng::from_entropy().gen_range(0..=WORDS.len());
+		Self(vec![Self::get_all_words()[index].to_string()])
 	}
-	pub fn generate_mnemonic(length: usize, delimiter: Option<char>) -> Result<Mnemonic> {
+
+	#[must_use]
+	pub fn generate_mnemonic(delimiter: MnemonicDelimiter) -> Self {
 		todo!()
 	}
 }
 
-impl From<String> for Mnemonic {
-	todo!()
-}
+// #[derive(Zeroize, ZeroizeOnDrop, Clone)]
+// pub struct Mnemonic<const I: usize>([String; I]);
+
+// impl<const I: usize> Mnemonic<I> {
+// 	#[must_use]
+// 	fn get_all_words<'a>() -> Vec<&'a str> {
+// 		WORDS.lines().collect()
+// 	}
+
+// 	pub fn generate_word() -> Result<Mnemonic<1>> {
+// 		// let i = index::sample(&mut CryptoRng::from_entropy(), WORDS.len(), 1);
+// 		// Ok(Mnemonic::get_all_words()[i.index(0)]))
+// 		let index = CryptoRng::from_entropy().gen_range(0..=WORDS.len());
+// 		Self([Self::get_all_words()[index].to_string()])
+// 	}
+// 	pub fn generate_mnemonic(delimiter: MnemonicDelimiter) -> Result<Mnemonic<I>> {
+// 		todo!()
+// 	}
+// }
 
 // #[must_use]
 // pub fn generate_passphrase(len: usize, delimiter: Option<char>) -> Protected<String> {
