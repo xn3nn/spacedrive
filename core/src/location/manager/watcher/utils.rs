@@ -20,11 +20,11 @@ use crate::{
 		validation::hash::file_checksum,
 	},
 	prisma::{file_path, location, object},
-	sync::{self, OperationFactory},
 	util::{
 		db::{device_from_db, device_to_db, inode_from_db, inode_to_db, maybe_missing},
 		error::FileIOError,
 	},
+	Node,
 };
 
 #[cfg(target_family = "unix")]
@@ -35,16 +35,20 @@ use crate::location::file_path_helper::get_inode_and_device_from_path;
 
 use std::{
 	collections::HashSet,
+	ffi::OsStr,
 	fs::Metadata,
 	path::{Path, PathBuf},
 	str::FromStr,
+	sync::Arc,
 };
 
 use sd_file_ext::extensions::ImageExtension;
 
 use chrono::{DateTime, Local, Utc};
-use notify::{Event, EventKind};
+use notify::Event;
 use prisma_client_rust::{raw, PrismaValue};
+use sd_prisma::prisma_sync;
+use sd_sync::OperationFactory;
 use serde_json::json;
 use tokio::{fs, io::ErrorKind};
 use tracing::{debug, error, trace, warn};
@@ -55,10 +59,9 @@ use super::INodeAndDevice;
 pub(super) fn check_event(event: &Event, ignore_paths: &HashSet<PathBuf>) -> bool {
 	// if path includes .DS_Store, .spacedrive file creation or is in the `ignore_paths` set, we ignore
 	!event.paths.iter().any(|p| {
-		let path_str = p.to_str().expect("Found non-UTF-8 path");
-
-		path_str.contains(".DS_Store")
-			|| (path_str.contains(".spacedrive") && matches!(event.kind, EventKind::Create(_)))
+		p.file_name()
+			.and_then(OsStr::to_str)
+			.map_or(false, |name| name == ".DS_Store" || name == ".spacedrive")
 			|| ignore_paths.contains(p)
 	})
 }
@@ -67,7 +70,8 @@ pub(super) async fn create_dir(
 	location_id: location::id::Type,
 	path: impl AsRef<Path>,
 	metadata: &Metadata,
-	library: &Library,
+	node: &Arc<Node>,
+	library: &Arc<Library>,
 ) -> Result<(), LocationManagerError> {
 	let location = find_location(library, location_id)
 		.include(location_with_indexer_rules::include())
@@ -133,7 +137,7 @@ pub(super) async fn create_dir(
 	.await?;
 
 	// scan the new directory
-	scan_location_sub_path(library, location, &children_materialized_path).await?;
+	scan_location_sub_path(node, library, location, &children_materialized_path).await?;
 
 	invalidate_query!(library, "search.paths");
 
@@ -144,13 +148,15 @@ pub(super) async fn create_file(
 	location_id: location::id::Type,
 	path: impl AsRef<Path>,
 	metadata: &Metadata,
-	library: &Library,
+	node: &Arc<Node>,
+	library: &Arc<Library>,
 ) -> Result<(), LocationManagerError> {
 	inner_create_file(
 		location_id,
 		extract_location_path(location_id, library).await?,
 		path,
 		metadata,
+		node,
 		library,
 	)
 	.await
@@ -161,7 +167,8 @@ async fn inner_create_file(
 	location_path: impl AsRef<Path>,
 	path: impl AsRef<Path>,
 	metadata: &Metadata,
-	library: &Library,
+	node: &Arc<Node>,
+	library: &Arc<Library>,
 ) -> Result<(), LocationManagerError> {
 	let path = path.as_ref();
 	let location_path = location_path.as_ref();
@@ -208,7 +215,7 @@ async fn inner_create_file(
 			"File already exists with that inode and device: {}",
 			iso_file_path
 		);
-		return inner_update_file(location_path, &file_path, path, library, None).await;
+		return inner_update_file(location_path, &file_path, path, node, library, None).await;
 
 	// If we can't find an existing file with the same inode and device, we check if there is a file with the same path
 	} else if let Some(file_path) = db
@@ -231,6 +238,7 @@ async fn inner_create_file(
 			location_path,
 			&file_path,
 			path,
+			node,
 			library,
 			Some((inode, device)),
 		)
@@ -309,10 +317,10 @@ async fn inner_create_file(
 	if !extension.is_empty() {
 		// Running in a detached task as thumbnail generation can take a while and we don't want to block the watcher
 		let path = path.to_path_buf();
-		let library = library.clone();
+		let node = node.clone();
 
 		tokio::spawn(async move {
-			generate_thumbnail(&extension, &cas_id, path, &library).await;
+			generate_thumbnail(&extension, &cas_id, path, &node).await;
 		});
 	}
 
@@ -324,7 +332,8 @@ async fn inner_create_file(
 pub(super) async fn create_dir_or_file(
 	location_id: location::id::Type,
 	path: impl AsRef<Path>,
-	library: &Library,
+	node: &Arc<Node>,
+	library: &Arc<Library>,
 ) -> Result<Metadata, LocationManagerError> {
 	let path = path.as_ref();
 	let metadata = fs::metadata(path)
@@ -332,9 +341,9 @@ pub(super) async fn create_dir_or_file(
 		.map_err(|e| FileIOError::from((path, e)))?;
 
 	if metadata.is_dir() {
-		create_dir(location_id, path, &metadata, library).await
+		create_dir(location_id, path, &metadata, node, library).await
 	} else {
-		create_file(location_id, path, &metadata, library).await
+		create_file(location_id, path, &metadata, node, library).await
 	}
 	.map(|_| metadata)
 }
@@ -342,7 +351,8 @@ pub(super) async fn create_dir_or_file(
 pub(super) async fn update_file(
 	location_id: location::id::Type,
 	full_path: impl AsRef<Path>,
-	library: &Library,
+	node: &Arc<Node>,
+	library: &Arc<Library>,
 ) -> Result<(), LocationManagerError> {
 	let full_path = full_path.as_ref();
 	let location_path = extract_location_path(location_id, library).await?;
@@ -358,7 +368,7 @@ pub(super) async fn update_file(
 		.exec()
 		.await?
 	{
-		inner_update_file(location_path, file_path, full_path, library, None).await
+		inner_update_file(location_path, file_path, full_path, node, library, None).await
 	} else {
 		inner_create_file(
 			location_id,
@@ -367,6 +377,7 @@ pub(super) async fn update_file(
 			&fs::metadata(full_path)
 				.await
 				.map_err(|e| FileIOError::from((full_path, e)))?,
+			node,
 			library,
 		)
 		.await
@@ -378,6 +389,7 @@ async fn inner_update_file(
 	location_path: impl AsRef<Path>,
 	file_path: &file_path_with_object::Data,
 	full_path: impl AsRef<Path>,
+	node: &Arc<Node>,
 	library @ Library { db, sync, .. }: &Library,
 	maybe_new_inode_and_device: Option<INodeAndDevice>,
 ) -> Result<(), LocationManagerError> {
@@ -507,7 +519,7 @@ async fn inner_update_file(
 						.into_iter()
 						.map(|(field, value)| {
 							sync.shared_update(
-								sync::file_path::SyncId {
+								prisma_sync::file_path::SyncId {
 									pub_id: file_path.pub_id.clone(),
 								},
 								field,
@@ -525,12 +537,12 @@ async fn inner_update_file(
 
 			if let Some(ref object) = file_path.object {
 				// if this file had a thumbnail previously, we update it to match the new content
-				if library.thumbnail_exists(old_cas_id).await? {
+				if library.thumbnail_exists(node, old_cas_id).await? {
 					if let Some(ext) = &file_path.extension {
-						generate_thumbnail(ext, &cas_id, full_path, library).await;
+						generate_thumbnail(ext, &cas_id, full_path, node).await;
 
 						// remove the old thumbnail as we're generating a new one
-						let thumb_path = get_thumbnail_path(library, old_cas_id);
+						let thumb_path = get_thumbnail_path(node, old_cas_id);
 						fs::remove_file(&thumb_path)
 							.await
 							.map_err(|e| FileIOError::from((thumb_path, e)))?;
@@ -543,7 +555,7 @@ async fn inner_update_file(
 					sync.write_op(
 						db,
 						sync.shared_update(
-							sync::object::SyncId {
+							prisma_sync::object::SyncId {
 								pub_id: object.pub_id.clone(),
 							},
 							object::kind::NAME,
@@ -600,8 +612,10 @@ pub(super) async fn rename(
 	if let Some(file_path) = db
 		.file_path()
 		.find_first(loose_find_existing_file_path_params(
-			&IsolatedFilePathData::new(location_id, &location_path, old_path, false)?,
-		))
+			location_id,
+			&location_path,
+			old_path,
+		)?)
 		.exec()
 		.await?
 	{
@@ -664,8 +678,8 @@ pub(super) async fn remove(
 	let Some(file_path) = library.db
 		.file_path()
 		.find_first(loose_find_existing_file_path_params(
-			&IsolatedFilePathData::new(location_id, &location_path, full_path, false)?,
-		))
+		location_id, &location_path, full_path,
+		)?)
 		.exec()
 		.await? else {
 			return Ok(());
@@ -715,8 +729,6 @@ pub(super) async fn remove_by_file_path(
 						.await?;
 				}
 			}
-
-			library.orphan_remover.invoke().await;
 		}
 		Err(e) => return Err(FileIOError::from((path, e)).into()),
 	}
@@ -730,10 +742,10 @@ async fn generate_thumbnail(
 	extension: &str,
 	cas_id: &str,
 	path: impl AsRef<Path>,
-	library: &Library,
+	node: &Arc<Node>,
 ) {
 	let path = path.as_ref();
-	let output_path = get_thumbnail_path(library, cas_id);
+	let output_path = get_thumbnail_path(node, cas_id);
 
 	if let Err(e) = fs::metadata(&output_path).await {
 		if e.kind() != ErrorKind::NotFound {
@@ -791,8 +803,10 @@ pub(super) async fn extract_inode_and_device_from_path(
 		.db
 		.file_path()
 		.find_first(loose_find_existing_file_path_params(
-			&IsolatedFilePathData::new(location_id, location_path, path, false)?,
-		))
+			location_id,
+			location_path,
+			path,
+		)?)
 		.select(file_path::select!({ inode device }))
 		.exec()
 		.await?

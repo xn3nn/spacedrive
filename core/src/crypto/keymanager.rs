@@ -9,7 +9,7 @@ use sd_crypto::primitives::{BLOCK_LEN, SALT_LEN};
 use sd_crypto::types::{
 	Aad, Algorithm, EncryptedKey, HashingAlgorithm, Key, Nonce, Salt, SecretKey,
 };
-use sd_crypto::utils::generate_passphrase;
+// use sd_crypto::utils::generate_passphrase;
 use sd_crypto::{encoding, Protected};
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -565,13 +565,16 @@ impl KeyManager {
 			}
 		});
 
-		let word: Protected<Vec<u8>> = word
-			.map_or(
-				generate_passphrase(1, '_').into_inner(),
-				Protected::into_inner,
-			)
-			.into_bytes()
-			.into();
+		// let word: Protected<Vec<u8>> = word
+		// 	.map_or(
+		// 		// generate_passphrase(1, '_').into_inner(),
+		// 		Protected::into_inner,
+		// 	)
+		// 	.into_bytes()
+		// 	.into();
+
+		// TODO(brxken128): remove this and replace with the above once mnemonic/word generation has been optimised
+		let word: Protected<Vec<u8>> = Protected::new(b"word".to_vec());
 
 		let uuid = Uuid::new_v4();
 		let tv_key = Key::generate();
