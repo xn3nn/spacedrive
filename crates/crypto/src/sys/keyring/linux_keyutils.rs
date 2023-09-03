@@ -5,14 +5,14 @@ use crate::{Error, Protected, Result};
 
 use super::{Identifier, KeyringInterface, KeyringName};
 
-pub struct LinuxKeyring {
+pub struct LinuxKeyutilsKeyring {
 	session: KeyRing,
 	persistent: KeyRing,
 }
 
 const WEEK: usize = 604_800;
 
-impl LinuxKeyring {
+impl LinuxKeyutilsKeyring {
 	pub fn new() -> Result<Self> {
 		let session = KeyRing::from_special_id(KeyRingIdentifier::Session, false)?;
 		let persistent = KeyRing::get_persistent(KeyRingIdentifier::Session)?;
@@ -26,7 +26,7 @@ impl LinuxKeyring {
 	}
 }
 
-impl KeyringInterface for LinuxKeyring {
+impl KeyringInterface for LinuxKeyutilsKeyring {
 	fn new() -> Result<Self> {
 		let session = KeyRing::from_special_id(KeyRingIdentifier::Session, false)?;
 		let persistent = KeyRing::get_persistent(KeyRingIdentifier::Session)?;

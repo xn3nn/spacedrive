@@ -20,6 +20,8 @@ bincode = ["dep:bincode"]
 sys = ["dep:linux-keyutils", "dep:security-framework"]
 async = ["dep:tokio"]
 specta = ["dep:specta"]
+keyutils = []
+secret-service = []
 
 [dependencies]
 # rng

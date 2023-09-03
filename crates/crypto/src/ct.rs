@@ -1,10 +1,18 @@
 use cmov::{Cmov, CmovEq};
 
-pub trait ConstantTimeEq {
-	fn ct_eq(&self, other: &Self) -> Choice;
+// The basic principle of most `ct_eq()` functions is to "null" out `x` (which is = 1 by default)
+// if any of the values aren't equal. If `x` is nulled out (= 0) at any point, then this will return false,
+// otherwise it will remain true and both values will be considered equal.
+// This functionality is repeated across all `.iter().zip(...)` methods.
 
-	fn ct_ne(&self, other: &Self) -> Choice {
-		!self.ct_eq(other)
+// For some other implementations, we convert the type to bytes before calling `.ct_eq()`,
+// making use of the already-made functions.
+
+pub trait ConstantTimeEq {
+	fn ct_eq(&self, rhs: &Self) -> Choice;
+
+	fn ct_ne(&self, rhs: &Self) -> Choice {
+		!self.ct_eq(rhs)
 	}
 }
 
@@ -12,8 +20,8 @@ macro_rules! impl_ct_int {
 	($($int_type:ident),*) => {
 		$(
 			impl ConstantTimeEq for $int_type {
-				fn ct_eq(&self, other: &Self) -> Choice {
-					self.to_le_bytes().ct_eq(&other.to_le_bytes())
+				fn ct_eq(&self, rhs: &Self) -> Choice {
+					self.to_le_bytes().ct_eq(&rhs.to_le_bytes())
 				}
 			}
 		)*
@@ -27,11 +35,11 @@ impl<T, const I: usize> ConstantTimeEq for [T; I]
 where
 	T: CmovEq,
 {
-	fn ct_eq(&self, other: &Self) -> Choice {
+	fn ct_eq(&self, rhs: &Self) -> Choice {
 		let mut x = 1u8;
 
 		self.iter()
-			.zip(other.iter())
+			.zip(rhs.iter())
 			.for_each(|(l, r)| l.cmovne(r, 0u8, &mut x));
 
 		Choice::from(x)
@@ -42,15 +50,16 @@ impl<T> ConstantTimeEq for [T]
 where
 	T: CmovEq,
 {
-	fn ct_eq(&self, other: &Self) -> Choice {
-		if self.len() != other.len() {
+	fn ct_eq(&self, rhs: &Self) -> Choice {
+		// Here we can short-circuit as it's obvious that they're not equal
+		if self.len() != rhs.len() {
 			return Choice::from(0);
 		}
 
 		let mut x = 1u8;
 
 		self.iter()
-			.zip(other.iter())
+			.zip(rhs.iter())
 			.for_each(|(l, r)| l.cmovne(r, 0u8, &mut x));
 
 		Choice::from(x)
@@ -58,8 +67,18 @@ where
 }
 
 impl ConstantTimeEq for String {
-	fn ct_eq(&self, other: &Self) -> Choice {
-		self.as_bytes().ct_eq(other.as_bytes())
+	fn ct_eq(&self, rhs: &Self) -> Choice {
+		// Here we are just able to convert both values to bytes and use the
+		// appropriate methods to compare the two in constant-time.
+		self.as_bytes().ct_eq(rhs.as_bytes())
+	}
+}
+
+impl<'a> ConstantTimeEq for &'a str {
+	fn ct_eq(&self, rhs: &Self) -> Choice {
+		// Here we are just able to convert both values to bytes and use the
+		// appropriate methods to compare the two in constant-time.
+		self.as_bytes().ct_eq(rhs.as_bytes())
 	}
 }
 
@@ -69,13 +88,16 @@ pub struct Choice(u8);
 impl Choice {
 	#[inline]
 	#[must_use]
-	pub const fn unwrap_u8(&self) -> u8 {
-		self.0
+	pub fn unwrap_u8(&self) -> u8 {
+		let mut x = 0u8;
+		x.cmovnz(&1, self.0);
+		x
 	}
 }
 
 impl std::ops::Not for Choice {
 	type Output = Self;
+
 	#[inline]
 	fn not(self) -> Self {
 		let mut x = 0u8;
@@ -106,12 +128,14 @@ pub trait ConstantTimeEqNull {
 	/// Check if the provided value is equivalent to null, in constant time.
 	fn ct_eq_null(&self) -> Choice;
 	/// Check if the provided value is not equivalent to null, in constant time.
+	#[inline]
 	fn ct_ne_null(&self) -> Choice {
 		!self.ct_eq_null()
 	}
 }
 
 impl ConstantTimeEqNull for [u8] {
+	#[inline]
 	fn ct_eq_null(&self) -> Choice {
 		let mut x = 1u8;
 		self.iter().for_each(|i| x.cmovnz(&0u8, *i));

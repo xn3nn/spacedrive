@@ -1,14 +1,21 @@
+// TODO(brxken128): change this, as both of these should be available at runtime
+#[cfg(all(feature = "keyutils", feature = "secret-service", target_os = "linux"))]
+compile_error!(
+	"You may not use both the keyutils and secret-service implementation simultaneously"
+);
+
 use crate::{hashing::Hasher, Protected, Result};
+
 mod portable;
 use portable::PortableKeyring;
 
 #[cfg(not(any(target_os = "linux", target_os = "ios", target_os = "macos")))]
 use portable::PortableKeyring as DefaultKeyring;
 
-#[cfg(target_os = "linux")]
-mod linux;
-#[cfg(target_os = "linux")]
-use linux::LinuxKeyring as DefaultKeyring;
+#[cfg(all(target_os = "linux", feature = "keyutils"))]
+mod linux_keyutils;
+#[cfg(all(target_os = "linux", feature = "keyutils"))]
+use linux_keyutils::LinuxKeyring as DefaultKeyring;
 
 #[cfg(target_os = "macos")]
 pub mod macos;
@@ -20,7 +27,7 @@ pub mod ios;
 #[cfg(target_os = "ios")]
 pub use ios::IosKeyring as DefaultKeyring;
 
-pub(self) trait KeyringInterface {
+pub trait KeyringInterface {
 	fn new() -> Result<Self>
 	where
 		Self: Sized;
@@ -53,6 +60,7 @@ pub struct Identifier {
 }
 
 impl Identifier {
+	#[inline]
 	#[must_use]
 	pub fn new(id: &'static str, usage: &'static str, application: &'static str) -> Self {
 		Self {
@@ -62,6 +70,7 @@ impl Identifier {
 		}
 	}
 
+	#[inline]
 	#[must_use]
 	pub fn hash(&self) -> String {
 		format!(
@@ -90,23 +99,28 @@ impl Keyring {
 		Ok(kr)
 	}
 
+	#[inline]
 	pub fn get(&self, id: &Identifier) -> Result<Protected<String>> {
 		self.inner.get(id)
 	}
 
+	#[inline]
 	#[must_use]
 	pub fn contains_key(&self, id: &Identifier) -> bool {
 		self.inner.contains_key(id)
 	}
 
+	#[inline]
 	pub fn remove(&self, id: &Identifier) -> Result<()> {
 		self.inner.remove(id)
 	}
 
+	#[inline]
 	pub fn insert(&self, id: &Identifier, value: Protected<String>) -> Result<()> {
 		self.inner.insert(id, value)
 	}
 
+	#[inline]
 	#[must_use]
 	pub fn name(&self) -> KeyringName {
 		self.inner.name()
