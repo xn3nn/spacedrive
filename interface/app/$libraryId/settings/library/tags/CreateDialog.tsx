@@ -1,5 +1,5 @@
-import { Object, useLibraryMutation, usePlausibleEvent } from '@sd/client';
-import { Dialog, InputField, UseDialogProps, useDialog, useZodForm, z } from '@sd/ui';
+import { Object, useLibraryMutation, usePlausibleEvent, useZodForm } from '@sd/client';
+import { Dialog, InputField, UseDialogProps, useDialog, z } from '@sd/ui';
 import { ColorPicker } from '~/components';
 
 const schema = z.object({
@@ -12,7 +12,8 @@ export default (props: UseDialogProps & { objects?: Object[] }) => {
 
 	const form = useZodForm({
 		schema: schema,
-		defaultValues: { color: '#A717D9' }
+		defaultValues: { color: '#A717D9' },
+		mode: 'onBlur'
 	});
 
 	const createTag = useLibraryMutation('tags.create');
@@ -38,6 +39,7 @@ export default (props: UseDialogProps & { objects?: Object[] }) => {
 
 	return (
 		<Dialog
+			invertButtonFocus
 			form={form}
 			onSubmit={onSubmit}
 			dialog={useDialog(props)}

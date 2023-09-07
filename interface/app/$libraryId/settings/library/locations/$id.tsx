@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Archive, ArrowsClockwise, Info, Trash } from 'phosphor-react';
 import { Suspense } from 'react';
 import { Controller } from 'react-hook-form';
-import { useLibraryMutation, useLibraryQuery } from '@sd/client';
+import { useLibraryMutation, useLibraryQuery, useZodForm } from '@sd/client';
 import {
 	Button,
 	Divider,
@@ -13,13 +13,12 @@ import {
 	RadioGroupField,
 	SwitchField,
 	Tooltip,
+	toast,
 	tw,
-	useZodForm,
 	z
 } from '@sd/ui';
 import ModalLayout from '~/app/$libraryId/settings/ModalLayout';
 import { LocationIdParamsSchema } from '~/app/route-schemas';
-import { showAlertDialog } from '~/components';
 import { useZodRouteParams } from '~/hooks';
 import IndexerRuleEditor from './IndexerRuleEditor';
 
@@ -87,10 +86,7 @@ const EditLocationForm = () => {
 
 	const updateLocation = useLibraryMutation('locations.update', {
 		onError: () => {
-			showAlertDialog({
-				title: 'Error',
-				value: 'Failed to update location settings'
-			});
+			toast.error('Failed to update location settings');
 		},
 		onSuccess: () => {
 			form.reset(form.getValues());
@@ -228,7 +224,12 @@ const EditLocationForm = () => {
 					<FlexCol>
 						<div>
 							<Button
-								onClick={() => fullRescan.mutate({ location_id: locationId, reidentify_objects: true })}
+								onClick={() =>
+									fullRescan.mutate({
+										location_id: locationId,
+										reidentify_objects: true
+									})
+								}
 								size="sm"
 								variant="outline"
 							>

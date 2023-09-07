@@ -1,12 +1,13 @@
+import type { ReadonlyDeep } from 'type-fest';
 import { proxy, useSnapshot } from 'valtio';
 import { proxySet } from 'valtio/utils';
 import { z } from 'zod';
 import {
-	DoubleClickAction,
-	ExplorerItem,
-	ExplorerLayout,
-	ExplorerSettings,
-	SortOrder,
+	type DoubleClickAction,
+	type ExplorerItem,
+	type ExplorerLayout,
+	type ExplorerSettings,
+	type SortOrder,
 	resetStore
 } from '@sd/client';
 
@@ -64,13 +65,11 @@ export function getOrderingDirection(ordering: Ordering): SortOrder {
 	else return ordering.value;
 }
 
-export const createDefaultExplorerSettings = <TOrder extends Ordering>({
-	order
-}: {
-	order: TOrder | null;
+export const createDefaultExplorerSettings = <TOrder extends Ordering>(args?: {
+	order?: TOrder | null;
 }) =>
 	({
-		order,
+		order: args?.order ?? null,
 		layoutMode: 'grid' as ExplorerLayout,
 		gridItemSize: 110 as number,
 		showBytesInGridView: true as boolean,
@@ -88,7 +87,7 @@ export const createDefaultExplorerSettings = <TOrder extends Ordering>({
 			contentId: 180,
 			objectId: 180
 		}
-	} satisfies ExplorerSettings<TOrder>);
+	}) satisfies ExplorerSettings<TOrder>;
 
 type CutCopyState =
 	| {
@@ -108,7 +107,6 @@ const state = {
 	newThumbnails: proxySet() as Set<string>,
 	cutCopyState: { type: 'Idle' } as CutCopyState,
 	quickViewObject: null as ExplorerItem | null,
-	groupBy: 'none',
 	isDragging: false,
 	gridGap: 8
 };
@@ -139,14 +137,15 @@ export function getExplorerStore() {
 	return explorerStore;
 }
 
-export function isCut(id: number) {
-	const state = explorerStore.cutCopyState;
-	return state.type === 'Cut' && state.sourcePathIds.includes(id);
+export function isCut(item: ExplorerItem, cutCopyState: ReadonlyDeep<CutCopyState>) {
+	return item.type === 'NonIndexedPath'
+		? false
+		: cutCopyState.type === 'Cut' && cutCopyState.sourcePathIds.includes(item.item.id);
 }
 
 export const filePathOrderingKeysSchema = z.union([
 	z.literal('name').describe('Name'),
-	z.literal('sizeInBytes').describe('Size'),
+	// z.literal('sizeInBytes').describe('Size'),
 	z.literal('dateModified').describe('Date Modified'),
 	z.literal('dateIndexed').describe('Date Indexed'),
 	z.literal('dateCreated').describe('Date Created'),
@@ -156,4 +155,11 @@ export const filePathOrderingKeysSchema = z.union([
 export const objectOrderingKeysSchema = z.union([
 	z.literal('dateAccessed').describe('Date Accessed'),
 	z.literal('kind').describe('Kind')
+]);
+
+export const nonIndexedPathOrderingSchema = z.union([
+	z.literal('name').describe('Name'),
+	// z.literal('sizeInBytes').describe('Size'),
+	z.literal('dateCreated').describe('Date Created'),
+	z.literal('dateModified').describe('Date Modified')
 ]);
