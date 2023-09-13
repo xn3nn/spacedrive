@@ -17,11 +17,14 @@ edition = { workspace = true }
 default = []
 serde = ["dep:serde", "dep:serde_json", "dep:serde-big-array"]
 bincode = ["dep:bincode"]
-sys = ["dep:linux-keyutils", "dep:security-framework"]
+keyring = ["dep:linux-keyutils", "dep:security-framework"]
+secret-service = [
+	"keyring",
+	"dep:secret-service",
+] # explicit enabling required as it's a mess
 async = ["dep:tokio"]
 specta = ["dep:specta"]
-keyutils = []
-secret-service = []
+
 
 [dependencies]
 # rng
@@ -29,18 +32,20 @@ rand = "0.8.5"
 rand_chacha = "0.3.1"
 
 # hashing
-argon2 = "0.5.0"
-balloon-hash = "0.4.0"
-blake3 = { version = "1.3.3", features = ["traits-preview"] }
+argon2 = { version = "0.5.2", default_features = false, features = ["zeroize"] }
+balloon-hash = { version = "0.4.0", default_features = false, features = [
+	"zeroize",
+] }
+blake3 = { version = "1.4.1", features = ["traits-preview"] }
 
-# constant time
-cmov = "0.3.0"
+# constant time - custom git until https://github.com/RustCrypto/utils/pull/925
+cmov = { git = "https://github.com/brxken128/utils", rev = "e53d8f068fa2420a016d9dfdc7e6cd9b1a7fec87" }
 
 # aeads
-aes-gcm = "0.10.1"
+aes-gcm = "0.10.2"
 aes-gcm-siv = "0.11.1"
 chacha20poly1305 = "0.10.1"
-aead = { version = "0.5.1", features = ["stream"] }
+aead = { version = "0.5.2", features = ["stream"] }
 
 # cryptographic hygiene
 # `aarch64` feature allows zeroizing of SIMD registers
@@ -48,11 +53,11 @@ aead = { version = "0.5.1", features = ["stream"] }
 zeroize = { version = "1.6.0", features = ["derive", "aarch64"] }
 
 # error handling
-thiserror = "1.0.40"
+thiserror = "1.0.48"
 
 bincode = { version = "2.0.0-rc.3", optional = true }
 
-serde = { version = "1.0.158", features = ["derive"], optional = true }
+serde = { version = "1.0.188", features = ["derive"], optional = true }
 serde_json = { version = "1.0.94", optional = true }
 serde-big-array = { version = "0.5.1", optional = true }
 
@@ -70,14 +75,15 @@ tokio = { workspace = true, features = [
 # linux OS keyring
 [target.'cfg(target_os = "linux")'.dependencies]
 linux-keyutils = { version = "0.2.3", features = ["std"], optional = true }
+secret-service = { version = "3.0.1", optional = true }
 
 # macos/ios OS keyring
 [target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
-security-framework = { version = "2.8.2", optional = true }
+security-framework = { version = "2.9.2", optional = true }
 
 [dev-dependencies]
-criterion = "0.4.0"
-paste = "1.0.12"
+criterion = "0.5.1"
+paste = "1.0.14"
 
 [[bench]]
 name = "aes-256-gcm"
@@ -119,3 +125,7 @@ harness = false
 [[example]]
 name = "file_encryption"
 path = "examples/file_encryption.rs"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

@@ -18,15 +18,16 @@ location-watcher = ["dep:notify"]
 heif = ["sd-images/heif"]
 
 [dependencies]
-sd-media-metadata = { path = "../crates/media-metadata" }
-sd-prisma = { path = "../crates/prisma" }
 sd-crypto = { path = "../crates/crypto", features = [
-	"sys",
+	"keyring",
+	"secret-service",
 	"serde",
 	"bincode",
 	"async",
 	"specta",
 ] }
+sd-media-metadata = { path = "../crates/media-metadata" }
+sd-prisma = { path = "../crates/prisma" }
 
 sd-images = { path = "../crates/images" }
 sd-file-ext = { path = "../crates/file-ext" }
@@ -35,7 +36,6 @@ sd-sync = { path = "../crates/sync" }
 sd-p2p = { path = "../crates/p2p", features = ["specta", "serde"] }
 sd-utils = { path = "../crates/utils" }
 sd-core-sync = { path = "./crates/sync" }
-
 
 bincode = { version = "2.0.0-rc.3", features = ["serde"] }
 
