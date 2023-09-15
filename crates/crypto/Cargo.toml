@@ -19,8 +19,8 @@ serde = ["dep:serde", "dep:serde_json", "dep:serde-big-array"]
 bincode = ["dep:bincode"]
 keyring = ["dep:linux-keyutils", "dep:security-framework"]
 secret-service = [
-	"keyring",
-	"dep:secret-service",
+  "keyring",
+  "dep:secret-service",
 ] # explicit enabling required as it's a mess
 async = ["dep:tokio"]
 specta = ["dep:specta"]
@@ -34,7 +34,7 @@ rand_chacha = "0.3.1"
 # hashing
 argon2 = { version = "0.5.2", default_features = false, features = ["zeroize"] }
 balloon-hash = { version = "0.4.0", default_features = false, features = [
-	"zeroize",
+  "zeroize",
 ] }
 blake3 = { version = "1.4.1", features = ["traits-preview"] }
 
@@ -67,9 +67,9 @@ hex = "0.4.3"
 
 # for asynchronous crypto
 tokio = { workspace = true, features = [
-	"io-util",
-	"rt-multi-thread",
-	"macros",
+  "io-util",
+  "rt-multi-thread",
+  "macros",
 ], optional = true }
 
 # linux OS keyring
