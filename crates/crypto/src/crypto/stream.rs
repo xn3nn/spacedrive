@@ -15,10 +15,10 @@ use aes_gcm::Aes256Gcm;
 use aes_gcm_siv::Aes256GcmSiv;
 use chacha20poly1305::XChaCha20Poly1305;
 
-#[cfg(feature = "async")]
+#[cfg(feature = "tokio")]
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-#[cfg(feature = "async")]
+#[cfg(feature = "tokio")]
 use crate::crypto::exhaustive_read_async;
 
 macro_rules! impl_stream {
@@ -120,11 +120,11 @@ macro_rules! impl_stream {
 					};
 
 					if count == $size {
-						let d = self.$next_fn(payload)?;
-						writer.write_all(&d)?;
+						let data = self.$next_fn(payload)?;
+						writer.write_all(&data)?;
 					} else {
-						let d = self.$last_fn(payload)?;
-						writer.write_all(&d)?;
+						let data = self.$last_fn(payload)?;
+						writer.write_all(&data)?;
 						break;
 					}
 				}
@@ -141,7 +141,7 @@ macro_rules! impl_stream {
 			/// It requires a reader, a writer, and any relevant AAD.
 			///
 			/// The AAD will be authenticated with every block of data.
-			#[cfg(feature = "async")]
+			#[cfg(feature = "tokio")]
 			pub async fn $streams_fn_async<R, W>(
 				mut self,
 				mut reader: R,
@@ -163,11 +163,15 @@ macro_rules! impl_stream {
 					};
 
 					if count == $size {
-						let d = self.$next_fn(payload)?;
-						writer.write_all(&d).await?;
+						let data = tokio::task::block_in_place(|| {
+							self.$next_fn(payload).map_err(|_| $error)
+						})?;
+						writer.write_all(&data).await?;
 					} else {
-						let d = self.$last_fn(payload)?;
-						writer.write_all(&d).await?;
+						let data = tokio::task::block_in_place(|| {
+							self.$last_fn(payload).map_err(|_| $error)
+						})?;
+						writer.write_all(&data).await?;
 						break;
 					}
 				}
@@ -192,7 +196,7 @@ macro_rules! impl_stream {
 
 				s
 					.$streams_fn(bytes, &mut writer, aad)
-					.map(|_| writer.into_inner().into())
+					.map(|()| writer.into_inner().into())
 			}
 		}
 	};
