@@ -1,4 +1,4 @@
-//! This is Spacedrive's iOS keyring integration. It has no strict dependencies.
+//! This is Spacedrive's `iOS` keyring integration. It has no strict dependencies.
 use super::{Identifier, KeyringInterface};
 use crate::{Error, Result};
 use security_framework::passwords::{
