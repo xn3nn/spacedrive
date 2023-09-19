@@ -7,7 +7,7 @@ use rand_chacha::{
 	ChaCha20Rng,
 };
 
-#[cfg(feature = "async")]
+#[cfg(feature = "tokio")]
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 
 /// This is used for erasing a stream.
@@ -63,7 +63,7 @@ where
 /// can guarantee a perfect erasure on solid-state drives.
 ///
 /// This also does not factor in temporary files, caching, thumbnails, etc.
-#[cfg(feature = "async")]
+#[cfg(feature = "tokio")]
 pub async fn erase_async<RW>(stream: &mut RW, size: usize, passes: usize) -> Result<usize>
 where
 	RW: AsyncReadExt + AsyncWriteExt + AsyncSeekExt + Unpin + Send,
@@ -183,7 +183,7 @@ mod tests {
 	}
 
 	#[tokio::test]
-	#[cfg(feature = "async")]
+	#[cfg(feature = "tokio")]
 	#[cfg_attr(miri, ignore)]
 	async fn erase_block_one_pass_async() {
 		let mut buffer = Cursor::new(vec![0u8; BLOCK_LEN]);
@@ -194,7 +194,7 @@ mod tests {
 	}
 
 	#[tokio::test]
-	#[cfg(feature = "async")]
+	#[cfg(feature = "tokio")]
 	#[cfg_attr(miri, ignore)]
 	async fn erase_block_two_passes_async() {
 		let mut buffer = Cursor::new(vec![0u8; BLOCK_LEN]);
@@ -205,7 +205,7 @@ mod tests {
 	}
 
 	#[tokio::test]
-	#[cfg(feature = "async")]
+	#[cfg(feature = "tokio")]
 	#[cfg_attr(miri, ignore)]
 	async fn erase_5_blocks_one_pass_async() {
 		let mut buffer = Cursor::new(vec![0u8; BLOCK_LEN * 5]);
@@ -216,7 +216,7 @@ mod tests {
 	}
 
 	#[tokio::test]
-	#[cfg(feature = "async")]
+	#[cfg(feature = "tokio")]
 	#[cfg_attr(miri, ignore)]
 	async fn erase_5_blocks_two_passes_async() {
 		let mut buffer = Cursor::new(vec![0u8; BLOCK_LEN * 5]);
@@ -227,7 +227,7 @@ mod tests {
 	}
 
 	#[tokio::test]
-	#[cfg(feature = "async")]
+	#[cfg(feature = "tokio")]
 	#[cfg_attr(miri, ignore)]
 	async fn erase_small_async() {
 		let mut buffer = Cursor::new(vec![0u8; 1024]);
@@ -238,7 +238,7 @@ mod tests {
 	}
 
 	#[tokio::test]
-	#[cfg(feature = "async")]
+	#[cfg(feature = "tokio")]
 	#[cfg_attr(miri, ignore)]
 	async fn erase_small_two_passes_async() {
 		let mut buffer = Cursor::new(vec![0u8; 1024]);
@@ -249,7 +249,7 @@ mod tests {
 	}
 
 	#[tokio::test]
-	#[cfg(feature = "async")]
+	#[cfg(feature = "tokio")]
 	#[cfg_attr(miri, ignore)]
 	async fn erase_block_plus_512_async() {
 		let mut buffer = Cursor::new(vec![0u8; BLOCK_LEN + 512]);
@@ -260,7 +260,7 @@ mod tests {
 	}
 
 	#[tokio::test]
-	#[cfg(feature = "async")]
+	#[cfg(feature = "tokio")]
 	#[cfg_attr(miri, ignore)]
 	async fn erase_block_plus_512_two_passes_async() {
 		let mut buffer = Cursor::new(vec![0u8; BLOCK_LEN + 512]);
