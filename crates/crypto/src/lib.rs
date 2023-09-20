@@ -16,9 +16,11 @@
 	trivial_numeric_casts,
 	unused_allocation,
 	clippy::as_conversions,
-	clippy::dbg_macro
+	clippy::dbg_macro,
+	clippy::deprecated_cfg_attr,
+	deprecated
 )]
-#![forbid(unsafe_code)]
+#![forbid(unsafe_code, deprecated_in_future)]
 #![allow(clippy::missing_errors_doc, clippy::module_name_repetitions)]
 
 pub mod crypto;
