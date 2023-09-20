@@ -1,3 +1,5 @@
+use std::mem;
+
 use crate::{
 	primitives::{
 		AES_256_GCM_NONCE_LEN, AES_256_GCM_SIV_NONCE_LEN, ENCRYPTED_KEY_LEN, SALT_LEN,
@@ -40,12 +42,18 @@ const OBJECT_LIMIT: usize = 2;
 
 pub trait HeaderEncode {
 	const OUTPUT_LEN: usize;
-	type Output;
+	type Output: Default;
 
 	fn as_bytes(&self) -> Self::Output;
+
 	fn from_bytes(b: Self::Output) -> Result<Self>
 	where
 		Self: Sized;
+
+	fn from_reader<R>(reader: &mut R) -> Result<Self>
+	where
+		Self: Sized,
+		R: std::io::Read + std::io::Seek; // make this a provided method eventually via `hybrid-array`
 }
 
 impl HeaderEncode for Params {
@@ -68,6 +76,15 @@ impl HeaderEncode for Params {
 			_ => Err(Error::Validity),
 		}
 	}
+
+	fn from_reader<R>(reader: &mut R) -> Result<Self>
+	where
+		R: std::io::Read + std::io::Seek,
+	{
+		let mut b = [0u8; Self::OUTPUT_LEN];
+		reader.read_exact(&mut b)?;
+		Self::from_bytes(b[0])
+	}
 }
 
 impl HeaderEncode for HashingAlgorithm {
@@ -89,6 +106,15 @@ impl HeaderEncode for HashingAlgorithm {
 		};
 
 		Ok(x)
+	}
+
+	fn from_reader<R>(reader: &mut R) -> Result<Self>
+	where
+		R: std::io::Read + std::io::Seek,
+	{
+		let mut b = Self::Output::default();
+		reader.read_exact(&mut b)?;
+		Self::from_bytes(b)
 	}
 }
 
@@ -120,6 +146,15 @@ impl HeaderEncode for Algorithm {
 
 		Ok(a)
 	}
+
+	fn from_reader<R>(reader: &mut R) -> Result<Self>
+	where
+		R: std::io::Read + std::io::Seek,
+	{
+		let mut b = Self::Output::default();
+		reader.read_exact(&mut b)?;
+		Self::from_bytes(b)
+	}
 }
 
 impl HeaderEncode for Salt {
@@ -143,6 +178,15 @@ impl HeaderEncode for Salt {
 		o.copy_from_slice(&b[2..]);
 
 		Ok(Self::new(o))
+	}
+
+	fn from_reader<R>(reader: &mut R) -> Result<Self>
+	where
+		R: std::io::Read + std::io::Seek,
+	{
+		let mut b = Self::Output::default();
+		reader.read_exact(&mut b)?;
+		Self::from_bytes(b)
 	}
 }
 
@@ -183,21 +227,30 @@ impl HeaderEncode for Nonce {
 
 		Ok(x)
 	}
+
+	fn from_reader<R>(reader: &mut R) -> Result<Self>
+	where
+		R: std::io::Read + std::io::Seek,
+	{
+		let mut b = Self::Output::default();
+		reader.read_exact(&mut b)?;
+		Self::from_bytes(b)
+	}
 }
+
+///hybrid array it uppppp
 
 impl HeaderEncode for EncryptedKey {
 	const OUTPUT_LEN: usize = ENCRYPTED_KEY_LEN + Nonce::OUTPUT_LEN + 2;
-	type Output = [u8; Self::OUTPUT_LEN];
+	type Output = Vec<u8>;
 
 	fn as_bytes(&self) -> Self::Output {
-		let mut s = [0u8; Self::OUTPUT_LEN];
+		let mut s = vec![0u8; Self::OUTPUT_LEN];
 		s[0] = 9u8;
 		s[1] = 0xF3u8;
 
-		let mut offset = Offset::new(2);
-
-		s[offset.0..offset.increment(ENCRYPTED_KEY_LEN)].copy_from_slice(self.inner());
-		s[offset.0..].copy_from_slice(&self.nonce().as_bytes());
+		s.extend_from_slice(self.inner());
+		s.extend_from_slice(&self.nonce().as_bytes());
 		s
 	}
 
@@ -215,15 +268,24 @@ impl HeaderEncode for EncryptedKey {
 
 		Ok(Self::new(e, n))
 	}
+
+	fn from_reader<R>(reader: &mut R) -> Result<Self>
+	where
+		R: std::io::Read + std::io::Seek,
+	{
+		let mut b = vec![0u8; Self::OUTPUT_LEN];
+		reader.read_exact(&mut b)?;
+		Self::from_bytes(b)
+	}
 }
 
 impl HeaderEncode for Keyslot {
 	const OUTPUT_LEN: usize =
 		EncryptedKey::OUTPUT_LEN + (Salt::OUTPUT_LEN * 2) + HashingAlgorithm::OUTPUT_LEN + 2;
-	type Output = [u8; Self::OUTPUT_LEN];
+	type Output = Vec<u8>;
 
 	fn as_bytes(&self) -> Self::Output {
-		let mut o = [0u8; Self::OUTPUT_LEN];
+		let mut o = vec![0u8; Self::OUTPUT_LEN];
 		o[0] = 0x83;
 		o[1] = 0x21;
 
@@ -249,7 +311,7 @@ impl HeaderEncode for Keyslot {
 		let hash_salt =
 			Salt::from_bytes(b[offset.0..offset.increment(Salt::OUTPUT_LEN)].to_array()?)?;
 		let salt = Salt::from_bytes(b[offset.0..offset.increment(Salt::OUTPUT_LEN)].to_array()?)?;
-		let ek = EncryptedKey::from_bytes(b[offset.0..].to_array()?)?;
+		let ek = EncryptedKey::from_bytes(b[offset.0..].to_vec())?;
 
 		Ok(Self {
 			hashing_algorithm,
@@ -258,6 +320,15 @@ impl HeaderEncode for Keyslot {
 			encrypted_key: ek,
 		})
 	}
+
+	fn from_reader<R>(reader: &mut R) -> Result<Self>
+	where
+		R: std::io::Read + std::io::Seek,
+	{
+		let mut b = vec![0u8; Self::OUTPUT_LEN];
+		reader.read_exact(&mut b)?;
+		Self::from_bytes(b)
+	}
 }
 
 impl HeaderEncode for HeaderObject {
@@ -265,7 +336,7 @@ impl HeaderEncode for HeaderObject {
 	type Output = Vec<u8>;
 
 	fn as_bytes(&self) -> Self::Output {
-		let mut o = vec![];
+		let mut o = Vec::new();
 
 		o.extend_from_slice(&[0xF1, 51u8]);
 		o.extend_from_slice(&self.identifier.as_bytes());
@@ -287,7 +358,7 @@ impl HeaderEncode for HeaderObject {
 
 		let mut offset = Offset::new(2);
 		let identifier = HeaderObjectIdentifier::from_bytes(
-			b[offset.0..(offset.increment(HeaderObjectIdentifier::OUTPUT_LEN))].to_array()?,
+			b[offset.0..(offset.increment(HeaderObjectIdentifier::OUTPUT_LEN))].to_vec(),
 		)?;
 		let nonce =
 			Nonce::from_bytes(b[offset.0..(offset.increment(Nonce::OUTPUT_LEN))].to_array()?)?;
@@ -301,11 +372,25 @@ impl HeaderEncode for HeaderObject {
 			data,
 		})
 	}
+
+	fn from_reader<R>(reader: &mut R) -> Result<Self>
+	where
+		R: std::io::Read + std::io::Seek,
+	{
+		let mut buffer = [0u8; mem::size_of::<u64>()];
+		reader.read_exact(&mut buffer)?;
+		let size = u64::from_le_bytes(buffer);
+
+		let mut buffer = vec![0u8; size.try_into().map_err(|_| Error::Validity)?];
+		reader.read_exact(&mut buffer)?;
+
+		Self::from_bytes(buffer)
+	}
 }
 
 impl HeaderEncode for HeaderObjectIdentifier {
 	const OUTPUT_LEN: usize = 2 + EncryptedKey::OUTPUT_LEN + Salt::OUTPUT_LEN;
-	type Output = [u8; Self::OUTPUT_LEN];
+	type Output = Vec<u8>;
 
 	fn as_bytes(&self) -> Self::Output {
 		let mut o = [0u8; Self::OUTPUT_LEN];
@@ -318,7 +403,7 @@ impl HeaderEncode for HeaderObjectIdentifier {
 			.copy_from_slice(&self.key.as_bytes());
 		o[offset.0..].copy_from_slice(&self.salt.as_bytes());
 
-		o
+		o.to_vec()
 	}
 
 	fn from_bytes(b: Self::Output) -> Result<Self> {
@@ -328,11 +413,20 @@ impl HeaderEncode for HeaderObjectIdentifier {
 
 		let mut offset = Offset::new(2);
 		let ek = EncryptedKey::from_bytes(
-			b[offset.0..offset.increment(EncryptedKey::OUTPUT_LEN)].to_array()?,
+			b[offset.0..offset.increment(EncryptedKey::OUTPUT_LEN)].to_vec(),
 		)?;
 		let salt = Salt::from_bytes(b[offset.0..].to_array()?)?;
 
 		Ok(Self { key: ek, salt })
+	}
+
+	fn from_reader<R>(reader: &mut R) -> Result<Self>
+	where
+		R: std::io::Read + std::io::Seek,
+	{
+		let mut b = vec![0u8; Self::OUTPUT_LEN];
+		reader.read_exact(&mut b)?;
+		Self::from_bytes(b)
 	}
 }
 
@@ -351,6 +445,15 @@ impl HeaderEncode for HeaderVersion {
 			[0xDA, 0xDA] => Ok(Self::V1),
 			_ => Err(Error::Validity),
 		}
+	}
+
+	fn from_reader<R>(reader: &mut R) -> Result<Self>
+	where
+		R: std::io::Read + std::io::Seek,
+	{
+		let mut b = [0u8; Self::OUTPUT_LEN];
+		reader.read_exact(&mut b)?;
+		Self::from_bytes(b)
 	}
 }
 
@@ -418,29 +521,21 @@ impl Header {
 		let nonce = Nonce::from_bytes(nonce_buffer)?;
 		nonce.validate(algorithm)?;
 
+		// we always read the limit as there will always be extra room for additional keyslots after header creation
 		let keyslots = (0..KEYSLOT_LIMIT)
 			.filter_map(|_| {
 				let mut buffer = [0u8; Keyslot::OUTPUT_LEN];
 				reader.read_exact(&mut buffer).ok();
-				Keyslot::from_bytes(buffer).ok()
+				Keyslot::from_bytes(buffer.to_vec()).ok()
 			})
 			.collect::<Vec<Keyslot>>();
 
-		let mut buffer = [0u8; 2];
+		let mut buffer = [0u8; mem::size_of::<u16>()];
 		reader.read_exact(&mut buffer)?;
 		let objects_len = u16::from_le_bytes(buffer);
 
 		let objects = (0..objects_len)
-			.map(|_| {
-				let mut buffer = [0u8; 8];
-				reader.read_exact(&mut buffer)?;
-				let size = u64::from_le_bytes(buffer);
-
-				let mut buffer = vec![0u8; size.try_into().map_err(|_| Error::Validity)?];
-				reader.read_exact(&mut buffer)?;
-
-				HeaderObject::from_bytes(buffer)
-			})
+			.map(|_| HeaderObject::from_reader(reader))
 			.collect::<Result<Vec<HeaderObject>>>()?;
 
 		let h = Self {
