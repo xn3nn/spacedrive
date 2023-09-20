@@ -1,3 +1,5 @@
+use std::io::Cursor;
+
 use super::{keyslot::Keyslot, object::HeaderObject, HeaderEncode, KEYSLOT_LIMIT, OBJECT_LIMIT};
 use crate::{
 	hashing::Hasher,
@@ -64,7 +66,7 @@ impl Header {
 		Ok(())
 	}
 
-	#[cfg(feature = "async")]
+	#[cfg(feature = "tokio")]
 	pub async fn to_writer_async<W, const I: usize>(
 		&self,
 		writer: &mut W,
@@ -108,12 +110,12 @@ impl Header {
 
 		let mut header_bytes = vec![0u8; len.try_into().map_err(|_| Error::Validity)?];
 		reader.read_exact(&mut header_bytes)?;
-		let h = Self::from_reader_raw(&mut std::io::Cursor::new(&header_bytes))?;
+		let h = Self::from_reader_raw(&mut Cursor::new(&header_bytes))?;
 
 		Ok((h, Aad::Header(header_bytes[..AAD_HEADER_LEN].to_array()?)))
 	}
 
-	#[cfg(feature = "async")]
+	#[cfg(feature = "tokio")]
 	pub async fn from_reader_async<R, const I: usize>(
 		reader: &mut R,
 		magic_bytes: MagicBytes<I>,
@@ -134,7 +136,7 @@ impl Header {
 
 		let mut header_bytes = vec![0u8; len.try_into().map_err(|_| Error::Validity)?];
 		reader.read_exact(&mut header_bytes).await?;
-		let h = Self::from_reader_raw(&mut std::io::Cursor::new(&header_bytes))?;
+		let h = Self::from_reader_raw(&mut Cursor::new(&header_bytes))?;
 
 		Ok((h, Aad::Header(header_bytes[..AAD_HEADER_LEN].to_array()?)))
 	}
