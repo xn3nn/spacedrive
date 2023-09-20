@@ -156,7 +156,7 @@ mod tests {
 	}
 
 	#[test]
-	#[should_panic]
+	#[should_panic(expected = "assertion failed:")]
 	fn constant_time_eq_null_fail() {
 		assert!(bool::from([1u8; SALT_LEN].ct_eq_null()));
 	}
@@ -167,7 +167,7 @@ mod tests {
 	}
 
 	#[test]
-	#[should_panic]
+	#[should_panic(expected = "assertion failed:")]
 	fn constant_time_ne_null_fail() {
 		assert!(bool::from([0u8; SALT_LEN].ct_ne_null()));
 	}
@@ -183,7 +183,7 @@ mod tests {
 					}
 
 					#[test]
-					#[should_panic]
+					#[should_panic(expected = "assertion failed:")]
 					fn [<ct_eq_ $item_type:lower _fail>]() {
 						let x: $item_type = $sample1;
 						assert!(bool::from(x.ct_eq(&$sample2)));
@@ -196,7 +196,7 @@ mod tests {
 					}
 
 					#[test]
-					#[should_panic]
+					#[should_panic(expected = "assertion failed:")]
 					fn [<ct_ne_ $item_type:lower _fail>]() {
 						let x: $item_type = $sample1;
 						assert!(bool::from(x.ct_ne(&$sample1)));
