@@ -41,7 +41,7 @@ where
 /// - when an error has been generated
 ///
 /// It returns the amount of total bytes read, which will be <= the buffer's size.
-#[cfg(feature = "async")]
+#[cfg(feature = "tokio")]
 async fn exhaustive_read_async<R>(reader: &mut R, buffer: &mut [u8]) -> Result<usize>
 where
 	R: tokio::io::AsyncReadExt + Unpin + Send,
@@ -364,7 +364,7 @@ mod tests {
 	}
 
 	#[tokio::test]
-	#[cfg(feature = "async")]
+	#[cfg(feature = "tokio")]
 	#[cfg_attr(miri, ignore)]
 	async fn aes_256_gcm_encrypt_and_decrypt_5_blocks_async() {
 		let buf = CryptoRng::generate_vec(BLOCK_LEN * 5);
@@ -395,7 +395,7 @@ mod tests {
 	}
 
 	#[tokio::test]
-	#[cfg(feature = "async")]
+	#[cfg(feature = "tokio")]
 	#[cfg_attr(miri, ignore)]
 	async fn aes_256_gcm_encrypt_and_decrypt_5_blocks_with_aad_async() {
 		let buf = CryptoRng::generate_vec(BLOCK_LEN * 5);
@@ -690,7 +690,7 @@ mod tests {
 	}
 
 	#[tokio::test]
-	#[cfg(feature = "async")]
+	#[cfg(feature = "tokio")]
 	#[cfg_attr(miri, ignore)]
 	async fn xchacha20_poly1305_encrypt_and_decrypt_5_blocks_async() {
 		let buf = CryptoRng::generate_vec(BLOCK_LEN * 5);
@@ -731,7 +731,7 @@ mod tests {
 	}
 
 	#[tokio::test]
-	#[cfg(feature = "async")]
+	#[cfg(feature = "tokio")]
 	#[cfg_attr(miri, ignore)]
 	async fn xchacha20_poly1305_encrypt_and_decrypt_5_blocks_with_aad_async() {
 		let buf = CryptoRng::generate_vec(BLOCK_LEN * 5);
