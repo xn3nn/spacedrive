@@ -17,6 +17,7 @@ It has support for the following cryptographic functions:
 - `BLAKE3` key derivation
 - `XChaCha20-Poly1305`
 - `AES-256-GCM`
+- `AES-256-GCM-SIV`
 
 It aims to be (relatively) lightweight, easy to maintain and platform-agnostic where possible. It does contain some platform-specific code, although it's only built if the target matches.
 
@@ -25,12 +26,17 @@ It aims to be (relatively) lightweight, easy to maintain and platform-agnostic w
 A list of all features can be found below (NOTE: none of these features are enabled by default)
 
 - `serde` - provides integration with `serde` and `serde_json`
-- `uuid` - enables the `uuid` crate
-- `async` - enables `x_async` functions with the read/write traits provided by `tokio`
-- `rspc` - provides integration with the `rspc` crate
-- `keymanager` - provides an interface for handling the encryption, decryption, storage and derivation of passwords/keys. this enables the `os-keyrings`, `async` and `uuid` features
-- `os-keyrings` - provides a unified interface for interacting with OS-keyrings (currently only supports MacOS/iOS and Gnome/KDE (via `gnome-keyring` and `kwallet` respectively))
-- `encoding` - provides type encoding/decoding via `bincode`, and encrypted file headers
+<!-- - `uuid` - enables the `uuid` crate -->
+- `tokio` - provides integration with the `tokio` crate
+- `specta` - provides integration with the `specta` crate
+- `bincode` - provides integration with the `bincode` crate
+
+
+
+
+- `keyrings` - provides a unified interface for interacting with OS-keyrings (currently only supports MacOS/iOS/Linux `keyutils`). `keyutils` is not persistent, so is best used in a headless server/docker environment, as keys are wiped on-reboot. The Secret Service API is not easily available in headless environments.
+-
+- `secret-service` - enables `keyrings` but also enables the Secret Service API (a persistent keyring targeted at Gnome/KDE (via `gnome-keyring` and `kwallet` respectively)). Is a pretty heavy dependency.
 
 ## Security Notice
 
