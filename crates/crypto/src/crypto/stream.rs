@@ -152,33 +152,45 @@ macro_rules! impl_stream {
 				R: AsyncReadExt + Unpin + Send,
 				W: AsyncWriteExt + Unpin + Send,
 			{
+				tokio::task::block_in_place(|| -> Result<()> {
+				let handle = tokio::runtime::Handle::current();
+
 				let mut buffer = vec![0u8; $size].into_boxed_slice();
 
 				loop {
-					let count = exhaustive_read_async(&mut reader, &mut buffer).await?;
-
-					let payload = Payload {
-						aad: aad.inner(),
-						msg: &buffer[..count],
-					};
-
-					if count == $size {
-						let data = tokio::task::block_in_place(|| {
-							self.$next_fn(payload).map_err(|_| $error)
+						let count = handle.block_on(async {
+							exhaustive_read_async(&mut reader, &mut buffer).await
 						})?;
-						writer.write_all(&data).await?;
-					} else {
-						let data = tokio::task::block_in_place(|| {
-							self.$last_fn(payload).map_err(|_| $error)
-						})?;
-						writer.write_all(&data).await?;
-						break;
-					}
+
+						let payload = Payload {
+							aad: aad.inner(),
+							msg: &buffer[..count],
+						};
+
+						if count == $size {
+							let data = self.$next_fn(payload).map_err(|_| $error)?;
+
+							handle.block_on(async {
+								writer.write_all(&data).await
+							})?;
+						} else {
+							let data = self.$last_fn(payload).map_err(|_| $error)?;
+
+							handle.block_on(async {
+								writer.write_all(&data).await
+							})?;
+
+							break;
+						};
 				}
 
-				writer.flush().await?;
+
+				handle.block_on(async {
+					writer.flush().await
+				})?;
 
 				Ok(())
+			})
 			}
 
 			/// This should ideally only be used for small amounts of data.
