@@ -76,7 +76,7 @@ impl Hasher {
 
 		argon2
 			.hash_password_into(password.expose(), salt.inner(), &mut key)
-			.map_or(Err(Error::Hashing), |_| Ok(Key::new(key)))
+			.map_or(Err(Error::Hashing), |()| Ok(Key::new(key)))
 	}
 
 	fn blake3_balloon(
@@ -98,7 +98,7 @@ impl Hasher {
 
 		balloon
 			.hash_into(password.expose(), salt.inner(), &mut key)
-			.map_or(Err(Error::Hashing), |_| Ok(Key::new(key)))
+			.map_or(Err(Error::Hashing), |()| Ok(Key::new(key)))
 	}
 }
 
