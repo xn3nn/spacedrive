@@ -6,15 +6,9 @@ mod apple;
 #[cfg(all(any(target_os = "macos", target_os = "ios"), feature = "hw-rng"))]
 pub use apple::CryptoRng;
 
-#[cfg(not(any(
-	feature = "hw-rng",
-	not(all(any(target_os = "macos", target_os = "ios"), feature = "hw-rng"))
-)))]
+#[cfg(not(all(feature = "hw-rng", any(target_os = "macos", target_os = "ios"))))]
 mod chacha20;
-#[cfg(not(any(
-	feature = "hw-rng",
-	not(all(any(target_os = "macos", target_os = "ios"), feature = "hw-rng"))
-)))]
+#[cfg(not(all(feature = "hw-rng", any(target_os = "macos", target_os = "ios"))))]
 pub use chacha20::CryptoRng;
 
 impl rand::CryptoRng for CryptoRng {}
