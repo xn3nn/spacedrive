@@ -23,8 +23,9 @@ sd-crypto = { path = "../crates/crypto", features = [
 	"secret-service",
 	"serde",
 	"bincode",
-	"async",
+	"tokio",
 	"specta",
+	"sys"
 ] }
 sd-media-metadata = { path = "../crates/media-metadata" }
 sd-prisma = { path = "../crates/prisma" }
