@@ -53,7 +53,7 @@ pub trait HeaderEncode {
 	fn from_reader<R>(reader: &mut R) -> Result<Self>
 	where
 		Self: Sized,
-		R: std::io::Read + std::io::Seek; // make this a provided method eventually via `hybrid-array`
+		R: std::io::Read + std::io::Seek; // make this a provided method eventually via `hybrid-array`?
 }
 
 impl HeaderEncode for Params {
@@ -245,10 +245,9 @@ impl HeaderEncode for EncryptedKey {
 	type Output = Vec<u8>;
 
 	fn as_bytes(&self) -> Self::Output {
-		let mut s = vec![0u8; Self::OUTPUT_LEN];
-		s[0] = 9u8;
-		s[1] = 0xF3u8;
+		let mut s = Vec::with_capacity(Self::OUTPUT_LEN);
 
+		s.extend_from_slice(&[0x9, 0xF3]);
 		s.extend_from_slice(self.inner());
 		s.extend_from_slice(&self.nonce().as_bytes());
 		s
@@ -259,12 +258,8 @@ impl HeaderEncode for EncryptedKey {
 			return Err(Error::Validity);
 		}
 
-		let mut offset = Offset::new(2);
-
-		let mut e = [0u8; ENCRYPTED_KEY_LEN];
-
-		e.copy_from_slice(&b[offset.0..offset.increment(ENCRYPTED_KEY_LEN)]);
-		let n = Nonce::from_bytes(b[offset.0..].to_array()?)?;
+		let e = Vec::from(&b[2..ENCRYPTED_KEY_LEN]).to_array()?;
+		let n = Nonce::from_bytes(b[2 + ENCRYPTED_KEY_LEN..].to_array()?)?;
 
 		Ok(Self::new(e, n))
 	}
