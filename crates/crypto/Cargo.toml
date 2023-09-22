@@ -21,6 +21,7 @@ keyring = ["dep:linux-keyutils", "dep:security-framework"]
 secret-service = [
   "keyring",
   "dep:secret-service",
+	"dep:zbus"
 ] # explicit enabling required as the secret service api is a mess
 
 
@@ -74,6 +75,7 @@ tokio = { workspace = true, features = [
 [target.'cfg(target_os = "linux")'.dependencies]
 linux-keyutils = { version = "0.2.3", features = ["std"], optional = true }
 secret-service = { version = "3.0.1", features = ["crypto-rust"], optional = true }
+zbus = { version = "3.14.1", features = ["tokio"], optional = true }
 
 # macos/ios OS keyring
 [target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
