@@ -589,7 +589,7 @@ mod tests {
 	}
 
 	#[test]
-	#[should_panic]
+	#[should_panic(expected = "assertion")]
 	fn encrypted_key_eq_different_key() {
 		// different key, same nonce
 		assert_eq!(
@@ -599,7 +599,7 @@ mod tests {
 	}
 
 	#[test]
-	#[should_panic]
+	#[should_panic(expected = "assertion")]
 	fn encrypted_key_eq_different_nonce() {
 		// same key, different nonce
 		assert_eq!(
@@ -614,7 +614,7 @@ mod tests {
 	}
 
 	#[test]
-	#[should_panic]
+	#[should_panic(expected = "assertion")]
 	fn key_eq_fail() {
 		assert_eq!(KEY, KEY2);
 	}
@@ -625,7 +625,7 @@ mod tests {
 	}
 
 	#[test]
-	#[should_panic]
+	#[should_panic(expected = "assertion")]
 	fn algorithm_eq_fail() {
 		assert_eq!(Algorithm::XChaCha20Poly1305, Algorithm::Aes256Gcm);
 	}
