@@ -1,8 +1,9 @@
 use criterion::{criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion};
+use rand_core::RngCore;
 use sd_crypto::{
 	hashing::Hasher,
+	rng::CryptoRng,
 	types::{HashingAlgorithm, Params, Salt, SecretKey},
-	utils::generate_fixed,
 	Protected,
 };
 
@@ -13,7 +14,7 @@ fn bench(c: &mut Criterion) {
 	group.sample_size(10);
 
 	for param in PARAMS {
-		let password = Protected::new(generate_fixed::<64>().to_vec());
+		let password = CryptoRng::generate_fixed<16>().into();
 		let salt = Salt::generate();
 		let hashing_algorithm = HashingAlgorithm::Argon2id(param);
 
