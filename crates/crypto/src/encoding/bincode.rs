@@ -25,3 +25,5 @@ where
 {
 	bincode::encode_to_vec(object, CONFIG).map_err(Error::BincodeEncode)
 }
+
+// TODO(brxken128): this should probably go but it's convenient
