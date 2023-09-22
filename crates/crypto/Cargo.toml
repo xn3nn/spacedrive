@@ -14,26 +14,26 @@ repository = { workspace = true }
 edition = { workspace = true }
 
 [features]
-default = []
+sys = []
+hw-rng = ["dep:security-framework"]
 serde = ["dep:serde", "dep:serde_json", "dep:serde-big-array"]
-bincode = ["dep:bincode"]
 keyring = ["dep:linux-keyutils", "dep:security-framework"]
 secret-service = [
   "keyring",
   "dep:secret-service",
-] # explicit enabling required as it's a mess
-async = ["dep:tokio"]
-specta = ["dep:specta"]
+] # explicit enabling required as the secret service api is a mess
 
 
 [dependencies]
 # rng
+rand_core = "0.6.4"
 rand = "0.8.5"
 rand_chacha = "0.3.1"
 
 # hashing
-argon2 = { version = "0.5.2", default_features = false, features = ["zeroize"] }
+argon2 = { version = "0.5.2", default_features = false, features = ["alloc", "zeroize"] }
 balloon-hash = { version = "0.4.0", default_features = false, features = [
+	"alloc",
   "zeroize",
 ] }
 blake3 = { version = "1.4.1", features = ["traits-preview"] }
