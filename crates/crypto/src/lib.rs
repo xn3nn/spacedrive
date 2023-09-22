@@ -18,6 +18,7 @@
 	clippy::as_conversions,
 	clippy::dbg_macro,
 	clippy::deprecated_cfg_attr,
+	clippy::separated_literal_suffix,
 	deprecated
 )]
 #![forbid(unsafe_code, deprecated_in_future)]
