@@ -22,26 +22,12 @@ pub mod header;
 pub mod keyslot;
 pub mod object;
 
-pub struct Offset(usize);
-
-impl Offset {
-	#[must_use]
-	pub const fn new(v: usize) -> Self {
-		Self(v)
-	}
-
-	#[must_use]
-	pub fn increment(&mut self, v: usize) -> usize {
-		self.0 += v;
-		self.0
-	}
-}
-
 const KEYSLOT_LIMIT: usize = 2;
 const OBJECT_LIMIT: usize = 2;
 
 pub trait HeaderEncode {
 	const OUTPUT_LEN: usize;
+	type Identifier;
 	type Output: Default;
 
 	fn as_bytes(&self) -> Self::Output;
@@ -56,8 +42,13 @@ pub trait HeaderEncode {
 		R: std::io::Read + std::io::Seek; // make this a provided method eventually via `hybrid-array`?
 }
 
+// TODO(brxken128): convert as many of these as possible to vec
+// also define the identifiers as consts where possble?
+// typenum/hybrid-array/generic-array too
+
 impl HeaderEncode for Params {
 	const OUTPUT_LEN: usize = 1;
+	type Identifier = u8;
 	type Output = u8;
 
 	fn as_bytes(&self) -> Self::Output {
@@ -89,6 +80,7 @@ impl HeaderEncode for Params {
 
 impl HeaderEncode for HashingAlgorithm {
 	const OUTPUT_LEN: usize = 1 + Params::OUTPUT_LEN;
+	type Identifier = [u8; 2];
 	type Output = [u8; Self::OUTPUT_LEN];
 
 	fn as_bytes(&self) -> Self::Output {
@@ -120,6 +112,7 @@ impl HeaderEncode for HashingAlgorithm {
 
 impl HeaderEncode for Algorithm {
 	const OUTPUT_LEN: usize = 2;
+	type Identifier = [u8; 2];
 	type Output = [u8; Self::OUTPUT_LEN];
 
 	fn as_bytes(&self) -> Self::Output {
@@ -159,13 +152,12 @@ impl HeaderEncode for Algorithm {
 
 impl HeaderEncode for Salt {
 	const OUTPUT_LEN: usize = SALT_LEN + 2;
-	type Output = [u8; Self::OUTPUT_LEN];
+	type Identifier = [u8; 2];
+	type Output = Vec<u8>;
 
 	fn as_bytes(&self) -> Self::Output {
-		let mut s = [0u8; Self::OUTPUT_LEN];
-		s[0] = 12u8;
-		s[1] = 4u8;
-		s[2..].copy_from_slice(self.inner());
+		let mut s = vec![12u8, 4u8];
+		s.extend_from_slice(self.inner());
 		s
 	}
 
@@ -174,17 +166,17 @@ impl HeaderEncode for Salt {
 			return Err(Error::Validity);
 		}
 
-		let mut o = [0u8; 16];
-		o.copy_from_slice(&b[2..]);
+		let mut o = vec![];
+		o.extend_from_slice(&b[2..]);
 
-		Ok(Self::new(o))
+		Ok(Self::new(o.to_array()?))
 	}
 
 	fn from_reader<R>(reader: &mut R) -> Result<Self>
 	where
 		R: std::io::Read + std::io::Seek,
 	{
-		let mut b = Self::Output::default();
+		let mut b = vec![0u8; Self::OUTPUT_LEN];
 		reader.read_exact(&mut b)?;
 		Self::from_bytes(b)
 	}
@@ -192,6 +184,7 @@ impl HeaderEncode for Salt {
 
 impl HeaderEncode for Nonce {
 	const OUTPUT_LEN: usize = 32;
+	type Identifier = [u8; 2];
 	type Output = [u8; Self::OUTPUT_LEN];
 
 	fn as_bytes(&self) -> Self::Output {
@@ -242,6 +235,7 @@ impl HeaderEncode for Nonce {
 
 impl HeaderEncode for EncryptedKey {
 	const OUTPUT_LEN: usize = ENCRYPTED_KEY_LEN + Nonce::OUTPUT_LEN + 2;
+	type Identifier = [u8; 2];
 	type Output = Vec<u8>;
 
 	fn as_bytes(&self) -> Self::Output {
@@ -277,21 +271,15 @@ impl HeaderEncode for EncryptedKey {
 impl HeaderEncode for Keyslot {
 	const OUTPUT_LEN: usize =
 		EncryptedKey::OUTPUT_LEN + (Salt::OUTPUT_LEN * 2) + HashingAlgorithm::OUTPUT_LEN + 2;
+	type Identifier = [u8; 2];
 	type Output = Vec<u8>;
 
 	fn as_bytes(&self) -> Self::Output {
-		let mut o = vec![0u8; Self::OUTPUT_LEN];
-		o[0] = 0x83;
-		o[1] = 0x21;
-
-		let mut offset = Offset::new(2);
-
-		o[offset.0..offset.increment(HashingAlgorithm::OUTPUT_LEN)]
-			.copy_from_slice(&self.hashing_algorithm.as_bytes());
-		o[offset.0..offset.increment(Salt::OUTPUT_LEN)].copy_from_slice(&self.hash_salt.as_bytes());
-		o[offset.0..offset.increment(Salt::OUTPUT_LEN)].copy_from_slice(&self.salt.as_bytes());
-		o[offset.0..].copy_from_slice(&self.encrypted_key.as_bytes());
-
+		let mut o = vec![0x83, 0x31];
+		o.extend_from_slice(&self.hashing_algorithm.as_bytes());
+		o.extend_from_slice(&self.hash_salt.as_bytes());
+		o.extend_from_slice(&self.salt.as_bytes());
+		o.extend_from_slice(&self.encrypted_key.as_bytes());
 		o
 	}
 
@@ -300,13 +288,10 @@ impl HeaderEncode for Keyslot {
 			return Err(Error::Validity);
 		}
 
-		let mut offset = Offset::new(2);
-		let hashing_algorithm =
-			HashingAlgorithm::from_bytes(b[offset.0..offset.increment(2)].to_array()?)?;
-		let hash_salt =
-			Salt::from_bytes(b[offset.0..offset.increment(Salt::OUTPUT_LEN)].to_array()?)?;
-		let salt = Salt::from_bytes(b[offset.0..offset.increment(Salt::OUTPUT_LEN)].to_array()?)?;
-		let ek = EncryptedKey::from_bytes(b[offset.0..].to_vec())?;
+		let hashing_algorithm = HashingAlgorithm::from_bytes(b[2..4].to_array()?)?;
+		let hash_salt = Salt::from_bytes(b[4..Salt::OUTPUT_LEN + 4].to_vec())?;
+		let salt = Salt::from_bytes(b[Salt::OUTPUT_LEN + 8..Salt::OUTPUT_LEN + 12].to_vec())?;
+		let ek = EncryptedKey::from_bytes(b[Salt::OUTPUT_LEN + 12..].to_vec())?;
 
 		Ok(Self {
 			hashing_algorithm,
@@ -328,6 +313,7 @@ impl HeaderEncode for Keyslot {
 
 impl HeaderEncode for HeaderObject {
 	const OUTPUT_LEN: usize = 0;
+	type Identifier = [u8; 2];
 	type Output = Vec<u8>;
 
 	fn as_bytes(&self) -> Self::Output {
@@ -351,14 +337,20 @@ impl HeaderEncode for HeaderObject {
 			return Err(Error::Validity);
 		}
 
-		let mut offset = Offset::new(2);
-		let identifier = HeaderObjectIdentifier::from_bytes(
-			b[offset.0..(offset.increment(HeaderObjectIdentifier::OUTPUT_LEN))].to_vec(),
+		let identifier =
+			HeaderObjectIdentifier::from_bytes(b[2..HeaderObjectIdentifier::OUTPUT_LEN].to_vec())?;
+		let nonce = Nonce::from_bytes(
+			b[HeaderObjectIdentifier::OUTPUT_LEN + 2
+				..HeaderObjectIdentifier::OUTPUT_LEN + 2 + Nonce::OUTPUT_LEN]
+				.to_array()?,
 		)?;
-		let nonce =
-			Nonce::from_bytes(b[offset.0..(offset.increment(Nonce::OUTPUT_LEN))].to_array()?)?;
-		let data_len = u64::from_le_bytes(b[offset.0..offset.increment(8)].to_array()?);
-		let data = b[offset.0..offset.increment(data_len.try_into().map_err(|_| Error::Validity)?)]
+		let data_len = u64::from_le_bytes(
+			b[HeaderObjectIdentifier::OUTPUT_LEN + Nonce::OUTPUT_LEN + 2
+				..HeaderObjectIdentifier::OUTPUT_LEN + Nonce::OUTPUT_LEN + 2 + 8]
+				.to_array()?,
+		);
+		let data = b[HeaderObjectIdentifier::OUTPUT_LEN + Nonce::OUTPUT_LEN + 10
+			..data_len.try_into().map_err(|_| Error::Validity)?]
 			.to_vec();
 
 		Ok(Self {
@@ -385,20 +377,14 @@ impl HeaderEncode for HeaderObject {
 
 impl HeaderEncode for HeaderObjectIdentifier {
 	const OUTPUT_LEN: usize = 2 + EncryptedKey::OUTPUT_LEN + Salt::OUTPUT_LEN;
+	type Identifier = [u8; 2];
 	type Output = Vec<u8>;
 
 	fn as_bytes(&self) -> Self::Output {
-		let mut o = [0u8; Self::OUTPUT_LEN];
-		o[0] = 0xC2;
-		o[1] = 0xE9;
-
-		let mut offset = Offset::new(2);
-
-		o[offset.0..offset.increment(EncryptedKey::OUTPUT_LEN)]
-			.copy_from_slice(&self.key.as_bytes());
-		o[offset.0..].copy_from_slice(&self.salt.as_bytes());
-
-		o.to_vec()
+		let mut o = vec![0xC2, 0xE9];
+		o.extend_from_slice(&self.key.as_bytes());
+		o.extend_from_slice(&self.salt.as_bytes());
+		o
 	}
 
 	fn from_bytes(b: Self::Output) -> Result<Self> {
@@ -406,11 +392,8 @@ impl HeaderEncode for HeaderObjectIdentifier {
 			return Err(Error::Validity);
 		}
 
-		let mut offset = Offset::new(2);
-		let ek = EncryptedKey::from_bytes(
-			b[offset.0..offset.increment(EncryptedKey::OUTPUT_LEN)].to_vec(),
-		)?;
-		let salt = Salt::from_bytes(b[offset.0..].to_array()?)?;
+		let ek = EncryptedKey::from_bytes(b[2..EncryptedKey::OUTPUT_LEN].to_vec())?;
+		let salt = Salt::from_bytes(b[EncryptedKey::OUTPUT_LEN + 2..].to_vec())?;
 
 		Ok(Self { key: ek, salt })
 	}
@@ -427,6 +410,7 @@ impl HeaderEncode for HeaderObjectIdentifier {
 
 impl HeaderEncode for HeaderVersion {
 	const OUTPUT_LEN: usize = 2;
+	type Identifier = [u8; 2];
 	type Output = [u8; Self::OUTPUT_LEN];
 
 	fn as_bytes(&self) -> Self::Output {
