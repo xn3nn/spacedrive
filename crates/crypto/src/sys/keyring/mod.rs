@@ -9,12 +9,12 @@ use crate::{hashing::Hasher, Protected, Result};
 mod portable;
 use portable::PortableKeyring;
 
-#[cfg(not(any(target_os = "linux", target_os = "ios", target_os = "macos")))]
+#[cfg(not(feature = "keyring"))]
 use portable::PortableKeyring as DefaultKeyring;
 
-#[cfg(all(target_os = "linux", feature = "keyutils"))]
+#[cfg(all(target_os = "linux", feature = "keyring"))]
 mod linux_keyutils;
-#[cfg(all(target_os = "linux", feature = "keyutils"))]
+#[cfg(all(target_os = "linux", feature = "keyring"))]
 use linux_keyutils::LinuxKeyring as DefaultKeyring;
 
 #[cfg(target_os = "macos")]
