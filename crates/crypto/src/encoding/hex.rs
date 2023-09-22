@@ -1,6 +1,7 @@
 use crate::{Error, Result};
 use std::fmt::Write;
 
+#[must_use]
 pub fn encode(bytes: &[u8]) -> String {
 	let mut output = String::with_capacity(bytes.len() * 2); // hex takes 2 bytes to encode
 

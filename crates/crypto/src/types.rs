@@ -8,7 +8,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 use crate::ct::{Choice, ConstantTimeEq, ConstantTimeEqNull};
 use crate::rng::CryptoRng;
 use crate::utils::ToArray;
-use crate::{Error, Protected};
+use crate::{encoding, Error, Protected};
 
 use crate::primitives::{
 	AAD_HEADER_LEN, AAD_LEN, AES_256_GCM_NONCE_LEN, AES_256_GCM_SIV_NONCE_LEN, ARGON2ID_HARDENED,
@@ -350,7 +350,7 @@ impl TryFrom<Protected<String>> for SecretKey {
 		s.retain(|c| c.is_ascii_hexdigit());
 
 		// shouldn't fail as `SecretKey::try_from` is (essentially) infallible
-		hex::decode(s)
+		encoding::hex::decode(&s)
 			.ok()
 			.map_or(Protected::new(vec![]), Protected::new)
 			.try_into()
@@ -360,7 +360,7 @@ impl TryFrom<Protected<String>> for SecretKey {
 
 impl Display for SecretKey {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		let s = hex::encode(self.expose()).to_uppercase();
+		let s = encoding::hex::encode(self.expose()).to_uppercase();
 		let separator_distance = s.len() / 6;
 		s.chars().enumerate().try_for_each(|(i, c)| {
 			f.write_char(c)?;

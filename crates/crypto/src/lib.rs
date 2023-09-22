@@ -26,6 +26,7 @@
 
 pub mod crypto;
 pub mod ct;
+pub mod encoding;
 pub mod error;
 pub mod hashing;
 pub mod primitives;
@@ -36,8 +37,6 @@ pub mod utils;
 
 #[cfg(feature = "sys")]
 pub mod sys;
-
-pub mod encoding;
 
 pub use self::error::{Error, Result};
 pub use aead::Payload;
