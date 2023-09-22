@@ -50,19 +50,28 @@ pub enum Error {
 	LengthMismatch,
 	#[error("expected type/value differs from provided")]
 	Validity,
-	#[error("I/O error: {0}")]
-	Io(#[from] std::io::Error),
 	#[error("string parse error")]
 	StringParse(#[from] FromUtf8Error),
 
+	// i/o
+	#[cfg(not(feature = "tokio"))]
+	#[error("I/O error: {0}")]
+	Io(#[from] std::io::Error),
+	#[cfg(feature = "tokio")]
+	#[error("I/O error: {0}")]
+	AsyncIo(#[from] tokio::io::Error),
+	#[cfg(feature = "tokio")]
+	#[error("Async task join error: {0}")]
+	JoinError(#[from] tokio::task::JoinError),
+
 	// keyring
-	#[cfg(all(target_os = "linux", feature = "sys"))]
+	#[cfg(all(target_os = "linux", feature = "keyring"))]
 	#[error("error with the linux keyring: {0}")]
 	LinuxKeyring(#[from] linux_keyutils::KeyError),
-	#[cfg(all(any(target_os = "macos", target_os = "ios"), feature = "sys"))]
+	#[cfg(all(any(target_os = "macos", target_os = "ios"), feature = "keyring"))]
 	#[error("error with the apple keyring: {0}")]
 	AppleKeyring(#[from] security_framework::base::Error),
-	#[cfg(feature = "sys")]
+	#[cfg(feature = "keyring")]
 	#[error("generic keyring error")]
 	Keyring,
 }
