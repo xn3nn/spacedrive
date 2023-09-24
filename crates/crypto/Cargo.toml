@@ -37,7 +37,7 @@ balloon-hash = { version = "0.4.0", default_features = false, features = [
 	"alloc",
   "zeroize",
 ] }
-blake3 = { version = "1.4.1", features = ["traits-preview"] }
+blake3 = { version = "1.5.0", features = ["traits-preview", "zeroize"] }
 
 # constant time - custom git until https://github.com/RustCrypto/utils/pull/925
 cmov = { git = "https://github.com/brxken128/utils", rev = "e53d8f068fa2420a016d9dfdc7e6cd9b1a7fec87" }
