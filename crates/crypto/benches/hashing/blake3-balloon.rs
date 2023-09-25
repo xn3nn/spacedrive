@@ -35,12 +35,10 @@ const PARAMS: [Params; 3] = [Params::Standard, Params::Hardened, Params::Paranoi
 
 fn bench(c: &mut Criterion) {
 	let mut group = c.benchmark_group("blake3-balloon");
-	group.sample_size(10);
-
-	let mut rng = CryptoRng::from_entropy();
+	group.sample_size(10); // TODO(brxken128): probably remove this
 
 	for param in PARAMS {
-		let password = CryptoRng::generate_fixed<16>().into();
+		let password: Protected<Vec<u8>> = CryptoRng::generate_vec(16).into();
 		let salt = Salt::generate();
 		let hashing_algorithm = HashingAlgorithm::Blake3Balloon(param);
 
