@@ -2,6 +2,7 @@
 //! in an effort to add additional type safety.
 use crate::{
 	ct::{Choice, ConstantTimeEq, ConstantTimeEqNull},
+	encoding,
 	rng::CryptoRng,
 	utils::ToArray,
 	Error, Protected,
@@ -10,11 +11,6 @@ use aead::generic_array::{ArrayLength, GenericArray};
 use cmov::Cmov;
 use std::fmt::{Debug, Display, Write};
 use zeroize::{Zeroize, ZeroizeOnDrop};
-
-use crate::ct::{Choice, ConstantTimeEq, ConstantTimeEqNull};
-use crate::rng::CryptoRng;
-use crate::utils::ToArray;
-use crate::{encoding, Error, Protected};
 
 use crate::primitives::{
 	AAD_HEADER_LEN, AAD_LEN, AES_256_GCM_NONCE_LEN, AES_256_GCM_SIV_NONCE_LEN, ARGON2ID_HARDENED,
