@@ -1,5 +1,11 @@
 //! This module defines all of the possible types used throughout this crate,
 //! in an effort to add additional type safety.
+use crate::{
+	ct::{Choice, ConstantTimeEq, ConstantTimeEqNull},
+	rng::CryptoRng,
+	utils::ToArray,
+	Error, Protected,
+};
 use aead::generic_array::{ArrayLength, GenericArray};
 use cmov::Cmov;
 use std::fmt::{Debug, Display, Write};
@@ -21,11 +27,13 @@ use crate::primitives::{
 pub struct MagicBytes<const I: usize>([u8; I]);
 
 impl<const I: usize> MagicBytes<I> {
+	#[inline]
 	#[must_use]
 	pub const fn new(bytes: [u8; I]) -> Self {
 		Self(bytes)
 	}
 
+	#[inline]
 	#[must_use]
 	pub const fn inner(&self) -> &[u8; I] {
 		&self.0
@@ -36,11 +44,13 @@ impl<const I: usize> MagicBytes<I> {
 pub struct DerivationContext(&'static str);
 
 impl DerivationContext {
+	#[inline]
 	#[must_use]
 	pub const fn new(context: &'static str) -> Self {
 		Self(context)
 	}
 
+	#[inline]
 	#[must_use]
 	pub const fn inner(&self) -> &'static str {
 		self.0
@@ -61,6 +71,7 @@ pub enum Params {
 }
 
 impl Params {
+	#[inline]
 	#[must_use]
 	pub const fn default() -> Self {
 		Self::Standard
@@ -82,11 +93,13 @@ pub enum HashingAlgorithm {
 }
 
 impl HashingAlgorithm {
+	#[inline]
 	#[must_use]
 	pub const fn default() -> Self {
 		Self::Argon2id(Params::default())
 	}
 
+	#[inline]
 	#[must_use]
 	pub const fn get_parameters(&self) -> (u32, u32, u32) {
 		match self {
@@ -118,6 +131,7 @@ pub enum Nonce {
 }
 
 impl Nonce {
+	#[inline]
 	#[must_use]
 	pub fn generate(algorithm: Algorithm) -> Self {
 		match algorithm {
@@ -127,6 +141,7 @@ impl Nonce {
 		}
 	}
 
+	#[inline]
 	#[must_use]
 	pub const fn inner(&self) -> &[u8] {
 		match self {
@@ -135,6 +150,7 @@ impl Nonce {
 		}
 	}
 
+	#[inline]
 	#[must_use]
 	pub const fn len(&self) -> usize {
 		match self {
@@ -143,6 +159,7 @@ impl Nonce {
 		}
 	}
 
+	#[inline]
 	#[must_use]
 	pub const fn is_empty(&self) -> bool {
 		match self {
@@ -151,6 +168,7 @@ impl Nonce {
 		}
 	}
 
+	#[inline]
 	#[must_use]
 	pub const fn algorithm(&self) -> Algorithm {
 		match self {
@@ -214,12 +232,14 @@ impl PartialEq for Algorithm {
 }
 
 impl Algorithm {
+	#[inline]
 	#[must_use]
 	pub const fn default() -> Self {
 		Self::XChaCha20Poly1305
 	}
 
 	/// This function returns the nonce length for a given encryption algorithm
+	#[inline]
 	#[must_use]
 	pub const fn nonce_len(&self) -> usize {
 		match self {
@@ -230,25 +250,31 @@ impl Algorithm {
 	}
 }
 
+pub type KeyInner = [u8; KEY_LEN];
+
 /// This should be used for providing a key to functions.
 ///
 /// It can either be a random key, or a hashed key.
 ///
 /// You may also generate a secure random key with `Key::generate()`
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
-pub struct Key([u8; KEY_LEN]);
+#[repr(transparent)]
+pub struct Key(KeyInner);
 
 impl Key {
+	#[inline]
 	#[must_use]
-	pub const fn new(v: [u8; KEY_LEN]) -> Self {
+	pub const fn new(v: KeyInner) -> Self {
 		Self(v)
 	}
 
+	#[inline]
 	#[must_use]
 	pub const fn expose(&self) -> &[u8] {
-		&self.0
+		self.0.as_slice()
 	}
 
+	#[inline]
 	#[must_use]
 	pub fn generate() -> Self {
 		Self::new(CryptoRng::generate_fixed())
@@ -258,6 +284,21 @@ impl Key {
 		bool::from(self.expose().ct_ne_null())
 			.then_some(())
 			.ok_or(Error::Validity)
+	}
+}
+
+impl std::ops::Deref for Key {
+	type Target = KeyInner;
+
+	fn deref(&self) -> &Self::Target {
+		&self.0
+	}
+}
+
+impl From<KeyInner> for Key {
+	fn from(value: KeyInner) -> Self {
+		Self(value)
+		// Self(Box::new(value))
 	}
 }
 
@@ -278,7 +319,7 @@ where
 	I: ArrayLength<u8>,
 {
 	fn from(value: &Key) -> Self {
-		Self::clone_from_slice(value.expose())
+		value.into_iter().collect()
 	}
 }
 
@@ -296,31 +337,44 @@ impl TryFrom<Protected<Vec<u8>>> for Key {
 	}
 }
 
+impl TryFrom<Protected<Box<[u8]>>> for Key {
+	type Error = Error;
+
+	fn try_from(value: Protected<Box<[u8]>>) -> Result<Self, Self::Error> {
+		Ok(Self::new(value.into_inner().to_array()?))
+	}
+}
+
 /// This should be used for providing a secret key to functions.
 ///
 // /// You may also generate a secret key with `SecretKey::generate()`
 #[derive(Zeroize, ZeroizeOnDrop, Clone)]
 pub enum SecretKey {
+	// Standard(Box<[u8; SECRET_KEY_LEN]>),
 	Standard([u8; SECRET_KEY_LEN]),
 	Variable(Vec<u8>),
 	Null,
 }
 
 impl SecretKey {
+	#[inline]
 	#[must_use]
 	pub const fn new(v: [u8; SECRET_KEY_LEN]) -> Self {
 		Self::Standard(v)
 	}
 
+	#[inline]
 	#[must_use]
 	pub fn expose(&self) -> &[u8] {
 		match self {
 			Self::Standard(v) => v,
+			// Self::Standard(v) => v.as_slice(),
 			Self::Variable(v) => v,
 			Self::Null => &[],
 		}
 	}
 
+	#[inline]
 	#[must_use]
 	pub fn generate() -> Self {
 		Self::new(CryptoRng::generate_fixed())
@@ -333,7 +387,7 @@ impl TryFrom<Protected<Vec<u8>>> for SecretKey {
 	fn try_from(value: Protected<Vec<u8>>) -> Result<Self, Self::Error> {
 		let sk = match value.expose().len() {
 			// this won't fail as we check the size
-			SECRET_KEY_LEN => Self::Standard(value.into_inner().to_array()?),
+			SECRET_KEY_LEN => Self::new(value.into_inner().to_array()?),
 			0 => Self::Null,
 			_ => Self::Variable(value.into_inner()),
 		};
@@ -389,16 +443,19 @@ pub struct EncryptedKey(
 );
 
 impl EncryptedKey {
+	#[inline]
 	#[must_use]
 	pub const fn new(v: [u8; ENCRYPTED_KEY_LEN], nonce: Nonce) -> Self {
 		Self(v, nonce)
 	}
 
+	#[inline]
 	#[must_use]
 	pub const fn inner(&self) -> &[u8] {
 		&self.0
 	}
 
+	#[inline]
 	#[must_use]
 	pub const fn nonce(&self) -> &Nonce {
 		&self.1
@@ -439,11 +496,13 @@ pub enum Aad {
 }
 
 impl Aad {
+	#[inline]
 	#[must_use]
 	pub fn generate() -> Self {
 		Self::Standard(CryptoRng::generate_fixed())
 	}
 
+	#[inline]
 	#[must_use]
 	pub const fn inner(&self) -> &[u8] {
 		match self {
@@ -476,16 +535,19 @@ impl PartialEq for Aad {
 pub struct Salt([u8; SALT_LEN]);
 
 impl Salt {
+	#[inline]
 	#[must_use]
 	pub fn generate() -> Self {
 		Self(CryptoRng::generate_fixed())
 	}
 
+	#[inline]
 	#[must_use]
 	pub const fn new(v: [u8; SALT_LEN]) -> Self {
 		Self(v)
 	}
 
+	#[inline]
 	#[must_use]
 	pub const fn inner(&self) -> &[u8] {
 		&self.0

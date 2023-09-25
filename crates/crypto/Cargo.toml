@@ -1,29 +1,28 @@
 [package]
 name = "sd-crypto"
+rust-version = "1.72.0"
 version = "0.0.0"
 authors = ["Jake Robinson <jake@spacedrive.com>"]
-keywords = ["crypto"]
-readme = "README.md"
 description = """
 A cryptographic library that provides safe and high-level
 encryption, hashing, and encoding interfaces.
 """
-rust-version = "1.72.0"
+readme = "README.md"
+keywords = ["crypto"]
+edition = { workspace = true }
 license = { workspace = true }
 repository = { workspace = true }
-edition = { workspace = true }
 
 [features]
 sys = []
-hw-rng = ["dep:security-framework"]
 serde = ["dep:serde", "dep:serde_json", "dep:serde-big-array"]
+hw-rng = ["dep:security-framework"]
 keyring = ["dep:linux-keyutils", "dep:security-framework"]
 secret-service = [
   "keyring",
   "dep:secret-service",
 	"dep:zbus"
 ] # explicit enabling required as the secret service api is a mess
-
 
 [dependencies]
 # rng
@@ -46,23 +45,23 @@ cmov = { git = "https://github.com/brxken128/utils", rev = "e53d8f068fa2420a016d
 aes-gcm = "0.10.3"
 aes-gcm-siv = "0.11.1"
 chacha20poly1305 = "0.10.1"
-aead = { version = "0.5.2", features = ["stream"] }
+thiserror = "1.0.48"
+aead = { version = "0.5.2", default-features = false, features = ["stream"] }
+bincode = { version = "2.0.0-rc.3", features = [
+  "derive",
+  "alloc",
+], optional = true }
 
-# cryptographic hygiene
-# `aarch64` feature allows zeroizing of SIMD registers
-# a no-op on non-aarch64 targets
 zeroize = { version = "1.6.0", features = ["derive", "aarch64"] }
 
-# error handling
-thiserror = "1.0.48"
 
-bincode = { version = "2.0.0-rc.3", optional = true }
+# hybrid-array = { version = "0.2.0-pre.4", features = [] }
 
 serde = { version = "1.0.188", features = ["derive"], optional = true }
 serde_json = { version = "1.0.107", optional = true }
 serde-big-array = { version = "0.5.1", optional = true }
 
-specta = { workspace = true, optional = true }
+specta = { workspace = true, features = [], optional = true }
 
 # for asynchronous crypto
 tokio = { workspace = true, features = [
@@ -71,61 +70,72 @@ tokio = { workspace = true, features = [
   "macros",
 ], optional = true }
 
+redb = { version = "1.1.0" }
+
+ed25519-dalek = { version = "2.0.0", feature = ["std", "zeroize"] }
+x25519-dalek = { version = "2.0.0", feature = [
+  "std",
+  "zeroize",
+] } # ReusableSecrets feature may have to come out for live X3DH
+
 # linux OS keyring
 [target.'cfg(target_os = "linux")'.dependencies]
 linux-keyutils = { version = "0.2.3", features = ["std"], optional = true }
 secret-service = { version = "3.0.1", features = ["crypto-rust"], optional = true }
 zbus = { version = "3.14.1", features = ["tokio"], optional = true }
 
-# macos/ios OS keyring
 [target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
 security-framework = { version = "2.9.2", optional = true }
+
+# [target.'cfg(all(target_os = "linux", feature = "keyring"))']
+# linux-keyutils = { version = "0.2.3", features = ["std"], optional = true }
+
+# [target.'cfg(all(target_os = "linux", feature = "secret-service"))']
+# secret-service = { version = "3.0.1", features = [
+#   "rt-async-io-crypto-rust",
+# ], optional = true }
 
 [dev-dependencies]
 criterion = "0.5.1"
 paste = "1.0.14"
 
 [[bench]]
-name = "aes-256-gcm"
 path = "benches/crypto/aes-256-gcm.rs"
+name = "aes-256-gcm"
 harness = false
 
 [[bench]]
-name = "aes-256-gcm-siv"
 path = "benches/crypto/aes-256-gcm-siv.rs"
+name = "aes-256-gcm-siv"
 harness = false
 
 [[bench]]
-name = "xchacha20-poly1305"
 path = "benches/crypto/xchacha20-poly1305.rs"
+name = "xchacha20-poly1305"
 harness = false
 
 [[bench]]
-name = "argon2id"
 path = "benches/hashing/argon2id.rs"
-harness = false
+name = "argon2id"
 bench = false
+harness = false
 
 [[bench]]
-name = "blake3-balloon"
 path = "benches/hashing/blake3-balloon.rs"
-harness = false
+name = "blake3-balloon"
 bench = false
-
-[[bench]]
-name = "blake3"
-path = "benches/hashing/blake3.rs"
 harness = false
 
 [[bench]]
-name = "blake3-kdf"
+path = "benches/hashing/blake3.rs"
+name = "blake3"
+harness = false
+
+[[bench]]
 path = "benches/hashing/blake3-kdf.rs"
+name = "blake3-kdf"
 harness = false
 
 [[example]]
-name = "file_encryption"
 path = "examples/file_encryption.rs"
-
-[package.metadata.docs.rs]
-all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
+name = "file_encryption"

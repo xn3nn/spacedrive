@@ -13,6 +13,8 @@ fn bench(c: &mut Criterion) {
 	let mut group = c.benchmark_group("argon2id");
 	group.sample_size(10);
 
+	let mut rng = CryptoRng::from_entropy();
+
 	for param in PARAMS {
 		let password = CryptoRng::generate_fixed<16>().into();
 		let salt = Salt::generate();

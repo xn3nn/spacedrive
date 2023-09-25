@@ -1,7 +1,6 @@
 //! This module contains all possible errors that this crate can return.
 
 use std::string::FromUtf8Error;
-use thiserror::Error;
 
 #[cfg(feature = "bincode")]
 impl From<Error> for bincode::error::EncodeError {
@@ -13,7 +12,8 @@ impl From<Error> for bincode::error::EncodeError {
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// This enum defines all possible errors that this crate can give
-#[derive(Error, Debug)]
+#[allow(deprecated)]
+#[derive(thiserror::Error, Debug)]
 pub enum Error {
 	// crypto primitive errors (STREAM, hashing)
 	#[error("there was an error while password hashing")]

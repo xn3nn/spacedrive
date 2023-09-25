@@ -89,6 +89,8 @@ impl Choice {
 	#[inline]
 	#[must_use]
 	pub fn unwrap_u8(&self) -> u8 {
+		// could use an unsafe volatile read as an optimisation barrier
+		// i think cmov does a great job at being the barrier as well though
 		let mut x = 0u8;
 		x.cmovnz(&1, self.0);
 		x
@@ -106,6 +108,26 @@ impl std::ops::Not for Choice {
 	}
 }
 
+impl std::ops::BitAnd for Choice {
+	type Output = Self;
+
+	#[inline]
+	fn bitand(self, rhs: Self) -> Self::Output {
+		let mut x = 0u8;
+		x.cmovnz(&1u8, self.0 & rhs.0);
+		Self::from(x)
+	}
+}
+
+impl std::ops::BitAndAssign for Choice {
+	#[inline]
+	fn bitand_assign(&mut self, rhs: Self) {
+		let mut x = 0u8;
+		x.cmovnz(&1u8, self.0 & rhs.0);
+		*self = Self::from(x);
+	}
+}
+
 impl From<u8> for Choice {
 	#[inline]
 	fn from(input: u8) -> Self {
@@ -119,8 +141,10 @@ impl From<Choice> for bool {
 	/// Convert the `Choice` wrapper into a `bool`, depending on whether
 	/// the underlying `u8` is equal to `0` or not.
 	#[inline]
-	fn from(source: Choice) -> Self {
-		source.0 != 0
+	fn from(input: Choice) -> Self {
+		let mut x = 0u8;
+		x.cmovnz(&1, input.unwrap_u8());
+		x != 0
 	}
 }
 
@@ -138,7 +162,7 @@ impl ConstantTimeEqNull for [u8] {
 	#[inline]
 	fn ct_eq_null(&self) -> Choice {
 		let mut x = 1u8;
-		self.iter().for_each(|i| x.cmovnz(&0u8, *i));
+		self.iter().for_each(|i| x.cmovnz(&0u8, *i)); // FIXME: implicit copy?
 		Choice::from(x)
 	}
 }

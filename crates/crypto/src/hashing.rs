@@ -18,6 +18,7 @@ use crate::{
 };
 use argon2::Argon2;
 use balloon_hash::Balloon;
+use zeroize::Zeroizing;
 
 pub struct Hasher;
 
@@ -65,7 +66,8 @@ impl Hasher {
 		let p =
 			argon2::Params::new(params.0, params.1, params.2, None).map_err(|_| Error::Hashing)?;
 
-		let mut key = [0u8; KEY_LEN];
+		let mut key = Zeroizing::new([0u8; KEY_LEN]);
+
 		let argon2 = Argon2::new_with_secret(
 			secret.expose(),
 			argon2::Algorithm::Argon2id,
@@ -75,8 +77,8 @@ impl Hasher {
 		.map_err(|_| Error::Hashing)?;
 
 		argon2
-			.hash_password_into(password.expose(), salt.inner(), &mut key)
-			.map_or(Err(Error::Hashing), |()| Ok(Key::new(key)))
+			.hash_password_into(password.expose(), salt.inner(), key.as_mut_slice())
+			.map_or(Err(Error::Hashing), |()| Ok(Key::new(*key)))
 	}
 
 	fn blake3_balloon(
@@ -88,7 +90,7 @@ impl Hasher {
 		let p =
 			balloon_hash::Params::new(params.0, params.1, params.2).map_err(|_| Error::Hashing)?;
 
-		let mut key = [0u8; KEY_LEN];
+		let mut key = Zeroizing::new([0u8; KEY_LEN]);
 
 		let balloon = Balloon::<blake3::Hasher>::new(
 			balloon_hash::Algorithm::Balloon,
@@ -97,8 +99,8 @@ impl Hasher {
 		);
 
 		balloon
-			.hash_into(password.expose(), salt.inner(), &mut key)
-			.map_or(Err(Error::Hashing), |()| Ok(Key::new(key)))
+			.hash_into(password.expose(), salt.inner(), key.as_mut_slice())
+			.map_or(Err(Error::Hashing), |()| Ok(Key::new(*key)))
 	}
 }
 

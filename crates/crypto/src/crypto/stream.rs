@@ -157,6 +157,8 @@ macro_rules! impl_stream {
 				loop {
 					let count = exhaustive_read_async(&mut reader, &mut buffer).await?;
 
+					// TODO(brxken128): block on `next_fn` and `last_fn` exclusively
+
 					let payload = Payload {
 						aad: aad.inner(),
 						msg: &buffer[..count],
