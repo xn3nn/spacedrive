@@ -164,7 +164,6 @@ module.exports = function (app, options) {
 		plugins: [
 			require('@tailwindcss/forms'),
 			require('tailwindcss-animate'),
-			require('@headlessui/tailwindcss'),
 			require('tailwindcss-radix')()
 		]
 	};

@@ -1,6 +1,5 @@
 import { ArrowLeft, ArrowRight, DotsThree, Plus, SidebarSimple, X } from '@phosphor-icons/react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { animated, useTransition } from '@react-spring/web';
 import clsx from 'clsx';
 import {
 	ButtonHTMLAttributes,
@@ -39,9 +38,6 @@ import { FileThumb } from '../FilePath/Thumb';
 import { SingleItemMetadata } from '../Inspector';
 import { getQuickPreviewStore, useQuickPreviewStore } from './store';
 
-const AnimatedDialogOverlay = animated(Dialog.Overlay);
-const AnimatedDialogContent = animated(Dialog.Content);
-
 const iconKinds: ObjectKindKey[] = ['Audio', 'Folder', 'Executable', 'Unknown'];
 const textKinds: ObjectKindKey[] = ['Text', 'Config', 'Code'];
 const withoutBackgroundKinds: ObjectKindKey[] = [...iconKinds, ...textKinds, 'Document'];
@@ -78,16 +74,16 @@ export const QuickPreview = () => {
 
 	const item = useMemo(() => items[itemIndex], [items, itemIndex]);
 
-	const transitions = useTransition(open, {
-		from: {
-			opacity: 0,
-			transform: `translateY(20px) scale(0.9)`,
-			transformOrigin: 'center top'
-		},
-		enter: { opacity: 1, transform: `translateY(0px) scale(1)` },
-		leave: { opacity: 0, immediate: true },
-		config: { mass: 0.2, tension: 300, friction: 20, bounce: 0 }
-	});
+	// const transitions = useTransition(open, {
+	// 	from: {
+	// 		opacity: 0,
+	// 		transform: `translateY(20px) scale(0.9)`,
+	// 		transformOrigin: 'center top'
+	// 	},
+	// 	enter: { opacity: 1, transform: `translateY(0px) scale(1)` },
+	// 	leave: { opacity: 0, immediate: true },
+	// 	config: { mass: 0.2, tension: 300, friction: 20, bounce: 0 }
+	// });
 
 	const renameFile = useLibraryMutation(['files.renameFile'], {
 		onError: () => setNewName(null),
@@ -114,6 +110,8 @@ export const QuickPreview = () => {
 		if (isRenaming) return;
 
 		e.preventDefault();
+
+		console.log('hmm');
 
 		getQuickPreviewStore().open = !open;
 	});
@@ -181,46 +179,45 @@ export const QuickPreview = () => {
 			<DeleteDialog {...dp} locationId={path.location_id!} pathIds={[path.id]} />
 		));
 	});
+	const { kind, ...itemData } = getExplorerItemData(item);
+
+	const name = newName || `${itemData.name}${itemData.extension ? `.${itemData.extension}` : ''}`;
+
+	const background = !withoutBackgroundKinds.includes(kind);
+	const icon = iconKinds.includes(kind);
 
 	return (
 		<Dialog.Root open={open} onOpenChange={(open) => (getQuickPreviewStore().open = open)}>
-			{transitions((styles, show) => {
-				if (!show || !item) return null;
+			<QuickPreviewContext.Provider value={{ background }}>
+				<Dialog.Portal>
+					<Dialog.Overlay
+						className={clsx(
+							'absolute inset-0 z-50 !duration-100',
+							'radix-state-open:animate-in radix-state-open:fade-in-0',
+							'radix-state-closed:animate-out radix-state-closed:fade-out-0',
+							isDark ? 'bg-black/80' : 'bg-black/60'
+						)}
+						onContextMenu={(e) => e.preventDefault()}
+					/>
 
-				const { kind, ...itemData } = getExplorerItemData(item);
-
-				const name =
-					newName ||
-					`${itemData.name}${itemData.extension ? `.${itemData.extension}` : ''}`;
-
-				const background = !withoutBackgroundKinds.includes(kind);
-				const icon = iconKinds.includes(kind);
-
-				return (
-					<QuickPreviewContext.Provider value={{ background }}>
-						<Dialog.Portal forceMount>
-							<AnimatedDialogOverlay
-								className={clsx(
-									'absolute inset-0 z-50',
-									isDark ? 'bg-black/80' : 'bg-black/60'
-								)}
-								style={{ opacity: styles.opacity }}
-								onContextMenu={(e) => e.preventDefault()}
-							/>
-
-							<AnimatedDialogContent
-								className="fixed inset-[5%] z-50 outline-none"
-								style={styles}
-								onOpenAutoFocus={(e) => e.preventDefault()}
-								onEscapeKeyDown={(e) => isRenaming && e.preventDefault()}
-								onContextMenu={(e) => e.preventDefault()}
-							>
-								<div
-									className={clsx(
-										'flex h-full overflow-hidden rounded-md border',
-										isDark ? 'border-app-line/80' : 'border-app-line/10'
-									)}
-								>
+					<Dialog.Content
+						className={clsx(
+							'fixed inset-[5%] z-50 outline-none !duration-100',
+							'radix-state-open:animate-in radix-state-open:fade-in-0',
+							'radix-state-closed:animate-out radix-state-closed:fade-out-0'
+						)}
+						onOpenAutoFocus={(e) => e.preventDefault()}
+						onEscapeKeyDown={(e) => isRenaming && e.preventDefault()}
+						onContextMenu={(e) => e.preventDefault()}
+					>
+						<div
+							className={clsx(
+								'flex h-full overflow-hidden rounded-md border',
+								isDark ? 'border-app-line/80' : 'border-app-line/10'
+							)}
+						>
+							<>
+								{item && (
 									<div className="relative flex flex-1 flex-col overflow-hidden bg-app/80 backdrop-blur">
 										{background && (
 											<div className="absolute inset-0 overflow-hidden bg-black/90">
@@ -432,18 +429,18 @@ export const QuickPreview = () => {
 											)}
 										/>
 									</div>
+								)}
 
-									{showMetadata && (
-										<div className="no-scrollbar w-64 shrink-0 border-l border-app-line bg-app-darkBox py-1">
-											<SingleItemMetadata item={item} />
-										</div>
-									)}
-								</div>
-							</AnimatedDialogContent>
-						</Dialog.Portal>
-					</QuickPreviewContext.Provider>
-				);
-			})}
+								{showMetadata && (
+									<div className="no-scrollbar w-64 shrink-0 border-l border-app-line bg-app-darkBox py-1">
+										<SingleItemMetadata item={item} />
+									</div>
+								)}
+							</>
+						</div>
+					</Dialog.Content>
+				</Dialog.Portal>
+			</QuickPreviewContext.Provider>
 		</Dialog.Root>
 	);
 };
