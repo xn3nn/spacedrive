@@ -6,9 +6,9 @@ on:
       - main
   pull_request:
     paths:
-      - '.github/workflows/crypto.yml'
-      - 'crates/crypto/**'
-      - 'Cargo.*'
+      - ".github/workflows/crypto.yml"
+      - "crates/crypto/**"
+      - "Cargo.*"
   workflow_dispatch:
 
 defaults:
@@ -19,7 +19,8 @@ permissions:
   contents: read
 
 env:
-  RUSTFLAGS: '-Dwarnings'
+  RUSTFLAGS: "-Dwarnings"
+  MSRV: 1.72.0
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -37,11 +38,15 @@ jobs:
 
           - target: x86_64-unknown-linux-gnu
             platform: ubuntu-latest
-            rust: 1.67.0
+            rust: $MSRV
 
           - target: x86_64-unknown-linux-gnu
             platform: ubuntu-latest
             rust: stable
+
+          - target: x86_64-unknown-linux-gnu
+            platform: ubuntu-latest
+            rust: nightly
 
           - target: x86_64-apple-darwin
             platform: macos-latest
