@@ -15,8 +15,8 @@ import {
 } from '@phosphor-icons/react';
 import { useFeatureFlag } from '@sd/client';
 import { tw } from '@sd/ui';
-
 import { useOperatingSystem } from '~/hooks/useOperatingSystem';
+
 import Icon from '../Layout/Sidebar/Icon';
 import SidebarLink from '../Layout/Sidebar/Link';
 import { NavigationButtons } from '../TopBar/NavigationButtons';
@@ -32,7 +32,10 @@ export default () => {
 	return (
 		<div className="custom-scroll no-scrollbar h-full w-60 max-w-[180px] shrink-0 border-r border-app-line/50 pb-5">
 			{os !== 'browser' ? (
-				<div data-tauri-drag-region className="mb-3 h-3 w-full p-3 pl-[14px] pt-[10px]">
+				<div
+					data-tauri-drag-region={os === 'macOS'}
+					className="mb-3 h-3 w-full p-3 pl-[14px] pt-[10px]"
+				>
 					<NavigationButtons />
 				</div>
 			) : (
@@ -62,7 +65,7 @@ export default () => {
 						<Icon component={Database} />
 						Backups
 					</SidebarLink>
-					<SidebarLink to="client/keybindings" disabled>
+					<SidebarLink to="client/keybindings">
 						<Icon component={KeyReturn} />
 						Keybinds
 					</SidebarLink>

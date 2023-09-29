@@ -1,9 +1,8 @@
 import clsx from 'clsx';
 import { useLayoutEffect, useState } from 'react';
-import { useKeys } from 'rooks';
 import { ModifierKeys, Popover, Tooltip } from '@sd/ui';
 import { ExplorerLayout } from '~/../packages/client/src';
-import { useKeyBind, useOperatingSystem } from '~/hooks';
+import { useKeybind, useKeyMatcher, useOperatingSystem } from '~/hooks';
 
 import { useExplorerContext } from '../Explorer/Context';
 import TopBarButton from './TopBarButton';
@@ -31,13 +30,13 @@ export const TOP_BAR_ICON_STYLE = 'm-0.5 w-[18px] h-[18px] text-ink-dull';
 export default ({ options }: TopBarChildrenProps) => {
 	const [windowSize, setWindowSize] = useState(0);
 	const explorer = useExplorerContext();
+	const os = useOperatingSystem();
 	const toolsNotSmFlex = options
 		?.flatMap((group) => group)
 		.filter((t) => t.showAtResolution !== 'sm:flex');
-	const os = useOperatingSystem();
-	const keys = [os === 'macOS' ? ModifierKeys.Meta : ModifierKeys.Control, 'v'];
+	const metaCtrlKey = useKeyMatcher('Meta').key;
 
-	useKeyBind(keys, (e) => {
+	useKeybind([metaCtrlKey, 'b'], (e) => {
 		e.stopPropagation();
 		const explorerLayouts: ExplorerLayout[] = ['grid', 'list', 'media']; //based on the order of the icons
 		const currentLayout = explorerLayouts.indexOf(
@@ -59,8 +58,8 @@ export default ({ options }: TopBarChildrenProps) => {
 	}, []);
 
 	return (
-		<div data-tauri-drag-region className="flex justify-end flex-1">
-			<div data-tauri-drag-region className={`flex gap-0`}>
+		<div data-tauri-drag-region={os === 'macOS'} className="flex flex-1 justify-end">
+			<div data-tauri-drag-region={os === 'macOS'} className={`flex gap-0`}>
 				{options?.map((group, groupIndex) => {
 					return group.map(
 						(
@@ -87,7 +86,7 @@ export default ({ options }: TopBarChildrenProps) => {
 								: 'none';
 							return (
 								<div
-									data-tauri-drag-region
+									data-tauri-drag-region={os === 'macOS'}
 									key={toolTipLabel}
 									className={clsx(
 										[showAtResolution],
@@ -138,7 +137,7 @@ export default ({ options }: TopBarChildrenProps) => {
 									{index + 1 === group.length &&
 										groupIndex + 1 !== groupCount && (
 											<div
-												data-tauri-drag-region
+												data-tauri-drag-region={os === 'macOS'}
 												className="mx-4 h-[15px] w-0 border-l border-zinc-600"
 											/>
 										)}

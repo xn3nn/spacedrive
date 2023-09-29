@@ -1,6 +1,3 @@
-import { Image, Image_Light } from '@sd/assets/icons';
-import clsx from 'clsx';
-import dayjs from 'dayjs';
 import {
 	Barcode,
 	CircleWavyCheck,
@@ -15,6 +12,9 @@ import {
 	Path,
 	Snowflake
 } from '@phosphor-icons/react';
+import { Image, Image_Light } from '@sd/assets/icons';
+import clsx from 'clsx';
+import dayjs from 'dayjs';
 import {
 	forwardRef,
 	useCallback,
@@ -24,6 +24,7 @@ import {
 	type HTMLAttributes,
 	type ReactNode
 } from 'react';
+import { useLocation } from 'react-router';
 import {
 	byteSize,
 	getExplorerItemData,
@@ -36,14 +37,14 @@ import {
 	type ExplorerItem
 } from '@sd/client';
 import { Button, Divider, DropdownMenu, Tooltip, tw } from '@sd/ui';
-
 import AssignTagMenuItems from '~/components/AssignTagMenuItems';
 import { useIsDark } from '~/hooks';
 import { isNonEmpty } from '~/util';
+
 import { useExplorerContext } from '../Context';
 import { FileThumb } from '../FilePath/Thumb';
 import { useQuickPreviewStore } from '../QuickPreview/store';
-import { useExplorerStore } from '../store';
+import { getExplorerStore, useExplorerStore } from '../store';
 import { uniqueId, useExplorerItemData } from '../util';
 import FavoriteButton from './FavoriteButton';
 import MediaData from './MediaData';
@@ -83,8 +84,13 @@ export const Inspector = forwardRef<HTMLDivElement, Props>(
 		const explorer = useExplorerContext();
 
 		const isDark = useIsDark();
+		const pathname = useLocation().pathname;
 
 		const selectedItems = useMemo(() => [...explorer.selectedItems], [explorer.selectedItems]);
+
+		useEffect(() => {
+			getExplorerStore().showMoreInfo = false;
+		}, [pathname]);
 
 		return (
 			<div ref={ref} style={{ width: INSPECTOR_WIDTH, ...style }} {...props}>
@@ -142,6 +148,7 @@ const Thumbnails = ({ items }: { items: ExplorerItem[] }) => {
 							? 'shadow-md shadow-app-shade'
 							: undefined
 					}
+					isSidebarPreview={true}
 				/>
 			))}
 		</>
@@ -152,7 +159,6 @@ export const SingleItemMetadata = ({ item }: { item: ExplorerItem }) => {
 	const objectData = getItemObject(item);
 	const readyToFetch = useIsFetchReady(item);
 	const isNonIndexed = item.type === 'NonIndexedPath';
-
 	const tags = useLibraryQuery(['tags.getForObject', objectData?.id ?? -1], {
 		enabled: !!objectData && readyToFetch
 	});
