@@ -19,9 +19,9 @@ serde = ["dep:serde", "dep:serde_json", "dep:serde-big-array"]
 hw-rng = ["dep:security-framework"]
 keyring = ["dep:linux-keyutils", "dep:security-framework"]
 secret-service = [
-  "keyring",
-  "dep:secret-service",
-	"dep:zbus"
+	"keyring",
+	"dep:secret-service",
+	"dep:zbus",
 ] # explicit enabling required as the secret service api is a mess
 
 [dependencies]
@@ -31,29 +31,31 @@ rand = "0.8.5"
 rand_chacha = "0.3.1"
 
 # hashing
-argon2 = { version = "0.5.2", default_features = false, features = ["alloc", "zeroize"] }
+argon2 = { version = "0.5.2", default_features = false, features = [
+	"alloc",
+	"zeroize",
+] }
 balloon-hash = { version = "0.4.0", default_features = false, features = [
 	"alloc",
-  "zeroize",
+	"zeroize",
 ] }
 blake3 = { version = "1.5.0", features = ["traits-preview", "zeroize"] }
 
-# constant time - custom git until https://github.com/RustCrypto/utils/pull/925
+# constant time - custom git until https://githubz.com/RustCrypto/utils/pull/925
 cmov = { git = "https://github.com/brxken128/utils", rev = "e53d8f068fa2420a016d9dfdc7e6cd9b1a7fec87" }
 
 # aeads
 aes-gcm = "0.10.3"
 aes-gcm-siv = "0.11.1"
 chacha20poly1305 = "0.10.1"
-thiserror = "1.0.48"
+thiserror = "1.0.49"
 aead = { version = "0.5.2", default-features = false, features = ["stream"] }
 bincode = { version = "2.0.0-rc.3", features = [
-  "derive",
-  "alloc",
+	"derive",
+	"alloc",
 ], optional = true }
 
 zeroize = { version = "1.6.0", features = ["derive", "aarch64"] }
-
 
 # hybrid-array = { version = "0.2.0-pre.4", features = [] }
 
@@ -61,27 +63,29 @@ serde = { version = "1.0.188", features = ["derive"], optional = true }
 serde_json = { version = "1.0.107", optional = true }
 serde-big-array = { version = "0.5.1", optional = true }
 
-specta = { workspace = true, features = [], optional = true }
+specta = { workspace = true, optional = true }
 
 # for asynchronous crypto
 tokio = { workspace = true, features = [
-  "io-util",
-  "rt-multi-thread",
-  "macros",
+	"io-util",
+	"rt-multi-thread",
+	"macros",
 ], optional = true }
 
-redb = { version = "1.1.0" }
+redb = "1.2.0"
 
 ed25519-dalek = { version = "2.0.0", feature = ["std", "zeroize"] }
 x25519-dalek = { version = "2.0.0", feature = [
-  "std",
-  "zeroize",
+	"std",
+	"zeroize",
 ] } # ReusableSecrets feature may have to come out for live X3DH
 
 # linux OS keyring
 [target.'cfg(target_os = "linux")'.dependencies]
 linux-keyutils = { version = "0.2.3", features = ["std"], optional = true }
-secret-service = { version = "3.0.1", features = ["crypto-rust"], optional = true }
+secret-service = { version = "3.0.1", features = [
+	"crypto-rust",
+], optional = true }
 zbus = { version = "3.14.1", features = ["tokio"], optional = true }
 
 [target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
