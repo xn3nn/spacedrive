@@ -1,9 +1,11 @@
 import * as SliderPrimitive from '@radix-ui/react-slider';
 import clsx from 'clsx';
+import { forwardRef, Ref } from 'react';
 
-export const Slider = (props: SliderPrimitive.SliderProps) => (
+export const Slider = forwardRef((props: SliderPrimitive.SliderProps, ref: Ref<HTMLDivElement>) => (
 	<SliderPrimitive.Root
 		{...props}
+		ref={ref}
 		className={clsx('relative flex h-6 w-full select-none items-center', props.className)}
 	>
 		<SliderPrimitive.Track className="relative h-2 grow rounded-full bg-app-slider outline-none">
@@ -14,4 +16,4 @@ export const Slider = (props: SliderPrimitive.SliderProps) => (
 			data-tip="1.0"
 		/>
 	</SliderPrimitive.Root>
-);
+));

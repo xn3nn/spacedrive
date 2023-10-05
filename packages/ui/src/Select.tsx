@@ -79,6 +79,7 @@ export function SelectOption(props: PropsWithChildren<{ value: string; default?:
 			className={clsx(
 				'relative flex h-6 cursor-pointer select-none items-center rounded pl-6 pr-3',
 				'text-sm text-ink radix-highlighted:text-white',
+				'hover:bg-app-selected',
 				'focus:outline-none radix-disabled:opacity-50 radix-highlighted:bg-accent '
 			)}
 		>

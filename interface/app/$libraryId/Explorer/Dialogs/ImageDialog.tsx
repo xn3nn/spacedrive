@@ -1,23 +1,19 @@
+import { Controller } from 'react-hook-form';
 import z from 'zod';
 import { useZodForm } from '@sd/client';
 import { Dialog, Select, SelectOption, Slider, toast, useDialog, UseDialogProps } from '@sd/ui';
 
 const schema = z.object({
 	type: z.enum(['Png', 'Jpg', 'Webp', 'avif']),
-	quality: z.number().min(1).max(125).optional()
+	quality: z.array(z.number().min(0).max(125))
 });
-type schemaType = z.infer<typeof schema>;
 
 const ImageDialog = (props: UseDialogProps) => {
 	const selectOptions = ['Png', 'Jpg', 'Webp', 'avif'];
 
 	const form = useZodForm({
 		schema,
-		mode: 'onBlur',
-		defaultValues: {
-			type: selectOptions[0] as schemaType['type'],
-			quality: 100
-		}
+		mode: 'onChange'
 	});
 
 	const formSubmit = form.handleSubmit(async (data) => {
@@ -37,15 +33,42 @@ const ImageDialog = (props: UseDialogProps) => {
 			ctaLabel="Convert"
 			closeLabel="Cancel"
 		>
-			<div className="flex flex-col gap-y-3">
-				<Select {...form.register('type')} className="w-full">
-					{selectOptions.map((option) => (
-						<SelectOption key={option} value={option.toLowerCase()}>
-							{option}
-						</SelectOption>
-					))}
-				</Select>
-				<Slider />
+			<div className="mt-3 flex flex-col gap-y-3">
+				<Controller
+					name="type"
+					control={form.control}
+					render={({ field }) => (
+						<Select placeholder="Convert to..." className="w-full" {...field}>
+							{selectOptions.map((value) => (
+								<SelectOption key={value} value={value}>
+									{value}
+								</SelectOption>
+							))}
+						</Select>
+					)}
+				/>
+				<div className="mt-1 space-y-2">
+					<p className="text-sm">Quality</p>
+					<Controller
+						name="quality"
+						control={form.control}
+						render={({ field }) => (
+							<Slider
+								{...field}
+								onValueChange={(value) => {
+									field.onChange(value);
+								}}
+								defaultValue={[0]}
+								max={125}
+								min={0}
+								step={1}
+								className="w-full"
+							/>
+						)}
+					/>
+
+					<p className="text-center text-sm text-ink">{form.watch('quality') ?? 0}</p>
+				</div>
 			</div>
 		</Dialog>
 	);
