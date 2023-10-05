@@ -1,11 +1,12 @@
 import { ArrowBendUpRight, TagSimple } from '@phosphor-icons/react';
 import { useMemo } from 'react';
 import { ObjectKind, useLibraryMutation, type ObjectKindEnum } from '@sd/client';
-import { ContextMenu, toast } from '@sd/ui';
+import { ContextMenu, dialogManager, toast } from '@sd/ui';
 import AssignTagMenuItems from '~/components/AssignTagMenuItems';
 import { Menu } from '~/components/Menu';
 import { isNonEmpty } from '~/util';
 
+import ImageDialog from '../../Dialogs/ImageDialog';
 import { ConditionalItem } from '../ConditionalItem';
 import { useContextMenuContext } from '../context';
 
@@ -85,7 +86,15 @@ export const ConvertObject = new ConditionalItem({
 	},
 	Component: ({ kind }) => (
 		<Menu.SubMenu label="Convert to" icon={ArrowBendUpRight}>
-			{ObjectConversions[kind]?.map((ext) => <Menu.Item key={ext} label={ext} disabled />)}
+			{ObjectConversions[kind]?.map((ext) => (
+				<Menu.Item
+					onClick={() => {
+						dialogManager.create((dp) => <ImageDialog {...dp} />);
+					}}
+					key={ext}
+					label={ext}
+				/>
+			))}
 		</Menu.SubMenu>
 	)
 });
