@@ -20,21 +20,8 @@ pub const PDF_EXTENSIONS: [&str; 1] = ["pdf"];
 #[cfg(feature = "heif")]
 pub const HEIF_EXTENSIONS: [&str; 7] = ["heif", "heifs", "heic", "heics", "avif", "avci", "avcs"];
 
-// Will be needed for validating HEIF images
-// #[cfg(feature = "heif")]
-// pub const HEIF_BPS: u8 = 8;
-
-/// The maximum file size that an image can be in order to have a thumbnail generated.
-/// This is the target pixel count for all SVG images to be rendered at.
-///
 /// It is 512x512, but if the SVG has a non-1:1 aspect ratio we need to account for that.
-pub const SVG_TARGET_PX: f32 = 262_144_f32;
-
-/// The size that PDF pages are rendered at.
-///
-/// This is 120 DPI at standard A4 printer paper size - the target aspect
-/// ratio and height are maintained.
-pub const PDF_RENDER_WIDTH: pdfium_render::prelude::Pixels = 992;
+pub const SVG_TAGRET_PX: f32 = 262_144_f32;
 
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
@@ -66,7 +53,6 @@ pub enum ConvertableExtension {
 	Avcs,
 	Svg,
 	Svgz,
-	Pdf,
 }
 
 impl Display for ConvertableExtension {
@@ -106,7 +92,6 @@ impl TryFrom<String> for ConvertableExtension {
 			"avcs" => Ok(Self::Avcs),
 			"svg" => Ok(Self::Svg),
 			"svgz" => Ok(Self::Svgz),
-			"pdf" => Ok(Self::Pdf),
 			_ => Err(crate::Error::Unsupported),
 		}
 	}
@@ -137,7 +122,7 @@ impl<'de> serde::de::Visitor<'de> for ExtensionVisitor {
 	where
 		E: serde::de::Error,
 	{
-		Self::Value::try_from(v.to_string()).map_err(|e| E::custom(format!("unknown variant: {e}")))
+		Self::Value::try_from(v.to_string()).map_err(|e| E::custom(e.to_string()))
 	}
 }
 
@@ -159,7 +144,6 @@ pub fn all_compatible_extensions() -> Vec<String> {
 		.into_iter()
 		.chain(HEIF_EXTENSIONS)
 		.chain(SVG_EXTENSIONS)
-		.chain(PDF_EXTENSIONS)
 		.map(String::from)
 		.collect();
 
@@ -167,7 +151,6 @@ pub fn all_compatible_extensions() -> Vec<String> {
 	let res = GENERIC_EXTENSIONS
 		.into_iter()
 		.chain(SVG_EXTENSIONS)
-		.chain(PDF_EXTENSIONS)
 		.map(String::from)
 		.collect();
 
