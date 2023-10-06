@@ -7,7 +7,7 @@ use crate::{
 	p2p::sync::NetworkedLibraries,
 };
 
-use api::notifications::{Notification, NotificationData, NotificationId};
+use api::notifications::{Expiry, Notification, NotificationData, NotificationId};
 use chrono::{DateTime, Utc};
 use node::config;
 use notifications::Notifications;
@@ -217,7 +217,7 @@ impl Node {
 		}
 	}
 
-	pub async fn emit_notification(&self, data: NotificationData, expires: Option<DateTime<Utc>>) {
+	pub async fn emit_notification(&self, data: NotificationData, expires: Option<Expiry>) {
 		let notification = Notification {
 			id: NotificationId::Node(self.notifications._internal_next_id()),
 			data,

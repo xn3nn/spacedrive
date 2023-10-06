@@ -256,6 +256,11 @@ export const Component = () => {
 					</Select>
 				</Setting>
 			</div>
+			<div className="flex flex-col gap-4">
+				<h1 className="mb-3 text-lg font-bold text-ink">Notifications</h1>
+
+				{/* {JSON.stringify(notificationTypes)} */}
+			</div>
 		</>
 	);
 };

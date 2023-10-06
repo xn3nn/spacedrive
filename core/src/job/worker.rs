@@ -1,4 +1,9 @@
-use crate::{api::CoreEvent, invalidate_query, library::Library, Node};
+use crate::{
+	api::{notifications::NotificationData, CoreEvent},
+	invalidate_query,
+	library::Library,
+	Node,
+};
 
 use std::{
 	fmt,
@@ -441,6 +446,10 @@ impl Worker {
 				if let Err(e) = report.update(library).await {
 					error!("failed to update job report: {:#?}", e);
 				}
+
+				// library
+				// 	.emit_notification(NotificationData::JobError {}, None)
+				// 	.await;
 
 				debug!("{report}");
 

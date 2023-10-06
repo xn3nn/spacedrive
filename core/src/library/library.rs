@@ -1,6 +1,6 @@
 use crate::{
 	api::{
-		notifications::{Notification, NotificationData, NotificationId},
+		notifications::{Expiry, Notification, NotificationData, NotificationId},
 		CoreEvent,
 	},
 	location::file_path_helper::{file_path_to_full_path, IsolatedFilePathData},
@@ -175,7 +175,7 @@ impl Library {
 	}
 
 	/// Create a new notification which will be stored into the DB and emitted to the UI.
-	pub async fn emit_notification(&self, data: NotificationData, expires: Option<DateTime<Utc>>) {
+	pub async fn emit_notification(&self, data: NotificationData, expires: Option<Expiry>) {
 		let result = match self
 			.db
 			.notification()

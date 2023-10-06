@@ -1,5 +1,5 @@
 use async_stream::stream;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, FixedOffset, Utc};
 use futures::future::join_all;
 use rspc::{alpha::AlphaRouter, ErrorCode};
 use sd_prisma::prisma::notification;
@@ -18,7 +18,7 @@ pub struct Notification {
 	pub id: NotificationId,
 	pub data: NotificationData,
 	pub read: bool,
-	pub expires: Option<DateTime<Utc>>,
+	pub expires: Option<Expiry>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
@@ -32,8 +32,42 @@ pub enum NotificationId {
 /// This data is used by the frontend to properly display the notification.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub enum NotificationData {
-	PairingRequest { id: Uuid, pairing_id: u16 },
+	JobError {
+		// TODO
+	},
+	PairingRequest {
+		id: Uuid,
+		pairing_id: u16,
+	},
 	Test,
+}
+
+/// Define the expiry of a notification.
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub enum Expiry {
+	/// The notification will expire at the given date.
+	At(DateTime<Utc>),
+	/// The notification will expire after the given duration.
+	/// A duration is relative to the time the notification was rendered on the frontend.
+	After(std::time::Duration),
+}
+
+impl From<DateTime<Utc>> for Expiry {
+	fn from(date: DateTime<Utc>) -> Self {
+		Expiry::At(date)
+	}
+}
+
+impl From<DateTime<FixedOffset>> for Expiry {
+	fn from(date: DateTime<FixedOffset>) -> Self {
+		Expiry::At(date.into())
+	}
+}
+
+impl From<std::time::Duration> for Expiry {
+	fn from(duration: std::time::Duration) -> Self {
+		Expiry::After(duration)
+	}
 }
 
 pub(crate) fn mount() -> AlphaRouter<Ctx> {
@@ -72,7 +106,7 @@ pub(crate) fn mount() -> AlphaRouter<Ctx> {
 										)
 									})?,
 									read: false,
-									expires: n.expires_at.map(Into::into),
+									expires: n.expires_at.map(Into::into), // Some(Expiry::At(),
 								})
 							})
 							.collect::<Result<Vec<Notification>, rspc::Error>>()
