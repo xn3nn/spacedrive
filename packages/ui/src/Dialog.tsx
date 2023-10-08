@@ -127,6 +127,7 @@ export interface DialogProps<S extends FieldValues>
 	buttonsSideContent?: ReactNode;
 	invertButtonFocus?: boolean; //this reverses the focus order of submit/cancel buttons
 	errorMessageException?: string; //this is to bypass a specific form error message if it starts with a specific string
+	icon?: ReactNode; //an icon that is placed next to the title
 }
 
 export function Dialog<S extends FieldValues>({
@@ -226,7 +227,8 @@ export function Dialog<S extends FieldValues>({
 								className="!pointer-events-auto my-8 min-w-[300px] max-w-[400px] rounded-md border border-app-line bg-app-box text-ink shadow-app-shade"
 							>
 								<div className="p-5">
-									<RDialog.Title className="mb-2 font-bold">
+									<RDialog.Title className="mb-1 font-bold flex items-center gap-1.5">
+										{props.icon}
 										{props.title}
 									</RDialog.Title>
 

@@ -7,6 +7,7 @@ import { Menu } from '~/components/Menu';
 import { isNonEmpty } from '~/util';
 
 import ImageDialog from '../../Dialogs/ImageDialog';
+import { getExplorerStore } from '../../store';
 import { ConditionalItem } from '../ConditionalItem';
 import { useContextMenuContext } from '../context';
 
@@ -90,6 +91,10 @@ export const ConvertObject = new ConditionalItem({
 				<Menu.Item
 					onClick={() => {
 						dialogManager.create((dp) => <ImageDialog {...dp} />);
+						getExplorerStore().selectedImageConvert = {
+							fileExtension: 'PNG',
+							chosenExtension: ext
+						};
 					}}
 					key={ext}
 					label={ext}
