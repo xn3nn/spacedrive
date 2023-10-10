@@ -218,28 +218,21 @@ export const GridList = ({ grid, scrollRef, children }: GridListProps) => {
 	const height = rowVirtualizer.getTotalSize();
 
 	const loadMoreTriggerHeight = useMemo(() => {
-		if (!grid.totalCount) return;
+		if (!grid.totalCount || grid.count === grid.totalCount) return;
 
-		const [offset] = rowVirtualizer.getOffsetForIndex(
-			grid.reverse ? 0 : grid.rowCount - Math.floor(grid.rowCount * 0.5),
-			'start'
-		);
-
+		const [offset] = rowVirtualizer.getOffsetForIndex(grid.rowCount - 1, 'center');
 		if (!offset) return;
 
-		const _height = height - offset;
-		return _height;
+		return height - offset;
 	}, [grid, height, rowVirtualizer]);
 
-	// Reset on reverse
 	useEffect(() => {
 		setReady(false);
 		scrolling.current = false;
 	}, [grid.reverse]);
 
-	// Handle scroll
 	useLayoutEffect(() => {
-		if (ready) return;
+		if (ready || scrolling.current) return;
 
 		if (!grid.reverse) {
 			if (rowVirtualizer.scrollOffset !== 0) {
@@ -258,14 +251,11 @@ export const GridList = ({ grid, scrollRef, children }: GridListProps) => {
 
 		if (height !== _height) return;
 
-		console.log('Initialize', ready, scrolling.current);
-
 		rowVirtualizer.scrollToOffset(height);
 		scrolling.current = true;
 		count.current = grid.totalRowCount;
 	}, [getHeight, grid.reverse, grid.totalRowCount, height, ready, rowVirtualizer]);
 
-	// Set ready on scroll end
 	useEffect(() => {
 		if (scrolling.current && !rowVirtualizer.isScrolling) {
 			setReady(true);
@@ -273,21 +263,20 @@ export const GridList = ({ grid, scrollRef, children }: GridListProps) => {
 		}
 	}, [rowVirtualizer.isScrolling]);
 
-	// Scroll on loadMore when in reverse
 	useEffect(() => {
-		console.log('Load more on invert without totalCount', {
-			rows: grid.totalRowCount,
-			rowsRef: count.current
-		});
+		if (!ready || grid.totalCount || grid.totalRowCount === count.current) return;
 
-		// if (!grid.reverse && !grid.totalCount && grid.totalRowCount !== count.current) {
-		// 	count.current = grid.totalRowCount;
-		// 	scrolling.current = true;
-		// 	setReady(false);
-		// }
-
-		if (!ready || !grid.reverse || grid.totalCount || grid.totalRowCount === count.current)
+		if (!grid.reverse) {
+			count.current = grid.totalRowCount;
+			scrolling.current = true;
+			setTimeout(() => (scrolling.current = false));
 			return;
+		}
+
+		if (grid.totalRowCount < count.current) {
+			count.current = 0;
+			return;
+		}
 
 		const delta = grid.totalRowCount - count.current;
 
@@ -300,18 +289,13 @@ export const GridList = ({ grid, scrollRef, children }: GridListProps) => {
 
 		rowVirtualizer.scrollToOffset(nextOffset);
 		count.current = grid.totalRowCount;
-		// scrolling.current = true;
-		// setReady(false);
-
-		console.log('scroll');
+		scrolling.current = true;
+		setReady(false);
 	}, [getHeight, grid.reverse, grid.totalCount, grid.totalRowCount, ready, rowVirtualizer]);
 
 	useEffect(() => {
 		inView && ready && !scrolling.current && grid.onLoadMore?.();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [inView, ready]);
-
-	// ----- OLD ------ //
+	}, [inView, ready, grid]);
 
 	// Measure virtual item on size change
 	useEffect(() => {
@@ -338,15 +322,6 @@ export const GridList = ({ grid, scrollRef, children }: GridListProps) => {
 		<div ref={ref} className="relative w-full overflow-x-hidden" style={{ height: height }}>
 			{grid.width > 0 && (
 				<>
-					<div
-						ref={loadMoreRef}
-						className={clsx(
-							'absolute inset-x-0 bg-blue-500',
-							grid.reverse ? 'top-0' : 'bottom-0'
-						)}
-						style={{ height: loadMoreTriggerHeight }}
-					/>
-
 					{virtualRows.map((virtualRow) => (
 						<React.Fragment key={virtualRow.index}>
 							{virtualColumns.map((virtualColumn) => {
@@ -394,6 +369,12 @@ export const GridList = ({ grid, scrollRef, children }: GridListProps) => {
 							})}
 						</React.Fragment>
 					))}
+
+					<div
+						ref={loadMoreRef}
+						className={clsx('absolute inset-x-0', grid.reverse ? 'top-0' : 'bottom-0')}
+						style={{ height: loadMoreTriggerHeight }}
+					/>
 				</>
 			)}
 		</div>
