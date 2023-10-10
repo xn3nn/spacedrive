@@ -85,19 +85,15 @@ export const ConvertObject = new ConditionalItem({
 
 		return { kind, selectedObjects, selectedItems };
 	},
-	Component: ({ selectedItems, kind }) => (
-		<Menu.SubMenu label="Convert to" icon={ArrowBendUpRight}>
-			{ObjectConversions[kind]?.map((ext) => (
-				<Menu.Item
-					onClick={() => {
-						dialogManager.create((dp) => (
-							<ImageDialog selectedItem={selectedItems[0]} {...dp} />
-						));
-					}}
-					key={ext}
-					label={ext}
-				/>
-			))}
-		</Menu.SubMenu>
+	Component: ({ selectedItems }) => (
+		<Menu.Item
+			onClick={() => {
+				dialogManager.create((dp) => (
+					<ImageDialog selectedItem={selectedItems[0]} {...dp} />
+				));
+			}}
+			label="Convert image"
+			icon={ArrowBendUpRight}
+		/>
 	)
 });
