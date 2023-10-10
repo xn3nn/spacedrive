@@ -71,10 +71,12 @@ const ImageDialog = (props: DialogProps) => {
 		try {
 			await convertImage.mutateAsync({
 				location_id: locationId,
-				file_path_id: 'id' in props.selectedItem.item ? props.selectedItem.item.id : null,
+				file_path_id: ('object_id' in props.selectedItem.item
+					? props.selectedItem.item.object_id
+					: null) as number,
 				delete_src: data.keepOriginal,
-				desired_extension: data.type,
-				quality_percentage: data.qualitySlider?.[0] ?? data.selectedQuality
+				desired_extension: data.type as ConvertableExtension,
+				quality_percentage: (data.qualitySlider?.[0] ?? data.selectedQuality) as number
 			});
 		} catch (error) {
 			toast.error('There was an error converting your image. Please try again.');
@@ -114,7 +116,7 @@ const ImageDialog = (props: DialogProps) => {
 							control={form.control}
 							render={({ field }) => (
 								<Select placeholder="Select type..." className="w-full" {...field}>
-									{extensions.data?.map((value: ConvertableExtension) => (
+									{extensions.data?.map((value) => (
 										<SelectOption key={value} value={value}>
 											{value}
 										</SelectOption>

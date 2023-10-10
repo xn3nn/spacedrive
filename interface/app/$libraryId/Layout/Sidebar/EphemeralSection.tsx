@@ -15,7 +15,7 @@ const Name = tw.span`truncate`;
 
 const EjectButton = ({ className }: { className?: string }) => (
 	<Button className={clsx('absolute right-[2px] !p-[5px]', className)} variant="subtle">
-		<EjectSimple weight="fill" size={18} className="h-3 w-3 opacity-70" />
+		<EjectSimple weight="fill" size={18} className="w-3 h-3 opacity-70" />
 	</Button>
 );
 
@@ -53,8 +53,6 @@ export const EphemeralSection = () => {
 		return locationIdsMap;
 	}, [locations.data, volumes.data]);
 
-	console.log('locationIdsForVolumes', locationIdsForVolumes);
-
 	const items = [
 		{ type: 'network' },
 		home ? { type: 'home', path: home } : null,
@@ -85,7 +83,7 @@ export const EphemeralSection = () => {
 						if (item?.type === 'network') {
 							return (
 								<SidebarLink
-									className="group relative w-full"
+									className="relative w-full group"
 									to={`network/34`}
 									key={index}
 								>
@@ -99,7 +97,7 @@ export const EphemeralSection = () => {
 							return (
 								<SidebarLink
 									to={`ephemeral/0?path=${item.path}`}
-									className="group relative w-full border border-transparent"
+									className="relative w-full border border-transparent group"
 									key={index}
 								>
 									<SidebarIcon src={Home} />
@@ -126,7 +124,7 @@ export const EphemeralSection = () => {
 								<SidebarLink
 									to={toPath}
 									key={key}
-									className="group relative w-full border border-transparent"
+									className="relative w-full border border-transparent group"
 								>
 									<SidebarIcon
 										src={
