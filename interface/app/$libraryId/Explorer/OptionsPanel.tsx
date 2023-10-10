@@ -21,7 +21,7 @@ export default () => {
 	const settings = explorer.useSettingsSnapshot();
 
 	return (
-		<div className="flex w-80 flex-col gap-4 p-4">
+		<div className="flex min-w-[320px] flex-col gap-4 p-4">
 			{(settings.layoutMode === 'grid' || settings.layoutMode === 'media') && (
 				<div>
 					<Subheading>Item size</Subheading>
@@ -121,7 +121,7 @@ export default () => {
 
 			<div>
 				<Subheading>Explorer</Subheading>
-				<div className="grid grid-cols-2 gap-y-1">
+				<div className="grid grid-cols-2 gap-x-4 gap-y-1">
 					<RadixCheckbox
 						checked={layoutStore.showPathBar}
 						label="Show Path Bar"
@@ -155,19 +155,6 @@ export default () => {
 							explorer.settingsStore.showHiddenFiles = value;
 						}}
 					/>
-
-					{settings.layoutMode === 'media' && (
-						<RadixCheckbox
-							checked={settings.mediaAspectSquare}
-							label="Square Thumbnails"
-							name="mediaAspectSquare"
-							onCheckedChange={(value) => {
-								if (typeof value !== 'boolean') return;
-
-								explorer.settingsStore.mediaAspectSquare = value;
-							}}
-						/>
-					)}
 				</div>
 			</div>
 
@@ -177,13 +164,13 @@ export default () => {
 					<Select
 						className="w-full"
 						value={
-							explorer.settingsStore.mediaViewWithDescendants ?
-							'withDescendants'
-							: 'withoutDescendants'
+							explorer.settingsStore.mediaViewWithDescendants
+								? 'withDescendants'
+								: 'withoutDescendants'
 						}
 						onChange={(value) => {
-
-							explorer.settingsStore.mediaViewWithDescendants = value === 'withDescendants';
+							explorer.settingsStore.mediaViewWithDescendants =
+								value === 'withDescendants';
 						}}
 					>
 						{mediaViewContextActions.options.map((option) => (
@@ -192,6 +179,30 @@ export default () => {
 							</SelectOption>
 						))}
 					</Select>
+					<div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
+						<RadixCheckbox
+							checked={settings.mediaAspectSquare}
+							label="Square Thumbnails"
+							name="mediaAspectSquare"
+							onCheckedChange={(value) => {
+								if (typeof value !== 'boolean') return;
+
+								explorer.settingsStore.mediaAspectSquare = value;
+							}}
+							className="whitespace-nowrap"
+						/>
+
+						<RadixCheckbox
+							checked={settings.mediaInvertView}
+							label="Invert View"
+							name="mediaInvertView"
+							onCheckedChange={(value) => {
+								if (typeof value !== 'boolean') return;
+
+								explorer.settingsStore.mediaInvertView = value;
+							}}
+						/>
+					</div>
 				</div>
 			)}
 

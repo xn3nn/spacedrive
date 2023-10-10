@@ -1,4 +1,5 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
+import clsx from 'clsx';
 import React, {
 	ReactNode,
 	RefObject,
@@ -9,7 +10,7 @@ import React, {
 	useRef,
 	useState
 } from 'react';
-import { useMutationObserver } from 'rooks';
+import { useInViewRef, useMutationObserver } from 'rooks';
 import useResizeObserver from 'use-resize-observer';
 import { ExplorerViewPadding } from '~/app/$libraryId/Explorer/View';
 import { useExplorerViewPadding } from '~/app/$libraryId/Explorer/View/util';
@@ -34,11 +35,13 @@ export interface UseGridListProps<IdT extends ItemId = number, DataT extends Ite
 	gap?: number | { x?: number; y?: number };
 	overscan?: number;
 	top?: number;
+	bottom?: number;
 	onLoadMore?: () => void;
 	getItemId?: (index: number) => IdT | undefined;
 	getItemData?: (index: number) => DataT;
 	size?: number | { width: number; height: number };
 	columns?: number;
+	reverse?: boolean;
 }
 
 export const useGridList = <IdT extends ItemId = number, DataT extends ItemData = undefined>({
@@ -62,15 +65,15 @@ export const useGridList = <IdT extends ItemId = number, DataT extends ItemData 
 	const paddingLeft = gridPadding.left ?? 0;
 	const paddingRight = gridPadding.right ?? 0;
 
-	const gapX = (typeof gap === 'object' ? gap.x : gap) || 0;
-	const gapY = (typeof gap === 'object' ? gap.y : gap) || 0;
+	const gapX = (typeof gap === 'object' ? gap.x : gap) ?? 0;
+	const gapY = (typeof gap === 'object' ? gap.y : gap) ?? 0;
 
 	const itemWidth = size ? (typeof size === 'object' ? size.width : size) : undefined;
 	const itemHeight = size ? (typeof size === 'object' ? size.height : size) : undefined;
 
 	const gridWidth = width ? width - (paddingLeft + paddingRight) : 0;
 
-	let columnCount = columns || 0;
+	let columnCount = columns ?? 0;
 
 	if (!columns && itemWidth) {
 		let columns = Math.floor(gridWidth / itemWidth);
@@ -97,8 +100,10 @@ export const useGridList = <IdT extends ItemId = number, DataT extends ItemData 
 			const column = index % columnCount;
 			const row = Math.floor(index / columnCount);
 
+			const _row = props.reverse ? totalRowCount - 1 - row : row;
+
 			const x = paddingLeft + (column !== 0 ? gapX : 0) * column + virtualItemWidth * column;
-			const y = paddingTop + (row !== 0 ? gapY : 0) * row + virtualItemHeight * row;
+			const y = paddingTop + (_row !== 0 ? gapY : 0) * _row + virtualItemHeight * _row;
 
 			const item: GridListItem<typeof id, DataT> = {
 				index,
@@ -121,16 +126,18 @@ export const useGridList = <IdT extends ItemId = number, DataT extends ItemData 
 			return item;
 		},
 		[
-			columnCount,
 			count,
-			gapX,
-			gapY,
 			getItemId,
 			getItemData,
+			columnCount,
+			props.reverse,
+			totalRowCount,
 			paddingLeft,
+			gapX,
+			virtualItemWidth,
 			paddingTop,
-			virtualItemHeight,
-			virtualItemWidth
+			gapY,
+			virtualItemHeight
 		]
 	);
 
@@ -156,9 +163,15 @@ export interface GridListProps {
 	children: (index: number) => ReactNode;
 }
 
-export const GridList = ({ grid, children, scrollRef }: GridListProps) => {
+export const GridList = ({ grid, scrollRef, children }: GridListProps) => {
 	const ref = useRef<HTMLDivElement>(null);
 
+	const scrolling = useRef(false);
+	const count = useRef(0);
+
+	const [loadMoreRef, inView] = useInViewRef();
+
+	const [ready, setReady] = useState(false);
 	const [listOffset, setListOffset] = useState(0);
 
 	const getHeight = useCallback(
@@ -169,6 +182,16 @@ export const GridList = ({ grid, children, scrollRef }: GridListProps) => {
 	const getWidth = useCallback(
 		(index: number) => grid.virtualItemWidth + (index !== 0 ? grid.gap.x : 0),
 		[grid.virtualItemWidth, grid.gap.x]
+	);
+
+	const reverseRowIndex = React.useCallback(
+		(index: number) => grid.totalRowCount - 1 - index,
+		[grid.totalRowCount]
+	);
+
+	const reverseColumnIndex = React.useCallback(
+		(index: number) => grid.columnCount - 1 - index,
+		[grid.columnCount]
 	);
 
 	const rowVirtualizer = useVirtualizer({
@@ -192,6 +215,103 @@ export const GridList = ({ grid, children, scrollRef }: GridListProps) => {
 
 	const virtualRows = rowVirtualizer.getVirtualItems();
 	const virtualColumns = columnVirtualizer.getVirtualItems();
+	const height = rowVirtualizer.getTotalSize();
+
+	const loadMoreTriggerHeight = useMemo(() => {
+		if (!grid.totalCount) return;
+
+		const [offset] = rowVirtualizer.getOffsetForIndex(
+			grid.reverse ? 0 : grid.rowCount - Math.floor(grid.rowCount * 0.5),
+			'start'
+		);
+
+		if (!offset) return;
+
+		const _height = height - offset;
+		return _height;
+	}, [grid, height, rowVirtualizer]);
+
+	// Reset on reverse
+	useEffect(() => {
+		setReady(false);
+		scrolling.current = false;
+	}, [grid.reverse]);
+
+	// Handle scroll
+	useLayoutEffect(() => {
+		if (ready) return;
+
+		if (!grid.reverse) {
+			if (rowVirtualizer.scrollOffset !== 0) {
+				rowVirtualizer.scrollToOffset(0);
+				scrolling.current = true;
+			} else setReady(true);
+			return;
+		}
+
+		if (!grid.totalRowCount) return;
+
+		const _height = [...Array(grid.totalRowCount)].reduce<number>(
+			(acc, _, index) => acc + getHeight(index),
+			rowVirtualizer.options.paddingStart + rowVirtualizer.options.paddingEnd
+		);
+
+		if (height !== _height) return;
+
+		console.log('Initialize', ready, scrolling.current);
+
+		rowVirtualizer.scrollToOffset(height);
+		scrolling.current = true;
+		count.current = grid.totalRowCount;
+	}, [getHeight, grid.reverse, grid.totalRowCount, height, ready, rowVirtualizer]);
+
+	// Set ready on scroll end
+	useEffect(() => {
+		if (scrolling.current && !rowVirtualizer.isScrolling) {
+			setReady(true);
+			scrolling.current = false;
+		}
+	}, [rowVirtualizer.isScrolling]);
+
+	// Scroll on loadMore when in reverse
+	useEffect(() => {
+		console.log('Load more on invert without totalCount', {
+			rows: grid.totalRowCount,
+			rowsRef: count.current
+		});
+
+		// if (!grid.reverse && !grid.totalCount && grid.totalRowCount !== count.current) {
+		// 	count.current = grid.totalRowCount;
+		// 	scrolling.current = true;
+		// 	setReady(false);
+		// }
+
+		if (!ready || !grid.reverse || grid.totalCount || grid.totalRowCount === count.current)
+			return;
+
+		const delta = grid.totalRowCount - count.current;
+
+		const height = [...Array(delta)].reduce<number>(
+			(acc, _, index) => acc + getHeight(delta - 1 + index),
+			0
+		);
+
+		const nextOffset = rowVirtualizer.scrollOffset + height;
+
+		rowVirtualizer.scrollToOffset(nextOffset);
+		count.current = grid.totalRowCount;
+		// scrolling.current = true;
+		// setReady(false);
+
+		console.log('scroll');
+	}, [getHeight, grid.reverse, grid.totalCount, grid.totalRowCount, ready, rowVirtualizer]);
+
+	useEffect(() => {
+		inView && ready && !scrolling.current && grid.onLoadMore?.();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [inView, ready]);
+
+	// ----- OLD ------ //
 
 	// Measure virtual item on size change
 	useEffect(() => {
@@ -210,69 +330,72 @@ export const GridList = ({ grid, children, scrollRef }: GridListProps) => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [rowVirtualizer, columnVirtualizer, grid.columnCount, grid.rowCount]);
 
-	useEffect(() => {
-		if (!grid.onLoadMore) return;
-
-		const lastRow = virtualRows[virtualRows.length - 1];
-		if (!lastRow) return;
-
-		const loadMoreFromRow = Math.ceil(grid.rowCount * 0.75);
-
-		if (lastRow.index >= loadMoreFromRow - 1) grid.onLoadMore();
-	}, [virtualRows, grid.rowCount, grid.onLoadMore, grid]);
-
 	useMutationObserver(scrollRef, () => setListOffset(ref.current?.offsetTop ?? 0));
 
 	useLayoutEffect(() => setListOffset(ref.current?.offsetTop ?? 0), []);
 
 	return (
-		<div
-			ref={ref}
-			className="relative w-full overflow-x-hidden"
-			style={{
-				height: `${rowVirtualizer.getTotalSize()}px`
-			}}
-		>
-			{grid.width > 0 &&
-				virtualRows.map((virtualRow) => (
-					<React.Fragment key={virtualRow.index}>
-						{virtualColumns.map((virtualColumn) => {
-							const index = virtualRow.index * grid.columnCount + virtualColumn.index;
+		<div ref={ref} className="relative w-full overflow-x-hidden" style={{ height: height }}>
+			{grid.width > 0 && (
+				<>
+					<div
+						ref={loadMoreRef}
+						className={clsx(
+							'absolute inset-x-0 bg-blue-500',
+							grid.reverse ? 'top-0' : 'bottom-0'
+						)}
+						style={{ height: loadMoreTriggerHeight }}
+					/>
 
-							if (index >= grid.count) return null;
+					{virtualRows.map((virtualRow) => (
+						<React.Fragment key={virtualRow.index}>
+							{virtualColumns.map((virtualColumn) => {
+								const index =
+									(grid.reverse
+										? reverseRowIndex(virtualRow.index)
+										: virtualRow.index) *
+										grid.columnCount +
+									(grid.reverse
+										? reverseColumnIndex(virtualColumn.index)
+										: virtualColumn.index);
 
-							return (
-								<div
-									key={virtualColumn.index}
-									style={{
-										position: 'absolute',
-										top: 0,
-										left: 0,
-										width: `${virtualColumn.size}px`,
-										height: `${virtualRow.size}px`,
-										transform: `translateX(${
-											virtualColumn.start
-										}px) translateY(${
-											virtualRow.start - rowVirtualizer.options.scrollMargin
-										}px)`,
-										paddingLeft: virtualColumn.index !== 0 ? grid.gap.x : 0,
-										paddingTop: virtualRow.index !== 0 ? grid.gap.y : 0
-									}}
-								>
+								if (index >= grid.count) return null;
+
+								return (
 									<div
-										className="m-auto"
+										key={virtualColumn.index}
 										style={{
-											width: grid.itemWidth || '100%',
-											height: grid.itemHeight || '100%'
+											position: 'absolute',
+											top: 0,
+											left: 0,
+											width: `${virtualColumn.size}px`,
+											height: `${virtualRow.size}px`,
+											transform: `translateX(${
+												virtualColumn.start
+											}px) translateY(${
+												virtualRow.start -
+												rowVirtualizer.options.scrollMargin
+											}px)`,
+											paddingLeft: virtualColumn.index !== 0 ? grid.gap.x : 0,
+											paddingTop: virtualRow.index !== 0 ? grid.gap.y : 0
 										}}
 									>
-										{children(index)}
+										<div
+											className="m-auto"
+											style={{
+												width: grid.itemWidth || '100%',
+												height: grid.itemHeight || '100%'
+											}}
+										>
+											{children(index)}
+										</div>
 									</div>
-								</div>
-							);
-						})}
-					</React.Fragment>
-				))}
+								);
+							})}
+						</React.Fragment>
+					))}
+				</>
+			)}
 		</div>
 	);
 };

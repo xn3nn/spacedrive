@@ -12,7 +12,7 @@ import {
 import { createPortal } from 'react-dom';
 import { useKey, useKeys } from 'rooks';
 import { getItemObject, useLibraryContext, type Object } from '@sd/client';
-import { dialogManager, ModifierKeys, toast } from '@sd/ui';
+import { dialogManager, ModifierKeys } from '@sd/ui';
 import { Loader } from '~/components';
 import { useKeyMatcher, useOperatingSystem } from '~/hooks';
 import { isNonEmpty } from '~/util';
@@ -66,7 +66,7 @@ export default memo(
 
 		const { doubleClick } = useViewItemDoubleClick();
 
-		const { layoutMode } = explorer.useSettingsSnapshot();
+		const { layoutMode, mediaInvertView } = explorer.useSettingsSnapshot();
 
 		const metaCtrlKey = useKeyMatcher('Meta').key;
 
@@ -142,7 +142,14 @@ export default memo(
 							{layoutMode === 'list' && <ListView />}
 							{layoutMode === 'media' && <MediaView />}
 							{showLoading && (
-								<Loader className="fixed bottom-10 left-0 w-[calc(100%+180px)]" />
+								<Loader
+									className={clsx(
+										'fixed left-0 w-[calc(100%+180px)]',
+										layoutMode === 'media' && mediaInvertView
+											? 'top-12'
+											: 'bottom-10'
+									)}
+								/>
 							)}
 						</ViewContext.Provider>
 					) : (

@@ -124,11 +124,12 @@ export default ({ children }: { children: RenderItem }) => {
 	const itemHeight = settings.gridItemSize + itemDetailsHeight;
 
 	const padding = settings.layoutMode === 'grid' ? 12 : 0;
+	const paddingBottom = settings.layoutMode === 'media' && os !== 'browser' ? 2 : padding;
 
 	const grid = useGridList({
 		ref: explorerView.ref,
 		count: explorer.items?.length ?? 0,
-		totalCount: explorer.count,
+		// totalCount: explorer.count,
 		overscan: explorer.overscan,
 		onLoadMore: explorer.loadMore,
 		size:
@@ -147,15 +148,17 @@ export default ({ children }: { children: RenderItem }) => {
 		padding: {
 			...explorerView.padding,
 			bottom: explorerView.bottom
-				? (explorerView.padding?.bottom ?? padding) + explorerView.bottom
-				: undefined,
+				? (explorerView.padding?.bottom ?? paddingBottom) + explorerView.bottom
+				: paddingBottom,
 			x: padding,
 			y: padding
 		},
 		gap:
-			explorerView.gap ||
+			explorerView.gap ??
 			(settings.layoutMode === 'grid' ? explorerStore.gridGap : undefined),
-		top: explorerView.top
+		top: explorerView.top,
+		bottom: explorerView.bottom,
+		reverse: settings.layoutMode === 'media' && settings.mediaInvertView
 	});
 
 	function getElementId(element: Element) {
@@ -287,16 +290,16 @@ export default ({ children }: { children: RenderItem }) => {
 
 		switch (e.key) {
 			case 'ArrowUp':
-				newIndex -= grid.columnCount;
+				newIndex += grid.reverse ? grid.columnCount : -grid.columnCount;
 				break;
 			case 'ArrowDown':
-				newIndex += grid.columnCount;
+				newIndex += grid.reverse ? -grid.columnCount : grid.columnCount;
 				break;
 			case 'ArrowRight':
-				newIndex += 1;
+				newIndex += grid.reverse ? -1 : 1;
 				break;
 			case 'ArrowLeft':
-				newIndex -= 1;
+				newIndex += grid.reverse ? 1 : -1;
 				break;
 		}
 
