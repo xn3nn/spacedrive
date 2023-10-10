@@ -121,7 +121,6 @@ const state = {
 	newThumbnails: proxySet() as Set<string>,
 	cutCopyState: { type: 'Idle' } as CutCopyState,
 	isDragging: false,
-	selectedImageConvert: {} as {fileExtension: string, chosenExtension: string},
 	gridGap: 8
 };
 

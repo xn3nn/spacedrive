@@ -66,7 +66,7 @@ const ConvertableKinds = [ObjectKind.Image, ObjectKind.Video];
 
 export const ConvertObject = new ConditionalItem({
 	useCondition: () => {
-		const { selectedObjects } = useContextMenuContext();
+		const { selectedObjects, selectedItems } = useContextMenuContext();
 
 		const kinds = useMemo(() => {
 			const set = new Set<ObjectKindEnum>();
@@ -83,18 +83,16 @@ export const ConvertObject = new ConditionalItem({
 
 		const [kind] = kinds;
 
-		return { kind };
+		return { kind, selectedObjects, selectedItems };
 	},
-	Component: ({ kind }) => (
+	Component: ({ selectedItems, kind }) => (
 		<Menu.SubMenu label="Convert to" icon={ArrowBendUpRight}>
 			{ObjectConversions[kind]?.map((ext) => (
 				<Menu.Item
 					onClick={() => {
-						dialogManager.create((dp) => <ImageDialog {...dp} />);
-						getExplorerStore().selectedImageConvert = {
-							fileExtension: 'PNG',
-							chosenExtension: ext
-						};
+						dialogManager.create((dp) => (
+							<ImageDialog selectedItem={selectedItems[0]} {...dp} />
+						));
 					}}
 					key={ext}
 					label={ext}
