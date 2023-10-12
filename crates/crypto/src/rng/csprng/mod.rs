@@ -1,14 +1,5 @@
 use zeroize::Zeroize;
-const STATE_WORDS: usize = 16;
-
-#[cfg(all(any(target_os = "macos", target_os = "ios"), feature = "hw-rng"))]
-mod apple;
-#[cfg(all(any(target_os = "macos", target_os = "ios"), feature = "hw-rng"))]
-pub use apple::CryptoRng;
-
-#[cfg(not(all(feature = "hw-rng", any(target_os = "macos", target_os = "ios"))))]
 mod chacha20;
-#[cfg(not(all(feature = "hw-rng", any(target_os = "macos", target_os = "ios"))))]
 pub use chacha20::CryptoRng;
 
 impl rand::CryptoRng for CryptoRng {}

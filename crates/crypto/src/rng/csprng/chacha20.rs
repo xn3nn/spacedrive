@@ -1,8 +1,9 @@
-use super::STATE_WORDS;
 use rand::RngCore;
 use rand_chacha::ChaCha20Rng;
 use rand_core::{block::BlockRngCore, SeedableRng};
 use zeroize::{Zeroize, Zeroizing};
+
+const STATE_WORDS: usize = 16;
 
 /// This RNG should be used throughout the entire crate.
 ///
