@@ -1,7 +1,6 @@
 use std::io::{Cursor, Read, Write};
 
 use crate::{
-	crypto::exhaustive_read,
 	primitives::{AEAD_TAG_LEN, BLOCK_LEN},
 	types::{Aad, Algorithm, EncryptedKey, Key, Nonce},
 	utils::ToArray,
@@ -17,9 +16,6 @@ use chacha20poly1305::XChaCha20Poly1305;
 
 #[cfg(feature = "tokio")]
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-
-#[cfg(feature = "tokio")]
-use crate::crypto::exhaustive_read_async;
 
 macro_rules! impl_stream {
 	(
@@ -112,7 +108,7 @@ macro_rules! impl_stream {
 				let mut buffer = vec![0u8; $size].into_boxed_slice();
 
 				loop {
-					let count = exhaustive_read(&mut reader, &mut buffer)?;
+					let count = reader.read(&mut buffer)?;
 
 					let payload = Payload {
 						aad: aad.inner(),
@@ -155,7 +151,7 @@ macro_rules! impl_stream {
 				let mut buffer = vec![0u8; $size].into_boxed_slice();
 
 				loop {
-					let count = exhaustive_read_async(&mut reader, &mut buffer).await?;
+					let count = reader.read(&mut buffer).await?;
 
 					// TODO(brxken128): block on `next_fn` and `last_fn` exclusively
 
@@ -214,7 +210,7 @@ impl Encryptor {
 	}
 
 	/// This is only for encrypting inputs < `BLOCK_LEN`. For anything larger,
-	/// see `Encryptor::encrypt_bytes` or `Encryptor::encrypt_streams`.
+	/// see [`Encryptor::encrypt_bytes`] or [`Encryptor::encrypt_streams`].
 	///
 	/// It uses `encrypt_last_in_place` under the hood due to the input always being less than `BLOCK_LEN`.
 	///
@@ -259,7 +255,7 @@ impl Decryptor {
 	}
 
 	/// This is only for decrypting inputs < `BLOCK_LEN + AEAD_TAG_LEN`. For anything larger,
-	/// see `Decryptor::decrypt_bytes` or `Decryptor::decrypt_streams`.
+	/// see [`Decryptor::decrypt_bytes`] or [`Decryptor::decrypt_streams`].
 	///
 	/// It uses `decrypt_last_in_place` under the hood due to the input always being less than `BLOCK_LEN + AEAD_TAG_LEN`.
 	///
