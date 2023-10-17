@@ -9,7 +9,7 @@ on:
       - ".github/workflows/crypto.yml"
       - "crates/crypto/**"
       - "Cargo.*"
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 defaults:
   run:
