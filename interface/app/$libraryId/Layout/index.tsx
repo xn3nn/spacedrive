@@ -1,10 +1,11 @@
 import clsx from 'clsx';
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
+import { Navigate, Outlet, useLocation, useNavigate, useResolvedPath } from 'react-router-dom';
 import {
 	ClientContextProvider,
 	initPlausible,
 	LibraryContextProvider,
+	useBridgeQuery,
 	useClientContext,
 	usePlausibleEvent,
 	usePlausiblePageViewMonitor,
@@ -12,7 +13,7 @@ import {
 } from '@sd/client';
 import { useRootContext } from '~/app/RootContext';
 import { LibraryIdParamsSchema } from '~/app/route-schemas';
-import { useOperatingSystem, useZodRouteParams } from '~/hooks';
+import { useOperatingSystem, useShowControls, useZodRouteParams } from '~/hooks';
 import { usePlatform } from '~/util/Platform';
 
 import { QuickPreviewContextProvider } from '../Explorer/QuickPreview/Context';
@@ -22,12 +23,16 @@ import Sidebar from './Sidebar';
 const Layout = () => {
 	const { libraries, library } = useClientContext();
 	const os = useOperatingSystem();
+
+	const transparentBg = useShowControls().transparentBg;
 	const plausibleEvent = usePlausibleEvent();
+	const buildInfo = useBridgeQuery(['buildInfo']);
 
 	const layoutRef = useRef<HTMLDivElement>(null);
 
 	initPlausible({
-		platformType: usePlatform().platform === 'tauri' ? 'desktop' : 'web'
+		platformType: usePlatform().platform === 'tauri' ? 'desktop' : 'web',
+		buildInfo: buildInfo?.data
 	});
 
 	const { rawPath } = useRootContext();
@@ -49,6 +54,8 @@ const Layout = () => {
 
 	const ctxValue = useMemo(() => ({ ref: layoutRef }), [layoutRef]);
 
+	useUpdater();
+
 	if (library === null && libraries.data) {
 		const firstLibrary = libraries.data[0];
 
@@ -63,7 +70,6 @@ const Layout = () => {
 				className={clsx(
 					// App level styles
 					'flex h-screen cursor-default select-none overflow-hidden text-ink',
-					os === 'browser' && 'bg-app',
 					os === 'macOS' && 'has-blur-effects rounded-[10px]',
 					os !== 'browser' && os !== 'windows' && 'frame border border-transparent'
 				)}
@@ -74,7 +80,12 @@ const Layout = () => {
 				}}
 			>
 				<Sidebar />
-				<div className="relative flex w-full overflow-hidden bg-app">
+				<div
+					className={clsx(
+						'relative flex w-full overflow-hidden',
+						transparentBg ? 'bg-app/80' : 'bg-app'
+					)}
+				>
 					{library ? (
 						<QuickPreviewContextProvider>
 							<LibraryContextProvider library={library}>
@@ -103,3 +114,19 @@ export const Component = () => {
 		</ClientContextProvider>
 	);
 };
+
+function useUpdater() {
+	const alreadyChecked = useRef(false);
+
+	const { updater } = usePlatform();
+	const navigate = useNavigate();
+
+	useEffect(() => {
+		if (alreadyChecked.current || !updater) return;
+
+		updater.runJustUpdatedCheck(() => navigate('settings/resources/changelog'));
+
+		if (import.meta.env.PROD) updater.checkForUpdate();
+		alreadyChecked.current = true;
+	}, [updater, navigate]);
+}

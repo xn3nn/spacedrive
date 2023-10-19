@@ -1,26 +1,69 @@
 import { listen } from '@tauri-apps/api/event';
-import { useEffect, useRef } from 'react';
 import { proxy, useSnapshot } from 'valtio';
 import { UpdateStore } from '@sd/interface';
 import { toast, ToastId } from '@sd/ui';
 
 import * as commands from './commands';
 
-export const updateStore = proxy<UpdateStore>({
-	status: 'idle'
-});
+declare global {
+	interface Window {
+		__SD_UPDATER__?: true;
+		__SD_DESKTOP_VERSION__: string;
+	}
+}
 
-listen<UpdateStore>('updater', (e) => {
-	Object.assign(updateStore, e.payload);
-	console.log(updateStore);
-});
+export function createUpdater() {
+	if (!window.__SD_UPDATER__) return;
 
-const onInstallCallbacks = new Set<() => void>();
+	const updateStore = proxy<UpdateStore>({
+		status: 'idle'
+	});
 
-export const updater = {
-	useSnapshot: () => useSnapshot(updateStore),
-	checkForUpdate: commands.checkForUpdate,
-	installUpdate: () => {
+	listen<UpdateStore>('updater', (e) => {
+		Object.assign(updateStore, e.payload);
+		console.log(updateStore);
+	});
+
+	const onInstallCallbacks = new Set<() => void>();
+
+	async function checkForUpdate() {
+		const update = await commands.checkForUpdate();
+
+		if (!update) return null;
+
+		let id: ToastId | null = null;
+
+		const cb = () => {
+			if (id !== null) toast.dismiss(id);
+		};
+
+		onInstallCallbacks.add(cb);
+
+		toast.info(
+			(_id) => {
+				id = _id;
+
+				return {
+					title: 'New Update Available',
+					body: `Version ${update.version}`
+				};
+			},
+			{
+				onClose() {
+					onInstallCallbacks.delete(cb);
+				},
+				duration: 10 * 1000,
+				action: {
+					label: 'Update',
+					onClick: installUpdate
+				}
+			}
+		);
+
+		return update;
+	}
+
+	function installUpdate() {
 		for (const cb of onInstallCallbacks) {
 			cb();
 		}
@@ -40,48 +83,39 @@ export const updater = {
 
 		return promise;
 	}
-};
 
-async function checkForUpdate() {
-	const update = await updater.checkForUpdate();
+	const SD_VERSION_LOCALSTORAGE = 'sd-version';
+	async function runJustUpdatedCheck(onViewChangelog: () => void) {
+		const version = window.__SD_DESKTOP_VERSION__;
+		const lastVersion = localStorage.getItem(SD_VERSION_LOCALSTORAGE);
 
-	if (!update) return;
+		if (lastVersion !== version) {
+			localStorage.setItem(SD_VERSION_LOCALSTORAGE, version);
 
-	let id: ToastId | null = null;
+			const { frontmatter } = await fetch(
+				`${import.meta.env.VITE_LANDING_ORIGIN}/api/releases/${version}`
+			).then((r) => r.json());
 
-	const cb = () => {
-		if (id !== null) toast.dismiss(id);
-	};
-
-	onInstallCallbacks.add(cb);
-
-	toast.info(
-		(_id) => {
-			id = _id;
-
-			return {
-				title: 'New Update Available',
-				body: `Version ${update.version}`
-			};
-		},
-		{
-			onClose() {
-				onInstallCallbacks.delete(cb);
-			},
-			duration: 10 * 1000,
-			action: {
-				label: 'Update',
-				onClick: () => updater.installUpdate()
-			}
+			toast.success(
+				{
+					title: `Updated successfully, you're on version ${version}`,
+					body: frontmatter?.tagline
+				},
+				{
+					duration: 10 * 1000,
+					action: {
+						label: 'View Changes',
+						onClick: onViewChangelog
+					}
+				}
+			);
 		}
-	);
-}
+	}
 
-export function useUpdater() {
-	const alreadyChecked = useRef(false);
-
-	useEffect(() => {
-		if (!alreadyChecked.current && import.meta.env.PROD) checkForUpdate();
-		alreadyChecked.current = true;
-	}, []);
+	return {
+		useSnapshot: () => useSnapshot(updateStore),
+		checkForUpdate,
+		installUpdate,
+		runJustUpdatedCheck
+	};
 }

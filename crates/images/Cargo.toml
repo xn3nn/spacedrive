@@ -32,8 +32,4 @@ tracing = { workspace = true }
 libheif-rs = { version = "0.22.0", default-features = false, optional = true }
 libheif-sys = { version = "2.0.0", default-features = false, optional = true }
 
-pdfium-render = { version = "0.8.8", features = [
-	"sync",
-	"image",
-	"thread_safe",
-] }
+pdfium-render = { version = "0.8.8", features = ["image"] }

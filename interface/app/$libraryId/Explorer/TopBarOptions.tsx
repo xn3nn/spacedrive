@@ -1,5 +1,6 @@
 import {
 	ArrowClockwise,
+	FolderPlus,
 	Key,
 	MonitorPlay,
 	Rows,
@@ -9,10 +10,11 @@ import {
 	Tag
 } from '@phosphor-icons/react';
 import clsx from 'clsx';
-import { useEffect, useRef } from 'react';
-import { useRspcLibraryContext } from '@sd/client';
-import { useKeyMatcher } from '~/hooks';
+import { useLibraryMutation } from '@sd/client';
+import { ModifierKeys, toast } from '@sd/ui';
+import { useKeybind, useKeyMatcher, useOperatingSystem } from '~/hooks';
 
+import { useQuickRescan } from '../../../hooks/useQuickRescan';
 import { KeyManager } from '../KeyManager';
 import TopBarOptions, { ToolOption, TOP_BAR_ICON_STYLE } from '../TopBar/TopBarOptions';
 import { useExplorerContext } from './Context';
@@ -24,14 +26,26 @@ export const useExplorerTopBarOptions = () => {
 	const explorerStore = useExplorerStore();
 	const explorer = useExplorerContext();
 	const controlIcon = useKeyMatcher('Meta').icon;
-
 	const settings = explorer.useSettingsSnapshot();
+
+	const rescan = useQuickRescan();
+
+	const createFolder = useLibraryMutation(['files.createFolder'], {
+		onError: (e) => {
+			toast.error({ title: 'Error creating folder', body: `Error: ${e}.` });
+			console.error(e);
+		},
+		onSuccess: (folder) => {
+			toast.success({ title: `Created new folder "${folder}"` });
+			rescan();
+		}
+	});
 
 	const viewOptions: ToolOption[] = [
 		{
 			toolTipLabel: 'Grid view',
 			icon: <SquaresFour className={TOP_BAR_ICON_STYLE} />,
-			keybinds: [controlIcon, 'B'],
+			keybinds: [controlIcon, '1'],
 			topBarActive: settings.layoutMode === 'grid',
 			onClick: () => (explorer.settingsStore.layoutMode = 'grid'),
 			showAtResolution: 'sm:flex'
@@ -39,7 +53,7 @@ export const useExplorerTopBarOptions = () => {
 		{
 			toolTipLabel: 'List view',
 			icon: <Rows className={TOP_BAR_ICON_STYLE} />,
-			keybinds: [controlIcon, 'B'],
+			keybinds: [controlIcon, '2'],
 			topBarActive: settings.layoutMode === 'list',
 			onClick: () => (explorer.settingsStore.layoutMode = 'list'),
 			showAtResolution: 'sm:flex'
@@ -54,7 +68,7 @@ export const useExplorerTopBarOptions = () => {
 		{
 			toolTipLabel: 'Media view',
 			icon: <MonitorPlay className={TOP_BAR_ICON_STYLE} />,
-			keybinds: [controlIcon, 'B'],
+			keybinds: [controlIcon, '3'],
 			topBarActive: settings.layoutMode === 'media',
 			onClick: () => (explorer.settingsStore.layoutMode = 'media'),
 			showAtResolution: 'sm:flex'
@@ -67,7 +81,7 @@ export const useExplorerTopBarOptions = () => {
 			icon: <SlidersHorizontal className={TOP_BAR_ICON_STYLE} />,
 			popOverComponent: <OptionsPanel />,
 			individual: true,
-			showAtResolution: 'xl:flex'
+			showAtResolution: 'sm:flex'
 		},
 		{
 			toolTipLabel: 'Show Inspector',
@@ -87,19 +101,28 @@ export const useExplorerTopBarOptions = () => {
 		}
 	];
 
-	// subscription so that we can cancel it if in progress
-	const quickRescanSubscription = useRef<() => void | undefined>();
-
-	// gotta clean up any rescan subscriptions if the exist
-	useEffect(() => () => quickRescanSubscription.current?.(), []);
-
-	const { client } = useRspcLibraryContext();
-
 	const { parent } = useExplorerContext();
 
 	const [{ path }] = useExplorerSearchParams();
 
+	const os = useOperatingSystem();
+
+	useKeybind([os === 'macOS' ? ModifierKeys.Meta : ModifierKeys.Control, 'r'], () => rescan());
+
 	const toolOptions = [
+		parent?.type === 'Location' && {
+			toolTipLabel: 'New Folder',
+			icon: <FolderPlus className={TOP_BAR_ICON_STYLE} />,
+			onClick: () => {
+				createFolder.mutate({
+					location_id: parent.location.id,
+					sub_path: path || null,
+					name: null
+				});
+			},
+			individual: true,
+			showAtResolution: 'xs:flex'
+		},
 		{
 			toolTipLabel: 'Key Manager',
 			icon: <Key className={TOP_BAR_ICON_STYLE} />,
@@ -122,19 +145,7 @@ export const useExplorerTopBarOptions = () => {
 		},
 		parent?.type === 'Location' && {
 			toolTipLabel: 'Reload',
-			onClick: () => {
-				quickRescanSubscription.current?.();
-				quickRescanSubscription.current = client.addSubscription(
-					[
-						'locations.quickRescan',
-						{
-							location_id: parent.location.id,
-							sub_path: path ?? ''
-						}
-					],
-					{ onData() {} }
-				);
-			},
+			onClick: rescan,
 			icon: <ArrowClockwise className={TOP_BAR_ICON_STYLE} />,
 			individual: true,
 			showAtResolution: 'xl:flex'

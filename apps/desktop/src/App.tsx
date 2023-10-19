@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { dialog, invoke, os, shell } from '@tauri-apps/api';
 import { confirm } from '@tauri-apps/api/dialog';
 import { listen } from '@tauri-apps/api/event';
@@ -19,10 +19,12 @@ import {
 } from '@sd/interface';
 import { getSpacedropState } from '@sd/interface/hooks/useSpacedropState';
 
-import '@sd/ui/style';
+import '@sd/ui/style/style.scss';
 
 import * as commands from './commands';
-import { updater, useUpdater } from './updater';
+import { env } from './env';
+import { queryClient } from './query';
+import { createUpdater } from './updater';
 
 // TODO: Bring this back once upstream is fixed up.
 // const client = hooks.createClient({
@@ -70,33 +72,27 @@ const platform = {
 		`${customUriServerUrl}local-file-by-path/${encodeURIComponent(path)}${queryParams}`,
 	openLink: shell.open,
 	getOs,
-	openDirectoryPickerDialog: () => dialog.open({ directory: true }),
+	openDirectoryPickerDialog: (opts) => {
+		const result = dialog.open({ directory: true, ...opts });
+		if (opts?.multiple) return result as any; // Tauri don't properly type narrow on `multiple` argument
+		return result;
+	},
 	openFilePickerDialog: () => dialog.open(),
 	saveFilePickerDialog: (opts) => dialog.save(opts),
 	showDevtools: () => invoke('show_devtools'),
 	confirm: (msg, cb) => confirm(msg).then(cb),
 	userHomeDir: homeDir,
-	updater,
+	updater: window.__SD_UPDATER__ ? createUpdater() : undefined,
 	auth: {
 		start(url) {
 			open(url);
 		}
 	},
-	...commands
+	...commands,
+	landingApiOrigin: env.VITE_LANDING_ORIGIN
 } satisfies Platform;
 
-const queryClient = new QueryClient({
-	defaultOptions: {
-		queries: {
-			networkMode: 'always'
-		},
-		mutations: {
-			networkMode: 'always'
-		}
-	}
-});
-
-const router = createBrowserRouter(routes);
+export const router = createBrowserRouter(routes);
 
 export default function App() {
 	useEffect(() => {
@@ -120,8 +116,6 @@ export default function App() {
 			dropEventListener.then((unlisten) => unlisten());
 		};
 	}, []);
-
-	useUpdater();
 
 	return (
 		<RspcProvider queryClient={queryClient}>

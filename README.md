@@ -1,38 +1,31 @@
 <p align="center">
-  <a href="#">
-
-  </a>
   <p align="center">
    <img width="150" height="150" src="packages/assets/images/AppLogo.png" alt="Logo">
   </p>
-  <h1 align="center"><b>Spacedrive</b></h1>
-  <p align="center">
-  A file explorer from the future.
+	<h1 align="center"><b>Spacedrive</b></h1>
+	<p align="center">
+		A file explorer from the future.
     <br />
     <a href="https://spacedrive.com"><strong>spacedrive.com »</strong></a>
     <br />
     <br />
     <b>Download for </b>
-    macOS
-    ·
-    Windows
-    ·
-    Linux
-    ·
-    iOS
-    ·
-    watchOS
-    ·
-    Android
+    macOS (<a href="https://www.spacedrive.com/api/releases/desktop/stable/darwin/aarch64">Apple Silicon</a> |
+    <a href="https://www.spacedrive.com/api/releases/desktop/stable/darwin/x86_64">Intel</a>) ·
+		<a href="https://www.spacedrive.com/api/releases/desktop/stable/windows/x86_64">Windows</a> ·
+		<a href="https://www.spacedrive.com/api/releases/desktop/stable/linux/x86_64">Linux</a> ·
+		iOS ·
+		Android
     <br />
-    <i>~ Links will be added once a release is available. ~</i>
+    <i>~ Links for iOS & Android will be added once a release is available. ~</i>
   </p>
 </p>
+
 Spacedrive is an open source cross-platform file manager, powered by a virtual distributed filesystem (<a href="#what-is-a-vdfs">VDFS</a>) written in Rust.
 <br/>
 <br/>
 
-> UPDATE: Spacedrive is under active development, we are in the pre-alpha stage, with builds occasionally released via GitHub actions, official alpha coming soon.
+> UPDATE: Spacedrive is under active development, we are in the alpha stage and some features might be missing or disabled in the official release downloads.
 
 Organize files across many devices in one place. From cloud services to offline hard drives, Spacedrive combines the storage capacity and processing power of your devices into one personal distributed cloud, that is both secure and intuitive to use.
 
