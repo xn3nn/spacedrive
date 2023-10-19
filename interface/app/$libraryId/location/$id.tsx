@@ -1,7 +1,10 @@
+import { Info } from '@phosphor-icons/react';
+import { getIcon, iconNames } from '@sd/assets/util';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
 import { stringify } from 'uuid';
 import {
+	arraysEqual,
 	ExplorerSettings,
 	FilePathFilterArgs,
 	FilePathOrder,
@@ -10,8 +13,10 @@ import {
 	useLibraryMutation,
 	useLibraryQuery,
 	useLibrarySubscription,
+	useOnlineLocations,
 	useRspcLibraryContext
 } from '@sd/client';
+import { Tooltip } from '@sd/ui';
 import { LocationIdParamsSchema } from '~/app/route-schemas';
 import { Folder } from '~/components';
 import { useKeyDeleteFile, useZodRouteParams } from '~/hooks';
@@ -23,6 +28,7 @@ import { createDefaultExplorerSettings, filePathOrderingKeysSchema } from '../Ex
 import { DefaultTopBarOptions } from '../Explorer/TopBarOptions';
 import { useExplorer, UseExplorerSettings, useExplorerSettings } from '../Explorer/useExplorer';
 import { useExplorerSearchParams } from '../Explorer/util';
+import { EmptyNotice } from '../Explorer/View';
 import { TopBarPortal } from '../TopBar/Portal';
 import LocationOptions from './LocationOptions';
 
@@ -31,6 +37,14 @@ export const Component = () => {
 	const { id: locationId } = useZodRouteParams(LocationIdParamsSchema);
 	const location = useLibraryQuery(['locations.get', locationId]);
 	const rspc = useRspcLibraryContext();
+
+	const onlineLocations = useOnlineLocations();
+
+	const locationOnline = useMemo(() => {
+		const pub_id = location.data?.pub_id;
+		if (!pub_id) return false;
+		return onlineLocations.some((l) => arraysEqual(pub_id, l));
+	}, [location.data?.pub_id, onlineLocations]);
 
 	const preferences = useLibraryQuery(['preferences.get']);
 	const updatePreferences = useLibraryMutation('preferences.update');
@@ -117,6 +131,11 @@ export const Component = () => {
 								? getLastSectionOfPath(path)
 								: location.data?.name}
 						</span>
+						{!locationOnline && (
+							<Tooltip label="Location is offline, you can still browse and organize.">
+								<Info className="text-ink-faint" />
+							</Tooltip>
+						)}
 						{location.data && (
 							<LocationOptions location={location.data} path={path || ''} />
 						)}
@@ -125,7 +144,15 @@ export const Component = () => {
 				right={<DefaultTopBarOptions />}
 			/>
 
-			<Explorer />
+			<Explorer
+				emptyNotice={
+					<EmptyNotice
+						loading={location.isFetching}
+						icon={<img className="h-32 w-32" src={getIcon(iconNames.FolderNoSpace)} />}
+						message="No files found here"
+					/>
+				}
+			/>
 		</ExplorerContextProvider>
 	);
 };

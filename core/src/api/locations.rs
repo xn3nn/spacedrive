@@ -1,19 +1,24 @@
 use crate::{
 	invalidate_query,
+	job::StatefulJob,
 	location::{
-		delete_location, find_location, indexer::rules::IndexerRuleCreateArgs, light_scan_location,
-		location_with_indexer_rules, non_indexed::NonIndexedPathItem, relink_location,
-		scan_location, scan_location_sub_path, LocationCreateArgs, LocationError,
+		delete_location, find_location,
+		indexer::{rules::IndexerRuleCreateArgs, IndexerJobInit},
+		light_scan_location, location_with_indexer_rules,
+		non_indexed::NonIndexedPathItem,
+		relink_location, scan_location, scan_location_sub_path, LocationCreateArgs, LocationError,
 		LocationUpdateArgs,
 	},
+	object::file_identifier::file_identifier_job::FileIdentifierJobInit,
 	p2p::PeerMetadata,
 	prisma::{file_path, indexer_rule, indexer_rules_in_location, location, object, SortOrder},
 	util::AbortOnDrop,
 };
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Utc};
+use directories::UserDirs;
 use rspc::{self, alpha::AlphaRouter, ErrorCode};
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -52,6 +57,28 @@ pub enum ExplorerItem {
 		thumbnail_key: Option<Vec<String>>,
 		item: PeerMetadata,
 	},
+}
+#[derive(Serialize, Type, Debug)]
+pub struct SystemLocations {
+	desktop: Option<PathBuf>,
+	documents: Option<PathBuf>,
+	downloads: Option<PathBuf>,
+	pictures: Option<PathBuf>,
+	music: Option<PathBuf>,
+	videos: Option<PathBuf>,
+}
+
+impl From<UserDirs> for SystemLocations {
+	fn from(value: UserDirs) -> Self {
+		Self {
+			desktop: value.desktop_dir().map(Path::to_path_buf),
+			documents: value.document_dir().map(Path::to_path_buf),
+			downloads: value.download_dir().map(Path::to_path_buf),
+			pictures: value.picture_dir().map(Path::to_path_buf),
+			music: value.audio_dir().map(Path::to_path_buf),
+			videos: value.video_dir().map(Path::to_path_buf),
+		}
+	}
 }
 
 impl ExplorerItem {
@@ -307,24 +334,44 @@ pub(crate) fn mount() -> AlphaRouter<Ctx> {
 				pub sub_path: String,
 			}
 
-			R.with2(library())
-				.subscription(|(node, library), args: LightScanArgs| async move {
-					let location = find_location(&library, args.location_id)
+			R.with2(library()).subscription(
+				|(node, library),
+				 LightScanArgs {
+				     location_id,
+				     sub_path,
+				 }: LightScanArgs| async move {
+					if node
+						.jobs
+						.has_job_running(|job_identity| {
+							job_identity.target_location == location_id
+								&& (job_identity.name == <IndexerJobInit as StatefulJob>::NAME
+									|| job_identity.name
+										== <FileIdentifierJobInit as StatefulJob>::NAME)
+						})
+						.await
+					{
+						return Err(rspc::Error::new(
+							ErrorCode::Conflict,
+							"We're still indexing this location, pleases wait a bit...".to_string(),
+						));
+					}
+
+					let location = find_location(&library, location_id)
 						.include(location_with_indexer_rules::include())
 						.exec()
 						.await?
-						.ok_or(LocationError::IdNotFound(args.location_id))?;
+						.ok_or(LocationError::IdNotFound(location_id))?;
 
 					let handle = tokio::spawn(async move {
-						if let Err(e) =
-							light_scan_location(node, library, location, args.sub_path).await
+						if let Err(e) = light_scan_location(node, library, location, sub_path).await
 						{
 							error!("light scan error: {e:#?}");
 						}
 					});
 
 					Ok(AbortOnDrop(handle))
-				})
+				},
+			)
 		})
 		.procedure(
 			"online",
@@ -342,6 +389,16 @@ pub(crate) fn mount() -> AlphaRouter<Ctx> {
 				}
 			}),
 		)
+		.procedure("systemLocations", {
+			R.query(|_, _: ()| async move {
+				UserDirs::new().map(SystemLocations::from).ok_or_else(|| {
+					rspc::Error::new(
+						ErrorCode::NotFound,
+						"Didn't find any system locations".to_string(),
+					)
+				})
+			})
+		})
 		.merge("indexer_rules.", mount_indexer_rule_routes())
 }
 
@@ -443,23 +500,4 @@ fn mount_indexer_rule_routes() -> AlphaRouter<Ctx> {
 						.map_err(Into::into)
 				})
 		})
-	// .procedure("createDirectory", {
-	// 	#[derive(Type, Deserialize)]
-	// 	struct CreateDirectoryArgs {
-	// 		location_id: location::id::Type,
-	// 		subpath: String,
-	// 	}
-	// 	R.with2(library())
-	// 		.query(|(_, library), args: CreateDirectoryArgs| async move {
-	// 			let location = find_location(&library, args.location_id)
-	// 				.exec()
-	// 				.await?
-	// 				.ok_or(LocationError::IdNotFound(args.location_id))?;
-
-	// 			let mut path = Path::new(&location.path.unwrap_or_default());
-	// 			path.push(args.subpath);
-
-	// 			Ok(())
-	// 		})
-	// })
 }
