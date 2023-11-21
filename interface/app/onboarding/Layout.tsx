@@ -2,7 +2,6 @@ import { BloomOne } from '@sd/assets/images';
 import clsx from 'clsx';
 import { Navigate, Outlet } from 'react-router';
 import { useDebugState } from '@sd/client';
-import { tw } from '@sd/ui';
 import DragRegion from '~/components/DragRegion';
 import { useOperatingSystem } from '~/hooks/useOperatingSystem';
 
@@ -11,11 +10,6 @@ import { macOnly } from '../$libraryId/Layout/Sidebar/helpers';
 import { OnboardingContext, useContextValue } from './context';
 import Progress from './Progress';
 
-export const OnboardingContainer = tw.div`flex flex-col items-center`;
-export const OnboardingTitle = tw.h2`mb-2 text-3xl font-bold`;
-export const OnboardingDescription = tw.p`max-w-xl text-center text-ink-dull`;
-export const OnboardingImg = tw.img`w-20 h-20 mb-2`;
-
 export const Component = () => {
 	const os = useOperatingSystem();
 	const debugState = useDebugState();
@@ -23,8 +17,7 @@ export const Component = () => {
 	const ctx = useContextValue();
 
 	if (ctx.libraries.isLoading) return null;
-	if (ctx.library?.uuid !== undefined)
-		return <Navigate to={`/${ctx.library.uuid}/overview`} replace />;
+	if (ctx.library?.uuid !== undefined) return <Navigate to={`/${ctx.library.uuid}`} replace />;
 
 	return (
 		<OnboardingContext.Provider value={ctx}>

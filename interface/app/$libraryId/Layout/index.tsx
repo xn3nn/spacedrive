@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { Suspense, useEffect, useMemo, useRef } from 'react';
-import { Navigate, Outlet, useLocation, useNavigate, useResolvedPath } from 'react-router-dom';
+import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
 	ClientContextProvider,
 	initPlausible,
@@ -13,7 +13,14 @@ import {
 } from '@sd/client';
 import { useRootContext } from '~/app/RootContext';
 import { LibraryIdParamsSchema } from '~/app/route-schemas';
-import { useOperatingSystem, useShowControls, useZodRouteParams } from '~/hooks';
+import {
+	useKeybindEventHandler,
+	useOperatingSystem,
+	useRedirectToNewLocation,
+	useShowControls,
+	useWindowState,
+	useZodRouteParams
+} from '~/hooks';
 import { usePlatform } from '~/util/Platform';
 
 import { QuickPreviewContextProvider } from '../Explorer/QuickPreview/Context';
@@ -23,44 +30,25 @@ import Sidebar from './Sidebar';
 const Layout = () => {
 	const { libraries, library } = useClientContext();
 	const os = useOperatingSystem();
+	const showControls = useShowControls();
+	const windowState = useWindowState();
 
-	const transparentBg = useShowControls().transparentBg;
-	const plausibleEvent = usePlausibleEvent();
-	const buildInfo = useBridgeQuery(['buildInfo']);
+	useKeybindEventHandler(library?.uuid);
 
 	const layoutRef = useRef<HTMLDivElement>(null);
 
-	initPlausible({
-		platformType: usePlatform().platform === 'tauri' ? 'desktop' : 'web',
-		buildInfo: buildInfo?.data
-	});
-
-	const { rawPath } = useRootContext();
-
-	usePlausiblePageViewMonitor({ currentPath: rawPath });
-	usePlausiblePingMonitor({ currentPath: rawPath });
-
-	useEffect(() => {
-		const interval = setInterval(() => {
-			plausibleEvent({
-				event: {
-					type: 'ping'
-				}
-			});
-		}, 270 * 1000);
-
-		return () => clearInterval(interval);
-	}, []);
+	useRedirectToNewLocation();
 
 	const ctxValue = useMemo(() => ({ ref: layoutRef }), [layoutRef]);
 
+	usePlausible();
 	useUpdater();
 
 	if (library === null && libraries.data) {
 		const firstLibrary = libraries.data[0];
 
-		if (firstLibrary) return <Navigate to={`/${firstLibrary.uuid}/overview`} replace />;
-		else return <Navigate to="/" replace />;
+		if (firstLibrary) return <Navigate to={`/${firstLibrary.uuid}`} replace />;
+		else return <Navigate to="./" replace />;
 	}
 
 	return (
@@ -70,20 +58,22 @@ const Layout = () => {
 				className={clsx(
 					// App level styles
 					'flex h-screen cursor-default select-none overflow-hidden text-ink',
-					os === 'macOS' && 'has-blur-effects rounded-[10px]',
-					os !== 'browser' && os !== 'windows' && 'frame border border-transparent'
+					os === 'macOS' && [
+						'has-blur-effects',
+						!windowState.isFullScreen &&
+							'frame rounded-[10px] border border-transparent'
+					]
 				)}
 				onContextMenu={(e) => {
 					// TODO: allow this on some UI text at least / disable default browser context menu
 					e.preventDefault();
-					return false;
 				}}
 			>
 				<Sidebar />
 				<div
 					className={clsx(
 						'relative flex w-full overflow-hidden',
-						transparentBg ? 'bg-app/80' : 'bg-app'
+						showControls.transparentBg ? 'bg-app/80' : 'bg-app'
 					)}
 				>
 					{library ? (
@@ -129,4 +119,33 @@ function useUpdater() {
 		if (import.meta.env.PROD) updater.checkForUpdate();
 		alreadyChecked.current = true;
 	}, [updater, navigate]);
+}
+
+function usePlausible() {
+	const { platform } = usePlatform();
+	const buildInfo = useBridgeQuery(['buildInfo']);
+
+	initPlausible({
+		platformType: platform === 'tauri' ? 'desktop' : 'web',
+		buildInfo: buildInfo?.data
+	});
+
+	const { rawPath } = useRootContext();
+
+	usePlausiblePageViewMonitor({ currentPath: rawPath });
+	usePlausiblePingMonitor({ currentPath: rawPath });
+
+	const plausibleEvent = usePlausibleEvent();
+
+	useEffect(() => {
+		const interval = setInterval(() => {
+			plausibleEvent({
+				event: {
+					type: 'ping'
+				}
+			});
+		}, 270 * 1000);
+
+		return () => clearInterval(interval);
+	}, [plausibleEvent]);
 }

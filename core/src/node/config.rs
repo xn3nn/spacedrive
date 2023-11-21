@@ -42,21 +42,24 @@ pub struct NodeConfig {
 
 #[async_trait::async_trait]
 impl Migrate for NodeConfig {
-	const CURRENT_VERSION: u32 = 0;
+	const CURRENT_VERSION: u32 = 1;
 
 	type Ctx = ();
 
 	fn default(_path: PathBuf) -> Result<Self, MigratorError> {
+		let mut name = match hostname::get() {
+			// SAFETY: This is just for display purposes so it doesn't matter if it's lossy
+			Ok(hostname) => hostname.to_string_lossy().into_owned(),
+			Err(err) => {
+				eprintln!("Falling back to default node name as an error occurred getting your systems hostname: '{err}'");
+				"my-spacedrive".into()
+			}
+		};
+		name.truncate(250);
+
 		Ok(Self {
 			id: Uuid::new_v4(),
-			name: match hostname::get() {
-				// SAFETY: This is just for display purposes so it doesn't matter if it's lossy
-				Ok(hostname) => hostname.to_string_lossy().into_owned(),
-				Err(err) => {
-					eprintln!("Falling back to default node name as an error occurred getting your systems hostname: '{err}'");
-					"my-spacedrive".into()
-				}
-			},
+			name,
 			keypair: Keypair::generate(),
 			p2p: Default::default(),
 			features: vec![],
@@ -67,11 +70,25 @@ impl Migrate for NodeConfig {
 
 	async fn migrate(
 		from_version: u32,
-		_config: &mut Map<String, Value>,
+		config: &mut Map<String, Value>,
 		_ctx: &Self::Ctx,
 	) -> Result<(), MigratorError> {
 		match from_version {
 			0 => Ok(()),
+			1 => {
+				// All where never hooked up to the UI
+				config.remove("p2p_email");
+				config.remove("p2p_img_url");
+				config.remove("p2p_port");
+
+				// In a recent PR I screwed up Serde `default` so P2P was disabled by default, prior it was always enabled.
+				// Given the config for it is behind a feature flag (so no one would have changed it) this fixes the default.
+				if let Some(Value::Object(obj)) = config.get_mut("p2p") {
+					obj.insert("enabled".into(), Value::Bool(true));
+				}
+
+				Ok(())
+			}
 			v => unreachable!("Missing migration for library version {}", v),
 		}
 	}

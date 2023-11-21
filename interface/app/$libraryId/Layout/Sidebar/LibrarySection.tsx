@@ -1,24 +1,23 @@
-import { EjectSimple } from '@phosphor-icons/react';
-import { Laptop } from '@sd/assets/icons';
+import { X } from '@phosphor-icons/react';
 import clsx from 'clsx';
 import { useEffect, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import {
 	arraysEqual,
 	useBridgeQuery,
-	useDebugState,
 	useFeatureFlag,
 	useLibraryQuery,
 	useOnlineLocations
 } from '@sd/client';
 import { Button, Tooltip } from '@sd/ui';
 import { AddLocationButton } from '~/app/$libraryId/settings/library/locations/AddLocationButton';
-import { Folder, SubtleButton } from '~/components';
+import { Folder, Icon, SubtleButton } from '~/components';
 
+import { useSavedSearches } from '../../Explorer/Search/SavedSearches';
 import SidebarLink from './Link';
 import LocationsContextMenu from './LocationsContextMenu';
 import Section from './Section';
-import SeeMore from './SeeMore';
+import { SeeMore } from './SeeMore';
 import TagsContextMenu from './TagsContextMenu';
 
 type SidebarGroup = {
@@ -43,14 +42,7 @@ type TriggeredContextItem =
 			tagId: number;
 	  };
 
-const EjectButton = ({ className }: { className?: string }) => (
-	<Button className={clsx('absolute right-[2px] !p-[5px]', className)} variant="subtle">
-		<EjectSimple weight="bold" size={18} className="h-3 w-3 opacity-70" />
-	</Button>
-);
-
 export const LibrarySection = () => {
-	const debugState = useDebugState();
 	const node = useBridgeQuery(['nodeState']);
 	const locationsQuery = useLibraryQuery(['locations.list'], { keepPreviousData: true });
 	const tags = useLibraryQuery(['tags.list'], { keepPreviousData: true });
@@ -60,6 +52,8 @@ export const LibrarySection = () => {
 	const [triggeredContextItem, setTriggeredContextItem] = useState<TriggeredContextItem | null>(
 		null
 	);
+
+	// const savedSearches = useSavedSearches();
 
 	useEffect(() => {
 		const outsideClick = () => {
@@ -75,6 +69,41 @@ export const LibrarySection = () => {
 
 	return (
 		<>
+			{/* {savedSearches.searches.length > 0 && (
+				<Section
+					name="Saved"
+					// actionArea={
+					// 	<Link to="settings/library/saved-searches">
+					// 		<SubtleButton />
+					// 	</Link>
+					// }
+				>
+					<SeeMore
+						items={savedSearches.searches}
+						renderItem={(search) => (
+							<SidebarLink
+								className="group/button relative w-full"
+								to={`search/${search.id}`}
+								key={search.id}
+							>
+								<div className="relative -mt-0.5 mr-1 shrink-0 grow-0">
+									<Folder size={18} />
+								</div>
+
+								<span className="truncate">{search.name}</span>
+								<Button
+									className="absolute right-[2px] top-[2px] hidden rounded-full shadow group-hover/button:block"
+									size="icon"
+									variant="subtle"
+									onClick={() => savedSearches.removeSearch(search.id)}
+								>
+									<X weight="bold" className="text-ink-dull/50" />
+								</Button>
+							</SidebarLink>
+						)}
+					/>
+				</Section>
+			)} */}
 			<Section
 				name="Devices"
 				actionArea={
@@ -91,7 +120,7 @@ export const LibrarySection = () => {
 						to={`node/${node.data.id}`}
 						key={node.data.id}
 					>
-						<img src={Laptop} className="mr-1 h-5 w-5" />
+						<Icon name="Laptop" size={20} className="mr-1" />
 						<span className="truncate">{node.data.name}</span>
 					</SidebarLink>
 				)}
@@ -113,9 +142,8 @@ export const LibrarySection = () => {
 					</Link>
 				}
 			>
-				<SeeMore
-					items={locationsQuery.data || []}
-					renderItem={(location, index) => (
+				<SeeMore>
+					{locationsQuery.data?.map((location) => (
 						<LocationsContextMenu key={location.id} locationId={location.id}>
 							<SidebarLink
 								onContextMenu={() =>
@@ -134,7 +162,7 @@ export const LibrarySection = () => {
 								to={`location/${location.id}`}
 							>
 								<div className="relative -mt-0.5 mr-1 shrink-0 grow-0">
-									<Folder size={18} />
+									<Icon name="Folder" size={18} />
 									<div
 										className={clsx(
 											'absolute bottom-0.5 right-0 h-1.5 w-1.5 rounded-full',
@@ -150,8 +178,8 @@ export const LibrarySection = () => {
 								<span className="truncate">{location.name}</span>
 							</SidebarLink>
 						</LocationsContextMenu>
-					)}
-				/>
+					))}
+				</SeeMore>
 				<AddLocationButton className="mt-1" />
 			</Section>
 			{!!tags.data?.length && (
@@ -163,9 +191,8 @@ export const LibrarySection = () => {
 						</NavLink>
 					}
 				>
-					<SeeMore
-						items={tags.data}
-						renderItem={(tag, index) => (
+					<SeeMore>
+						{tags.data?.map((tag, index) => (
 							<TagsContextMenu tagId={tag.id} key={tag.id}>
 								<SidebarLink
 									onContextMenu={() =>
@@ -190,8 +217,8 @@ export const LibrarySection = () => {
 									<span className="ml-1.5 truncate text-sm">{tag.name}</span>
 								</SidebarLink>
 							</TagsContextMenu>
-						)}
-					/>
+						))}
+					</SeeMore>
 				</Section>
 			)}
 		</>

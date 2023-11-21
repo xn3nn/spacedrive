@@ -52,7 +52,7 @@ impl LibraryPreferences {
 #[derive(Clone, Serialize, Deserialize, Type, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct LocationSettings {
-	explorer: ExplorerSettings<search::FilePathOrder>,
+	explorer: ExplorerSettings<search::file_path::FilePathOrder>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Type, Debug)]
@@ -60,6 +60,7 @@ pub struct LocationSettings {
 pub struct ExplorerSettings<TOrder> {
 	layout_mode: Option<ExplorerLayout>,
 	grid_item_size: Option<i32>,
+	grid_gap: Option<i32>,
 	media_columns: Option<i32>,
 	media_aspect_square: Option<bool>,
 	media_view_with_descendants: Option<bool>,

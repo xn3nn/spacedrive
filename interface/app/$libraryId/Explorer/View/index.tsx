@@ -10,20 +10,23 @@ import {
 	type ReactNode
 } from 'react';
 import { createPortal } from 'react-dom';
-import { useKey, useKeys } from 'rooks';
-import { getItemObject, useLibraryContext, type Object } from '@sd/client';
+import {
+	ExplorerLayout,
+	getExplorerLayoutStore,
+	getItemObject,
+	useExplorerLayoutStore,
+	type Object
+} from '@sd/client';
 import { dialogManager, ModifierKeys } from '@sd/ui';
 import { Loader } from '~/components';
-import { useKeyCopyCutPaste, useKeyMatcher, useOperatingSystem } from '~/hooks';
+import { useKeyCopyCutPaste, useOperatingSystem, useShortcut } from '~/hooks';
 import { isNonEmpty } from '~/util';
-import { usePlatform } from '~/util/Platform';
 
 import CreateDialog from '../../settings/library/tags/CreateDialog';
 import { useExplorerContext } from '../Context';
 import { QuickPreview } from '../QuickPreview';
 import { useQuickPreviewContext } from '../QuickPreview/Context';
 import { useQuickPreviewStore } from '../QuickPreview/store';
-import { getExplorerStore } from '../store';
 import { ViewContext, type ExplorerViewContext } from '../ViewContext';
 import GridView from './GridView';
 import ListView from './ListView';
@@ -62,12 +65,10 @@ export default memo(
 		const explorer = useExplorerContext();
 		const quickPreview = useQuickPreviewContext();
 		const quickPreviewStore = useQuickPreviewStore();
-		const os = useOperatingSystem();
+		const layoutStore = useExplorerLayoutStore();
 		const { doubleClick } = useViewItemDoubleClick();
 
 		const { layoutMode } = explorer.useSettingsSnapshot();
-
-		const metaCtrlKey = useKeyMatcher('Meta').key;
 
 		const ref = useRef<HTMLDivElement>(null);
 
@@ -95,20 +96,30 @@ export default memo(
 			} else setShowLoading(false);
 		}, [explorer.isFetchingNextPage]);
 
-		useKey(['Enter'], (e) => {
-			e.stopPropagation();
-			if (os === 'windows' && !isRenaming) {
-				doubleClick();
-			}
-		});
+		useEffect(() => {
+			if (explorer.layouts[layoutMode]) return;
+			// If the current layout mode is not available, switch to the first available layout mode
+			const layout = (Object.keys(explorer.layouts) as ExplorerLayout[]).find(
+				(key) => explorer.layouts[key]
+			);
+			explorer.settingsStore.layoutMode = layout ?? 'grid';
+		}, [layoutMode, explorer.layouts, explorer.settingsStore]);
 
-		useKeys([metaCtrlKey, 'KeyO'], (e) => {
+		useShortcut('openObject', (e) => {
 			e.stopPropagation();
-			if (os === 'windows') return;
+			e.preventDefault();
+			if (quickPreviewStore.open || isRenaming) return;
 			doubleClick();
 		});
 
+		useShortcut('showImageSlider', (e) => {
+			e.stopPropagation();
+			getExplorerLayoutStore().showImageSlider = !layoutStore.showImageSlider;
+		});
+
 		useKeyCopyCutPaste();
+
+		if (!explorer.layouts[layoutMode]) return null;
 
 		return (
 			<>
@@ -130,7 +141,7 @@ export default memo(
 									explorer.selectable &&
 									!isContextMenuOpen &&
 									!isRenaming &&
-									(!quickPreviewStore.open || explorer.selectedItems.size === 1),
+									!quickPreviewStore.open,
 								ref,
 								isRenaming,
 								isContextMenuOpen,
@@ -180,7 +191,7 @@ export const EmptyNotice = (props: {
 	if (props.loading) return null;
 
 	return (
-		<div className="flex flex-col items-center justify-center h-full text-ink-faint">
+		<div className="flex h-full flex-col items-center justify-center text-ink-faint">
 			{props.icon
 				? isValidElement(props.icon)
 					? props.icon
@@ -198,8 +209,6 @@ const useKeyDownHandlers = ({ disabled }: { disabled: boolean }) => {
 	const explorer = useExplorerContext();
 
 	const os = useOperatingSystem();
-	const { library } = useLibraryContext();
-	const { openFilePaths, openEphemeralFiles } = usePlatform();
 
 	const handleNewTag = useCallback(
 		async (event: KeyboardEvent) => {
@@ -218,31 +227,20 @@ const useKeyDownHandlers = ({ disabled }: { disabled: boolean }) => {
 			)
 				return;
 
-			dialogManager.create((dp) => <CreateDialog {...dp} objects={objects} />);
+			dialogManager.create((dp) => (
+				<CreateDialog {...dp} items={objects.map((item) => ({ type: 'Object', item }))} />
+			));
 		},
 		[os, explorer.selectedItems]
 	);
 
-	const handleExplorerShortcut = useCallback(
-		(event: KeyboardEvent) => {
-			if (
-				event.key.toUpperCase() !== 'I' ||
-				!event.getModifierState(os === 'macOS' ? ModifierKeys.Meta : ModifierKeys.Control)
-			)
-				return;
-
-			getExplorerStore().showInspector = !getExplorerStore().showInspector;
-		},
-		[os]
-	);
-
 	useEffect(() => {
-		const handlers = [handleNewTag, handleExplorerShortcut];
+		const handlers = [handleNewTag];
 		const handler = (event: KeyboardEvent) => {
 			if (event.repeat || disabled) return;
 			for (const handler of handlers) handler(event);
 		};
 		document.body.addEventListener('keydown', handler);
 		return () => document.body.removeEventListener('keydown', handler);
-	}, [disabled, handleNewTag, handleExplorerShortcut]);
+	}, [disabled, handleNewTag]);
 };

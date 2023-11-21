@@ -7,6 +7,7 @@ import {
 	useLibraryQuery,
 	useLibrarySubscription
 } from '@sd/client';
+import { useRouteTitle } from '~/hooks/useRouteTitle';
 
 type MessageGroup =
 	| {
@@ -24,15 +25,18 @@ type MessageGroup =
 	  };
 
 export const Component = () => {
+	useRouteTitle('Sync');
+
 	const messages = useLibraryQuery(['sync.messages']);
 
 	useLibrarySubscription(['sync.newMessage'], {
 		onData: () => messages.refetch()
 	});
 
-	const groups = useMemo(() => {
-		if (messages.data) return calculateGroups(messages.data);
-	}, [messages]);
+	const groups = useMemo(
+		() => (messages.data && calculateGroups(messages.data)) || [],
+		[messages]
+	);
 
 	return (
 		<ul className="space-y-4 p-4">

@@ -2,6 +2,7 @@
 
 import * as RDialog from '@radix-ui/react-dialog';
 import { animated, useTransition } from '@react-spring/web';
+import { iconNames } from '@sd/assets/util';
 import clsx from 'clsx';
 import { ReactElement, ReactNode, useEffect } from 'react';
 import { FieldValues, UseFormHandleSubmit } from 'react-hook-form';
@@ -131,6 +132,7 @@ export interface DialogProps<S extends FieldValues>
 	errorMessageException?: string; //this is to bypass a specific form error message if it starts with a specific string
 	icon?: ReactNode; //an icon that is placed next to the title
 	formClassName?: string;
+	icon?: ReactNode;
 }
 
 export function Dialog<S extends FieldValues>({
@@ -234,8 +236,8 @@ export function Dialog<S extends FieldValues>({
 								)}
 							>
 								<div className="p-5">
-									<RDialog.Title className="mb-1 flex items-center gap-1.5 font-bold">
-										{props.icon}
+									<RDialog.Title className="mb-3 flex items-center gap-2.5 font-bold">
+										{props.icon && props.icon}
 										{props.title}
 									</RDialog.Title>
 
@@ -249,7 +251,7 @@ export function Dialog<S extends FieldValues>({
 								</div>
 								<div
 									className={clsx(
-										'flex justify-end space-x-2 border-t border-app-line bg-app-selected p-3'
+										'flex justify-end space-x-2 border-t border-app-line bg-app-input/60 p-3'
 									)}
 								>
 									{form.formState.isSubmitting && <Loader />}

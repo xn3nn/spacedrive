@@ -12,26 +12,22 @@ import {
 	useRef,
 	useState
 } from 'react';
+import { useKey } from 'rooks';
 import {
+	ExplorerItem,
+	getEphemeralPath,
 	getExplorerItemData,
+	getExplorerLayoutStore,
 	getIndexedItemFilePath,
 	ObjectKindKey,
+	useExplorerLayoutStore,
 	useLibraryContext,
 	useLibraryMutation,
 	useRspcLibraryContext,
 	useZodForm
 } from '@sd/client';
-import {
-	dialogManager,
-	DropdownMenu,
-	Form,
-	ModifierKeys,
-	toast,
-	ToastMessage,
-	Tooltip,
-	z
-} from '@sd/ui';
-import { useIsDark, useKeybind, useOperatingSystem } from '~/hooks';
+import { DropdownMenu, Form, toast, ToastMessage, Tooltip, z } from '@sd/ui';
+import { useIsDark, useOperatingSystem, useShortcut } from '~/hooks';
 import { usePlatform } from '~/util/Platform';
 
 import { useExplorerContext } from '../Context';
@@ -42,10 +38,12 @@ import ExplorerContextMenu, {
 	SharedItems
 } from '../ContextMenu';
 import { Conditional } from '../ContextMenu/ConditionalItem';
-import DeleteDialog from '../FilePath/DeleteDialog';
 import { FileThumb } from '../FilePath/Thumb';
 import { SingleItemMetadata } from '../Inspector';
+import { ImageSlider } from './ImageSlider';
 import { getQuickPreviewStore, useQuickPreviewStore } from './store';
+
+export type QuickPreviewItem = { item: ExplorerItem; index: number };
 
 const iconKinds: ObjectKindKey[] = ['Audio', 'Folder', 'Executable', 'Unknown'];
 const textKinds: ObjectKindKey[] = ['Text', 'Config', 'Code'];
@@ -62,12 +60,11 @@ const useQuickPreviewContext = () => {
 };
 
 export const QuickPreview = () => {
-	const os = useOperatingSystem();
 	const rspc = useRspcLibraryContext();
 	const isDark = useIsDark();
 	const { library } = useLibraryContext();
-	const { openFilePaths, revealItems, openEphemeralFiles } = usePlatform();
-
+	const { openFilePaths, openEphemeralFiles } = usePlatform();
+	const explorerLayoutStore = useExplorerLayoutStore();
 	const explorer = useExplorerContext();
 	const { open, itemIndex } = useQuickPreviewStore();
 
@@ -78,14 +75,33 @@ export const QuickPreview = () => {
 	const [isRenaming, setIsRenaming] = useState<boolean>(false);
 	const [newName, setNewName] = useState<string | null>(null);
 
-	const items = useMemo(
-		() => (open ? [...explorer.selectedItems] : []),
-		[explorer.selectedItems, open]
-	);
+	const items = useMemo(() => {
+		if (!open || !explorer.items || explorer.selectedItems.size === 0) return [];
 
-	const item = useMemo(() => items[itemIndex], [items, itemIndex]);
+		const items: QuickPreviewItem[] = [];
+
+		// Sort selected items
+		for (let i = 0; i < explorer.items.length; i++) {
+			const item = explorer.items[i];
+			if (!item) continue;
+
+			if (explorer.selectedItems.has(item)) items.push({ item, index: i });
+			if (items.length === explorer.selectedItems.size) break;
+		}
+
+		return items;
+	}, [explorer.items, explorer.selectedItems, open]);
+
+	const item = useMemo(() => items[itemIndex]?.item ?? null, [items, itemIndex]);
+
+	const activeItem = items[itemIndex];
 
 	const renameFile = useLibraryMutation(['files.renameFile'], {
+		onError: () => setNewName(null),
+		onSuccess: () => rspc.queryClient.invalidateQueries(['search.paths'])
+	});
+
+	const renameEphemeralFile = useLibraryMutation(['ephemeralFiles.renameFile'], {
 		onError: () => setNewName(null),
 		onSuccess: () => rspc.queryClient.invalidateQueries(['search.paths'])
 	});
@@ -130,7 +146,7 @@ export const QuickPreview = () => {
 	}, [item, open]);
 
 	// Toggle quick preview
-	useKeybind(['space'], (e) => {
+	useShortcut('toggleQuickPreview', (e) => {
 		if (isRenaming) return;
 
 		e.preventDefault();
@@ -138,21 +154,49 @@ export const QuickPreview = () => {
 		getQuickPreviewStore().open = !open;
 	});
 
-	useKeybind('Escape', (e) => open && e.stopPropagation());
+	const handleMoveBetweenItems = (step: number) => {
+		const nextPreviewItem = items[itemIndex + step];
+		if (nextPreviewItem) {
+			getQuickPreviewStore().itemIndex = itemIndex + step;
+			return;
+		}
 
-	// Move between items
-	useKeybind([['left'], ['right']], (e) => {
+		if (!activeItem || !explorer.items) return;
+		if (items.length > 1 && !getExplorerLayoutStore().showImageSlider) return;
+
+		const newSelectedItem =
+			items.length > 1 &&
+			(activeItem.index === 0 || activeItem.index === explorer.items.length - 1)
+				? activeItem.item
+				: explorer.items[activeItem.index + step];
+
+		if (!newSelectedItem) return;
+
+		explorer.resetSelectedItems([newSelectedItem]);
+		getQuickPreviewStore().itemIndex = 0;
+	};
+
+	useShortcut('quickPreviewMoveBack', () => {
 		if (isContextMenuOpen || isRenaming) return;
-		changeCurrentItem(e.key === 'ArrowLeft' ? itemIndex - 1 : itemIndex + 1);
+		handleMoveBetweenItems(-1);
+	});
+
+	useShortcut('quickPreviewMoveForward', () => {
+		if (isContextMenuOpen || isRenaming) return;
+		handleMoveBetweenItems(1);
+	});
+
+	useKey('ArrowDown', () => {
+		if (items.length < 2 || !activeItem) return;
+		explorer.resetSelectedItems([activeItem.item]);
+		getQuickPreviewStore().itemIndex = 0;
 	});
 
 	// Toggle metadata
-	useKeybind([os === 'macOS' ? ModifierKeys.Meta : ModifierKeys.Control, 'i'], () =>
-		setShowMetadata(!showMetadata)
-	);
+	useShortcut('toggleMetaData', () => setShowMetadata(!showMetadata));
 
 	// Open file
-	useKeybind([os === 'macOS' ? ModifierKeys.Meta : ModifierKeys.Control, 'o'], () => {
+	useShortcut('quickPreviewOpenNative', () => {
 		if (!item || !openFilePaths || !openEphemeralFiles) return;
 
 		try {
@@ -171,44 +215,6 @@ export const QuickPreview = () => {
 				body: `Couldn't open file, due to an error: ${error}`
 			});
 		}
-	});
-
-	// Reveal in native explorer
-	useKeybind([os === 'macOS' ? ModifierKeys.Meta : ModifierKeys.Control, 'y'], () => {
-		if (!item || !revealItems) return;
-
-		try {
-			const toReveal = [];
-			if (item.type === 'Location') {
-				toReveal.push({ Location: { id: item.item.id } });
-			} else if (item.type === 'NonIndexedPath') {
-				toReveal.push({ Ephemeral: { path: item.item.path } });
-			} else {
-				const filePath = getIndexedItemFilePath(item);
-				if (!filePath) throw 'No file path found';
-				toReveal.push({ FilePath: { id: filePath.id } });
-			}
-
-			revealItems(library.uuid, toReveal);
-		} catch (error) {
-			toast.error({
-				title: 'Failed to reveal',
-				body: `Couldn't reveal file, due to an error: ${error}`
-			});
-		}
-	});
-
-	// Open delete dialog
-	useKeybind([os === 'macOS' ? ModifierKeys.Meta : ModifierKeys.Control, 'backspace'], () => {
-		if (!item) return;
-
-		const path = getIndexedItemFilePath(item);
-
-		if (!path || path.location_id === null) return;
-
-		dialogManager.create((dp) => (
-			<DeleteDialog {...dp} locationId={path.location_id!} pathIds={[path.id]} />
-		));
 	});
 
 	if (!item) return null;
@@ -261,7 +267,7 @@ export const QuickPreview = () => {
 											cover={true}
 											childClassName="scale-125"
 										/>
-										<div className="absolute inset-0 bg-black/25 backdrop-blur-3xl" />
+										<div className="absolute inset-0 bg-black/50 backdrop-blur-3xl" />
 									</div>
 								)}
 								<div
@@ -315,48 +321,82 @@ export const QuickPreview = () => {
 												onRename={(newName) => {
 													setIsRenaming(false);
 
-													if (
-														!('id' in item.item) ||
-														!newName ||
-														newName === name
-													)
-														return;
+													if (!newName || newName === name) return;
 
-													const filePathData =
-														getIndexedItemFilePath(item);
+													try {
+														switch (item.type) {
+															case 'Path':
+															case 'Object': {
+																const filePathData =
+																	getIndexedItemFilePath(item);
 
-													if (!filePathData) return;
+																if (!filePathData)
+																	throw new Error(
+																		'Failed to get file path object'
+																	);
 
-													const locationId = filePathData.location_id;
+																const { id, location_id } =
+																	filePathData;
 
-													if (locationId === null) return;
+																if (!location_id)
+																	throw new Error(
+																		'Missing location id'
+																	);
 
-													renameFile.mutate({
-														location_id: locationId,
-														kind: {
-															One: {
-																from_file_path_id: item.item.id,
-																to: newName
+																renameFile.mutate({
+																	location_id,
+																	kind: {
+																		One: {
+																			from_file_path_id: id,
+																			to: newName
+																		}
+																	}
+																});
+
+																break;
 															}
-														}
-													});
+															case 'NonIndexedPath': {
+																const ephemeralFile =
+																	getEphemeralPath(item);
 
-													setNewName(newName);
+																if (!ephemeralFile)
+																	throw new Error(
+																		'Failed to get ephemeral file object'
+																	);
+
+																renameEphemeralFile.mutate({
+																	kind: {
+																		One: {
+																			from_path:
+																				ephemeralFile.path,
+																			to: newName
+																		}
+																	}
+																});
+
+																break;
+															}
+
+															default:
+																throw new Error(
+																	'Invalid explorer item type'
+																);
+														}
+
+														setNewName(newName);
+													} catch (e) {
+														toast.error({
+															title: `Could not rename ${itemData.fullName} to ${newName}`,
+															body: `Error: ${e}.`
+														});
+													}
 												}}
 											/>
 										) : (
 											<Tooltip label={name} className="truncate">
 												<span
-													onClick={() =>
-														name &&
-														item.type !== 'NonIndexedPath' &&
-														setIsRenaming(true)
-													}
-													className={clsx(
-														item.type === 'NonIndexedPath'
-															? 'cursor-default'
-															: 'cursor-text'
-													)}
+													onClick={() => name && setIsRenaming(true)}
+													className={clsx('cursor-text')}
 												>
 													{name}
 												</span>
@@ -387,12 +427,10 @@ export const QuickPreview = () => {
 													]}
 												/>
 
-												{item.type !== 'NonIndexedPath' && (
-													<DropdownMenu.Item
-														label="Rename"
-														onClick={() => name && setIsRenaming(true)}
-													/>
-												)}
+												<DropdownMenu.Item
+													label="Rename"
+													onClick={() => name && setIsRenaming(true)}
+												/>
 
 												<SeparatedConditional
 													items={[ObjectItems.AssignTag]}
@@ -462,6 +500,10 @@ export const QuickPreview = () => {
 										textKinds.includes(kind) && 'select-text'
 									)}
 								/>
+
+								{explorerLayoutStore.showImageSlider && activeItem && (
+									<ImageSlider activeItem={activeItem} />
+								)}
 							</div>
 
 							{showMetadata && (
@@ -570,9 +612,9 @@ const IconButton = ({
 	return (
 		<button
 			className={clsx(
-				'text-md inline-flex h-[30px] w-[30px] items-center justify-center rounded opacity-80 outline-none backdrop-blur-none',
-				'hover:opacity-100 hover:backdrop-blur',
-				'focus:opacity-100 focus:backdrop-blur',
+				'text-md inline-flex h-[30px] w-[30px] items-center justify-center rounded opacity-80 outline-none',
+				'hover:opacity-100',
+				'focus:opacity-100',
 				'disabled:pointer-events-none disabled:opacity-40',
 				isDark || quickPreview.background
 					? quickPreview.background
@@ -580,7 +622,7 @@ const IconButton = ({
 						: 'hover:bg-app-box focus:bg-app-box'
 					: 'hover:bg-black/[.075] focus:bg-black/[.075]',
 				active && [
-					'!opacity-100 backdrop-blur',
+					'!opacity-100',
 					isDark || quickPreview.background
 						? quickPreview.background
 							? 'bg-white/[.15]'

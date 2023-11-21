@@ -1,7 +1,13 @@
 import clsx from 'clsx';
 import { memo } from 'react';
 import { useMatch } from 'react-router';
-import { byteSize, getItemFilePath, getItemLocation, type ExplorerItem } from '@sd/client';
+import {
+	byteSize,
+	getExplorerItemData,
+	getItemFilePath,
+	getItemLocation,
+	type ExplorerItem
+} from '@sd/client';
 
 import { useExplorerContext } from '../Context';
 import { FileThumb } from '../FilePath/Thumb';
@@ -19,31 +25,32 @@ interface GridViewItemProps {
 
 const GridViewItem = memo(({ data, selected, cut, isRenaming }: GridViewItemProps) => {
 	const explorer = useExplorerContext();
-	const { showBytesInGridView, gridItemSize } = explorer.useSettingsSnapshot();
+	const { showBytesInGridView } = explorer.useSettingsSnapshot();
 
+	const explorerItemData = getExplorerItemData(data);
 	const filePathData = getItemFilePath(data);
 	const location = getItemLocation(data);
 	const isEphemeralLocation = useMatch('/:libraryId/ephemeral/:ephemeralId');
-	const isFolder = 'is_dir' in data.item ? data.item.is_dir || data.type === 'Location' : false;
-	const hidden = filePathData?.hidden ?? false;
+	const isFolder = filePathData?.is_dir;
+	const hidden = filePathData?.hidden;
 
 	const showSize =
 		showBytesInGridView &&
-		!isEphemeralLocation &&
-		!isFolder &&
 		!location &&
-		(!isRenaming || (isRenaming && !selected));
+		!isFolder &&
+		(!isEphemeralLocation || !isFolder) &&
+		(!isRenaming || !selected);
 
 	return (
-		<ViewItem data={data} className={clsx("h-full w-full", hidden && 'opacity-50')}>
+		<ViewItem data={data} className={clsx('h-full w-full', hidden && 'opacity-50')}>
 			<div
 				className={clsx('mb-1 aspect-square rounded-lg', selected && 'bg-app-selectedItem')}
 			>
 				<FileThumb
 					data={data}
-					frame
-					blackBars
+					frame={explorerItemData.kind !== 'Video'}
 					extension
+					blackBars
 					className={clsx('px-2 py-1', cut && 'opacity-60')}
 				/>
 			</div>

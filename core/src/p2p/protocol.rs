@@ -5,8 +5,16 @@ use uuid::Uuid;
 use sd_p2p::{
 	proto::{decode, encode},
 	spaceblock::{Range, SpaceblockRequests, SpaceblockRequestsError},
-	spacetunnel::RemoteIdentity,
 };
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct HeaderFile {
+	// Request ID
+	pub(crate) id: Uuid,
+	pub(crate) library_id: Uuid,
+	pub(crate) file_path_id: Uuid,
+	pub(crate) range: Range,
+}
 
 /// TODO
 #[derive(Debug, PartialEq, Eq)]
@@ -16,16 +24,7 @@ pub enum Header {
 	Spacedrop(SpaceblockRequests),
 	Pair,
 	Sync(Uuid),
-	File {
-		// Request ID
-		id: Uuid,
-		library_id: Uuid,
-		file_path_id: Uuid,
-		range: Range,
-	},
-
-	// TODO: Remove need for this
-	Connected(Vec<RemoteIdentity>),
+	File(HeaderFile),
 }
 
 #[derive(Debug, Error)]
@@ -38,6 +37,10 @@ pub enum HeaderError {
 	SpacedropRequest(#[from] SpaceblockRequestsError),
 	#[error("error reading sync request: {0}")]
 	SyncRequest(decode::Error),
+	#[error("error reading header file: {0}")]
+	HeaderFile(decode::Error),
+	#[error("error invalid header file discriminator '{0}'")]
+	HeaderFileDiscriminatorInvalid(u8),
 }
 
 impl Header {
@@ -58,30 +61,35 @@ impl Header {
 					.await
 					.map_err(HeaderError::SyncRequest)?,
 			)),
-			4 => Ok(Self::File {
-				id: decode::uuid(stream).await.unwrap(),
-				library_id: decode::uuid(stream).await.unwrap(),
-				file_path_id: decode::uuid(stream).await.unwrap(),
-				range: match stream.read_u8().await.unwrap() {
+			4 => Ok(Self::File(HeaderFile {
+				id: decode::uuid(stream)
+					.await
+					.map_err(HeaderError::HeaderFile)?,
+				library_id: decode::uuid(stream)
+					.await
+					.map_err(HeaderError::HeaderFile)?,
+				file_path_id: decode::uuid(stream)
+					.await
+					.map_err(HeaderError::HeaderFile)?,
+				range: match stream
+					.read_u8()
+					.await
+					.map_err(|err| HeaderError::HeaderFile(err.into()))?
+				{
 					0 => Range::Full,
 					1 => {
-						let start = stream.read_u64_le().await.unwrap();
-						let end = stream.read_u64_le().await.unwrap();
+						let start = stream
+							.read_u64_le()
+							.await
+							.map_err(|err| HeaderError::HeaderFile(err.into()))?;
+						let end = stream
+							.read_u64_le()
+							.await
+							.map_err(|err| HeaderError::HeaderFile(err.into()))?;
 						Range::Partial(start..end)
 					}
-					_ => todo!(),
+					i => return Err(HeaderError::HeaderFileDiscriminatorInvalid(i)),
 				},
-			}),
-			// TODO: Error handling
-			255 => Ok(Self::Connected({
-				let len = stream.read_u16_le().await.unwrap();
-				let mut identities = Vec::with_capacity(len as usize);
-				for _ in 0..len {
-					identities.push(
-						RemoteIdentity::from_bytes(&decode::buf(stream).await.unwrap()).unwrap(),
-					);
-				}
-				identities
 			})),
 			d => Err(HeaderError::DiscriminatorInvalid(d)),
 		}
@@ -101,30 +109,18 @@ impl Header {
 				encode::uuid(&mut bytes, uuid);
 				bytes
 			}
-			Self::File {
+			Self::File(HeaderFile {
 				id,
 				library_id,
 				file_path_id,
 				range,
-			} => {
+			}) => {
 				let mut buf = vec![4];
 				encode::uuid(&mut buf, id);
 				encode::uuid(&mut buf, library_id);
 				encode::uuid(&mut buf, file_path_id);
 				buf.extend_from_slice(&range.to_bytes());
 				buf
-			}
-
-			Self::Connected(remote_identities) => {
-				let mut bytes = vec![255];
-				if remote_identities.len() > u16::MAX as usize {
-					panic!("Buf is too long!"); // TODO: Chunk this so it will never error
-				}
-				bytes.extend((remote_identities.len() as u16).to_le_bytes());
-				for identity in remote_identities {
-					encode::buf(&mut bytes, &identity.to_bytes());
-				}
-				bytes
 			}
 		}
 	}

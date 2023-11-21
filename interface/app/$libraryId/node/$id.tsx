@@ -1,8 +1,8 @@
-import { Laptop } from '@sd/assets/icons';
 import { useMemo } from 'react';
-import { ExplorerItem, useBridgeQuery, useLibraryQuery } from '@sd/client';
+import { useBridgeQuery, useLibraryQuery } from '@sd/client';
 import { NodeIdParamsSchema } from '~/app/route-schemas';
-import { useZodRouteParams } from '~/hooks';
+import { Icon } from '~/components';
+import { useRouteTitle, useZodRouteParams } from '~/hooks';
 
 import Explorer from '../Explorer';
 import { ExplorerContextProvider } from '../Explorer/Context';
@@ -18,6 +18,8 @@ export const Component = () => {
 
 	const nodeState = useBridgeQuery(['nodeState']);
 
+	const title = useRouteTitle(nodeState.data?.name || 'Node');
+
 	const explorerSettings = useExplorerSettings({
 		settings: useMemo(
 			() =>
@@ -25,8 +27,7 @@ export const Component = () => {
 					order: null
 				}),
 			[]
-		),
-		onSettingsChanged: () => {}
+		)
 	});
 
 	const explorer = useExplorer({
@@ -38,7 +39,8 @@ export const Component = () => {
 			  }
 			: undefined,
 		settings: explorerSettings,
-		showPathBar: false
+		showPathBar: false,
+		layouts: { media: false }
 	});
 
 	return (
@@ -46,10 +48,8 @@ export const Component = () => {
 			<TopBarPortal
 				left={
 					<div className="flex items-center gap-2">
-						<img src={Laptop} className="mt-[-1px] h-6 w-6" />
-						<span className="truncate text-sm font-medium">
-							{nodeState.data?.name || 'Node'}
-						</span>
+						<Icon name="Laptop" size={24} className="mt-[-1px]" />
+						<span className="truncate text-sm font-medium">{title}</span>
 					</div>
 				}
 				right={<DefaultTopBarOptions />}

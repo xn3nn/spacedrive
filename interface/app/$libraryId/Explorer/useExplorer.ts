@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useDebouncedCallback } from 'use-debounce';
 import { proxy, snapshot, subscribe, useSnapshot } from 'valtio';
 import { z } from 'zod';
 import type {
 	ExplorerItem,
+	ExplorerLayout,
 	ExplorerSettings,
 	FilePath,
 	Location,
@@ -20,6 +22,10 @@ export type ExplorerParent =
 			subPath?: FilePath;
 	  }
 	| {
+			type: 'Ephemeral';
+			path: string;
+	  }
+	| {
 			type: 'Tag';
 			tag: Tag;
 	  }
@@ -34,6 +40,7 @@ export interface UseExplorerProps<TOrder extends Ordering> {
 	parent?: ExplorerParent;
 	loadMore?: () => void;
 	isFetchingNextPage?: boolean;
+	isLoadingPreferences?: boolean;
 	scrollRef?: RefObject<HTMLDivElement>;
 	/**
 	 * @defaultValue `true`
@@ -49,6 +56,7 @@ export interface UseExplorerProps<TOrder extends Ordering> {
 	 * @defaultValue `true`
 	 */
 	showPathBar?: boolean;
+	layouts?: Partial<Record<ExplorerLayout, boolean>>;
 }
 
 /**
@@ -57,6 +65,7 @@ export interface UseExplorerProps<TOrder extends Ordering> {
  */
 export function useExplorer<TOrder extends Ordering>({
 	settings,
+	layouts,
 	...props
 }: UseExplorerProps<TOrder>) {
 	const scrollRef = useRef<HTMLDivElement>(null);
@@ -68,6 +77,12 @@ export function useExplorer<TOrder extends Ordering>({
 		scrollRef,
 		count: props.items?.length,
 		showPathBar: true,
+		layouts: {
+			grid: true,
+			list: true,
+			media: true,
+			...layouts
+		},
 		...settings,
 		// Provided values
 		...props,
@@ -85,32 +100,35 @@ export function useExplorerSettings<TOrder extends Ordering>({
 	location
 }: {
 	settings: ReturnType<typeof createDefaultExplorerSettings<TOrder>>;
-	onSettingsChanged?: (settings: ExplorerSettings<TOrder>) => any;
+	onSettingsChanged?: (settings: ExplorerSettings<TOrder>, location: Location) => void;
 	orderingKeys?: z.ZodUnion<
 		[z.ZodLiteral<OrderingKeys<TOrder>>, ...z.ZodLiteral<OrderingKeys<TOrder>>[]]
 	>;
 	location?: Location | null;
 }) {
-	const [store, setStore] = useState(() => proxy(settings));
+	const [store] = useState(() => proxy(settings));
 
-	useEffect(() => {
-		Object.assign(store, {
-			...settings,
-			...store
-		});
-	}, [store, settings]);
-
-	useEffect(() => {
-		setStore(proxy(settings));
-	}, [location]);
-
-	useEffect(
-		() =>
-			subscribe(store, () => {
-				onSettingsChanged?.(snapshot(store) as ExplorerSettings<TOrder>);
-			}),
-		[onSettingsChanged, store]
+	const updateSettings = useDebouncedCallback(
+		(settings: ExplorerSettings<TOrder>, location: Location) => {
+			onSettingsChanged?.(settings, location);
+		},
+		500
 	);
+
+	useEffect(() => updateSettings.flush(), [location, updateSettings]);
+
+	useEffect(() => {
+		if (updateSettings.isPending()) return;
+		Object.assign(store, settings);
+	}, [settings, store, updateSettings]);
+
+	useEffect(() => {
+		if (!onSettingsChanged || !location) return;
+		const unsubscribe = subscribe(store, () => {
+			updateSettings(snapshot(store) as ExplorerSettings<TOrder>, location);
+		});
+		return () => unsubscribe();
+	}, [store, updateSettings, location, onSettingsChanged]);
 
 	return {
 		useSettingsSnapshot: () => useSnapshot(store),

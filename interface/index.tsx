@@ -8,25 +8,27 @@ import dayjs from 'dayjs';
 import advancedFormat from 'dayjs/plugin/advancedFormat';
 import duration from 'dayjs/plugin/duration';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { useMemo } from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
 import { RouterProvider, RouterProviderProps } from 'react-router-dom';
 import {
 	NotificationContextProvider,
 	P2PContextProvider,
 	useDebugState,
+	useInvalidateQuery,
 	useLoadBackendFeatureFlags
 } from '@sd/client';
 import { TooltipProvider } from '@sd/ui';
 
-import { P2P } from './app/p2p';
+import { P2P, useP2PErrorToast } from './app/p2p';
 import { WithPrismTheme } from './components/TextViewer/prism';
-import ErrorFallback from './ErrorFallback';
+import ErrorFallback, { BetterErrorBoundary } from './ErrorFallback';
+import { useTheme } from './hooks';
+import { RoutingContext } from './RoutingContext';
 
 export { ErrorPage } from './ErrorFallback';
 export * from './app';
 export * from './util/Platform';
 export * from './util/keybind';
+export * from './TabsContext';
 
 dayjs.extend(advancedFormat);
 dayjs.extend(relativeTime);
@@ -56,21 +58,43 @@ const Devtools = () => {
 	) : null;
 };
 
-export const SpacedriveInterface = (props: { router: RouterProviderProps['router'] }) => {
+export type Router = RouterProviderProps['router'];
+
+export const SpacedriveInterface = (props: {
+	routing: {
+		router: Router;
+		routerKey: number;
+		currentIndex: number;
+		maxIndex: number;
+	};
+}) => {
 	useLoadBackendFeatureFlags();
+	useP2PErrorToast();
+	useInvalidateQuery();
+	useTheme();
 
 	return (
-		<ErrorBoundary FallbackComponent={ErrorFallback}>
+		<BetterErrorBoundary FallbackComponent={ErrorFallback}>
 			<TooltipProvider>
 				<P2PContextProvider>
 					<NotificationContextProvider>
-						<P2P />
-						<Devtools />
-						<WithPrismTheme />
-						<RouterProvider router={props.router} />
+						<RoutingContext.Provider
+							value={{
+								currentIndex: props.routing.currentIndex,
+								maxIndex: props.routing.maxIndex
+							}}
+						>
+							<P2P />
+							<Devtools />
+							<WithPrismTheme />
+							<RouterProvider
+								key={props.routing.routerKey}
+								router={props.routing.router}
+							/>
+						</RoutingContext.Provider>
 					</NotificationContextProvider>
 				</P2PContextProvider>
 			</TooltipProvider>
-		</ErrorBoundary>
+		</BetterErrorBoundary>
 	);
 };

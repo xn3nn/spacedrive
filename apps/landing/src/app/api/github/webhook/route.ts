@@ -25,10 +25,13 @@ export async function POST(req: Request) {
 }
 
 webhook.on('release', ({ payload }) => {
+	if (payload.release.draft) return;
+
 	revalidateTag(getRelease(payload.release.tag_name).path);
 	revalidateTag(getRecentReleases.path);
 	revalidateTag(getLatestRelease.path);
 
 	revalidatePath('/docs', 'layout');
 	revalidatePath(`/docs/alpha/${payload.release.tag_name}`, 'page');
+	revalidatePath(`/`, 'page');
 });

@@ -1,8 +1,8 @@
 [package]
 name = "sd-desktop"
-version = "0.1.1"
+version = "0.1.2"
 description = "The universal file manager."
-authors = ["Spacedrive Technology Inc."]
+authors = ["Spacedrive Technology Inc <support@spacedrive.com>"]
 default-run = "sd-desktop"
 license = { workspace = true }
 repository = { workspace = true }
@@ -10,39 +10,39 @@ edition = { workspace = true }
 
 [dependencies]
 tauri = { version = "1.5.2", features = [
-  "dialog-all",
-  "linux-protocol-headers",
-  "macos-private-api",
-  "os-all",
-  "path-all",
-  "protocol-all",
-  "shell-all",
-  "updater",
-  "window-all",
+	"dialog-all",
+	"linux-protocol-headers",
+	"macos-private-api",
+	"os-all",
+	"path-all",
+	"protocol-all",
+	"shell-all",
+	"updater",
+	"window-all",
+	"native-tls-vendored",
 ] }
 
 rspc = { workspace = true, features = ["tauri"] }
 sd-core = { path = "../../../core", features = [
-  "ffmpeg",
-  "location-watcher",
-  "heif",
+	"ffmpeg",
+	"location-watcher",
+	"heif",
 ] }
 tokio = { workspace = true, features = ["sync"] }
-window-shadows = "0.2.1"
 tracing = { workspace = true }
-serde = "1.0.188"
-percent-encoding = "2.3.0"
+serde = "1.0.190"
 http = "0.2.9"
 opener = { version = "0.6.1", features = ["reveal"] }
 specta = { workspace = true }
 tauri-specta = { workspace = true, features = ["typescript"] }
-uuid = { version = "1.4.1", features = ["serde"] }
+uuid = { version = "1.5.0", features = ["serde"] }
 futures = "0.3"
 axum = { version = "0.6.20", features = ["headers", "query"] }
 rand = "0.8.5"
 
 prisma-client-rust = { workspace = true }
 sd-prisma = { path = "../../../crates/prisma" }
+tauri-plugin-window-state = "0.1.0"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 sd-desktop-linux = { path = "../crates/linux" }

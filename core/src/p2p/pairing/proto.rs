@@ -104,7 +104,7 @@ impl Instance {
 		let mut buf = Vec::new();
 
 		encode::uuid(&mut buf, id);
-		encode::buf(&mut buf, &identity.to_bytes());
+		encode::buf(&mut buf, &identity.get_bytes());
 		encode::uuid(&mut buf, node_id);
 		encode::string(&mut buf, node_name);
 		buf.push(*node_platform as u8);
@@ -187,6 +187,7 @@ impl PairingResponse {
 	}
 }
 
+#[allow(unused)] // TODO: Remove this if still unused
 impl PairingConfirmation {
 	pub async fn from_stream(
 		stream: &mut (impl AsyncRead + Unpin),
