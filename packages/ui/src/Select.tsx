@@ -38,6 +38,7 @@ export interface SelectProps<TValue extends string = string>
 	placeholder?: string;
 	className?: string;
 	disabled?: boolean;
+	dropDownClassName?: string;
 }
 
 export const Select = forwardRef(
@@ -62,7 +63,12 @@ export const Select = forwardRef(
 				</RS.Trigger>
 
 				<RS.Portal>
-					<RS.Content className="z-50 rounded-md border border-app-line bg-app-box shadow-2xl shadow-app-shade/20 ">
+					<RS.Content
+						className={clsx(
+							'z-50 rounded-md border border-app-line bg-app-box shadow-2xl shadow-app-shade/20',
+							props.dropDownClassName
+						)}
+					>
 						<RS.Viewport className="p-1">{props.children}</RS.Viewport>
 					</RS.Content>
 				</RS.Portal>
@@ -86,8 +92,8 @@ export function SelectOption(props: PropsWithChildren<{ value: string; default?:
 			)}
 		>
 			<RS.ItemText>{props.children}</RS.ItemText>
-			<RS.ItemIndicator className="absolute left-1 inline-flex items-center">
-				<Check className="h-4 w-4" />
+			<RS.ItemIndicator className="absolute inline-flex items-center left-1">
+				<Check className="w-4 h-4" />
 			</RS.ItemIndicator>
 		</RS.Item>
 	);

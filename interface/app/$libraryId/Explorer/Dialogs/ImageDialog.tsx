@@ -1,4 +1,3 @@
-import { Images } from '@phosphor-icons/react';
 import clsx from 'clsx';
 import { useState } from 'react';
 import { Controller } from 'react-hook-form';
@@ -23,7 +22,7 @@ import {
 	UseDialogProps
 } from '@sd/ui';
 import { LocationIdParamsSchema } from '~/app/route-schemas';
-import Accordion from '~/components/Accordion';
+import { Accordion, Icon } from '~/components';
 import { useZodRouteParams } from '~/hooks';
 
 type QualityLevel = {
@@ -71,8 +70,8 @@ const ImageDialog = (props: DialogProps) => {
 		try {
 			await convertImage.mutateAsync({
 				location_id: locationId,
-				file_path_id: ('object_id' in props.selectedItem.item
-					? props.selectedItem.item.object_id
+				file_path_id: ('id' in props.selectedItem.item
+					? props.selectedItem.item.id
 					: null) as number,
 				delete_src: data.keepOriginal,
 				desired_extension: data.type as ConvertableExtension,
@@ -93,7 +92,8 @@ const ImageDialog = (props: DialogProps) => {
 			ctaLabel="Convert"
 			description="Transform your image to a different format and quality"
 			closeLabel="Cancel"
-			icon={<Images weight="fill" width={20} height={20} />}
+			className="relative"
+			icon={<Icon className="" size={34} name="Image" />}
 		>
 			<div className="flex flex-col mt-3 gap-y-3">
 				<div className="grid items-center justify-between grid-cols-2 gap-2">
@@ -115,7 +115,11 @@ const ImageDialog = (props: DialogProps) => {
 							name="type"
 							control={form.control}
 							render={({ field }) => (
-								<Select placeholder="Select type..." className="w-full" {...field}>
+								<Select
+									placeholder="Select type..."
+									className="h-[30px] w-full"
+									{...field}
+								>
 									{extensions.data?.map((value) => (
 										<SelectOption key={value} value={value}>
 											{value}

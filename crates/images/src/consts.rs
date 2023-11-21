@@ -21,7 +21,12 @@ pub const PDF_EXTENSIONS: [&str; 1] = ["pdf"];
 pub const HEIF_EXTENSIONS: [&str; 7] = ["heif", "heifs", "heic", "heics", "avif", "avci", "avcs"];
 
 /// It is 512x512, but if the SVG has a non-1:1 aspect ratio we need to account for that.
-pub const SVG_TAGRET_PX: f32 = 262_144_f32;
+pub const SVG_TARGET_PX: f32 = 262_144_f32;
+/// The size that PDF pages are rendered at.
+///
+/// This is 120 DPI at standard A4 printer paper size - the target aspect
+/// ratio and height are maintained.
+pub const PDF_RENDER_WIDTH: pdfium_render::prelude::Pixels = 992;
 
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
