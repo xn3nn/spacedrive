@@ -1,4 +1,5 @@
 use crate::{
+	job::NonCriticalRunError,
 	location::{file_path_helper::FilePathError, LocationError},
 	prisma::file_path,
 	util::{
@@ -48,3 +49,30 @@ impl From<FileSystemJobsError> for rspc::Error {
 		Self::with_cause(rspc::ErrorCode::InternalServerError, e.to_string(), e)
 	}
 }
+
+#[derive(Debug)]
+pub struct ConflictError {
+	pub source: Box<Path>,
+	pub target: Box<Path>,
+}
+
+impl std::fmt::Display for ConflictError {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(
+			f,
+			"{} already exists in {}",
+			self.source.display(),
+			self.target.display()
+		)
+	}
+}
+
+impl std::error::Error for ConflictError {}
+
+impl From<ConflictError> for rspc::Error {
+	fn from(e: ConflictError) -> Self {
+		rspc::Error::with_cause(rspc::ErrorCode::Conflict, e.to_string(), e)
+	}
+}
+
+impl NonCriticalRunError for ConflictError {}

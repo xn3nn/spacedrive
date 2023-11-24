@@ -1,6 +1,7 @@
 use crate::{
 	job::{
-		CurrentStep, JobError, JobInitOutput, JobResult, JobStepOutput, StatefulJob, WorkerContext,
+		CurrentStep, InfallibleJobRunError, JobError, JobInitOutput, JobResult, JobStepOutput,
+		StatefulJob, WorkerContext,
 	},
 	library::Library,
 	location::file_path_helper::{
@@ -55,6 +56,7 @@ impl StatefulJob for ObjectValidatorJobInit {
 	type Data = ObjectValidatorJobData;
 	type Step = file_path_for_object_validator::Data;
 	type RunMetadata = ();
+	type RunError = InfallibleJobRunError;
 
 	const NAME: &'static str = "object_validator";
 
@@ -66,7 +68,7 @@ impl StatefulJob for ObjectValidatorJobInit {
 		&self,
 		ctx: &WorkerContext,
 		data: &mut Option<Self::Data>,
-	) -> Result<JobInitOutput<Self::RunMetadata, Self::Step>, JobError> {
+	) -> Result<JobInitOutput<Self>, JobError> {
 		let init = self;
 		let Library { db, .. } = &*ctx.library;
 
@@ -135,7 +137,7 @@ impl StatefulJob for ObjectValidatorJobInit {
 		}: CurrentStep<'_, Self::Step>,
 		data: &Self::Data,
 		_: &Self::RunMetadata,
-	) -> Result<JobStepOutput<Self::Step, Self::RunMetadata>, JobError> {
+	) -> Result<JobStepOutput<Self>, JobError> {
 		let init = self;
 		let Library { db, sync, .. } = &*ctx.library;
 

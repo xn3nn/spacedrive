@@ -62,6 +62,31 @@ pub(crate) fn mount() -> AlphaRouter<Ctx> {
 					}
 				})
 		})
+		.procedure("runErrors", {
+			// Listen for non-critital job run errors from the job manager
+			// - the client listens for events containing an updated JobReport
+			// - the client replaces its local copy of the JobReport using the index provided by the reports procedure
+			// - this should be used with the ephemeral sync engine
+			R.with2(library())
+				.subscription(|(node, _), _: ()| async move {
+					let mut event_bus_rx = node.event_bus.0.subscribe();
+
+					async_stream::stream! {
+						loop {
+							let progress_event = loop {
+								if let Ok(CoreEvent::JobProgress(progress_event)) = event_bus_rx.recv().await {
+									break progress_event;
+								}
+							};
+
+
+
+							yield progress_event;
+
+						}
+					}
+				})
+		})
 		.procedure("reports", {
 			// Reports provides the client with a list of JobReports
 			// - we query with a custom select! to avoid returning paused job cache `job.data`

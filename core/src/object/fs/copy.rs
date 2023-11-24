@@ -1,8 +1,7 @@
 use crate::{
 	invalidate_query,
 	job::{
-		CurrentStep, JobError, JobInitOutput, JobResult, JobRunErrors, JobStepOutput, StatefulJob,
-		WorkerContext,
+		CurrentStep, JobError, JobInitOutput, JobResult, JobStepOutput, StatefulJob, WorkerContext,
 	},
 	library::Library,
 	location::file_path_helper::{join_location_relative_path, IsolatedFilePathData},
@@ -20,9 +19,10 @@ use tokio::{fs, io};
 use tracing::{trace, warn};
 
 use super::{
-	construct_target_filename, error::FileSystemJobsError, fetch_source_and_target_location_paths,
-	find_available_filename_for_duplicate, get_file_data_from_isolated_file_path,
-	get_many_files_datas, FileData,
+	construct_target_filename,
+	error::{ConflictError, FileSystemJobsError},
+	fetch_source_and_target_location_paths, find_available_filename_for_duplicate,
+	get_file_data_from_isolated_file_path, get_many_files_datas, FileData,
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -49,6 +49,7 @@ impl StatefulJob for FileCopierJobInit {
 	type Data = FileCopierJobData;
 	type Step = FileCopierJobStep;
 	type RunMetadata = ();
+	type RunError = ConflictError;
 
 	const NAME: &'static str = "file_copier";
 
@@ -60,7 +61,7 @@ impl StatefulJob for FileCopierJobInit {
 		&self,
 		ctx: &WorkerContext,
 		data: &mut Option<Self::Data>,
-	) -> Result<JobInitOutput<Self::RunMetadata, Self::Step>, JobError> {
+	) -> Result<JobInitOutput<Self>, JobError> {
 		let init = self;
 		let Library { db, .. } = &*ctx.library;
 
@@ -117,7 +118,7 @@ impl StatefulJob for FileCopierJobInit {
 		}: CurrentStep<'_, Self::Step>,
 		data: &Self::Data,
 		_: &Self::RunMetadata,
-	) -> Result<JobStepOutput<Self::Step, Self::RunMetadata>, JobError> {
+	) -> Result<JobStepOutput<Self>, JobError> {
 		let init = self;
 
 		if maybe_missing(source_file_data.file_path.is_dir, "file_path.is_dir")? {
@@ -194,13 +195,12 @@ impl StatefulJob for FileCopierJobInit {
 							Ok(().into())
 						}
 
-						Err(FileSystemJobsError::FailedToFindAvailableName(path)) => {
-							Ok(JobRunErrors(vec![
-								FileSystemJobsError::WouldOverwrite(path).to_string()
-							])
-							.into())
-						}
-
+						// Err(FileSystemJobsError::FailedToFindAvailableName(path)) => {
+						// 	Ok(JobRunErrors(vec![
+						// 		FileSystemJobsError::WouldOverwrite(path).to_string()
+						// 	])
+						// 	.into())
+						// }
 						Err(e) => Err(e.into()),
 					}
 				}

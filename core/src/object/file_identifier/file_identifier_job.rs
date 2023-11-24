@@ -1,7 +1,7 @@
 use crate::{
 	job::{
-		CurrentStep, JobError, JobInitOutput, JobReportUpdate, JobResult, JobRunMetadata,
-		JobStepOutput, StatefulJob, WorkerContext,
+		CurrentStep, InfallibleJobRunError, JobError, JobInitOutput, JobReportUpdate, JobResult,
+		JobRunMetadata, JobStepOutput, StatefulJob, WorkerContext,
 	},
 	library::Library,
 	location::file_path_helper::{
@@ -74,6 +74,7 @@ impl StatefulJob for FileIdentifierJobInit {
 	type Data = FileIdentifierJobData;
 	type Step = ();
 	type RunMetadata = FileIdentifierJobRunMetadata;
+	type RunError = InfallibleJobRunError;
 
 	const NAME: &'static str = "file_identifier";
 	const IS_BATCHED: bool = true;
@@ -86,7 +87,7 @@ impl StatefulJob for FileIdentifierJobInit {
 		&self,
 		ctx: &WorkerContext,
 		data: &mut Option<Self::Data>,
-	) -> Result<JobInitOutput<Self::RunMetadata, Self::Step>, JobError> {
+	) -> Result<JobInitOutput<Self>, JobError> {
 		let init = self;
 		let Library { db, .. } = &*ctx.library;
 
@@ -182,7 +183,7 @@ impl StatefulJob for FileIdentifierJobInit {
 		CurrentStep { step_number, .. }: CurrentStep<'_, Self::Step>,
 		data: &Self::Data,
 		run_metadata: &Self::RunMetadata,
-	) -> Result<JobStepOutput<Self::Step, Self::RunMetadata>, JobError> {
+	) -> Result<JobStepOutput<Self>, JobError> {
 		let init = self;
 		let location = &init.location;
 

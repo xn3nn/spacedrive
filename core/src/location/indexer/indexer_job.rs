@@ -146,6 +146,7 @@ impl StatefulJob for IndexerJobInit {
 	type Data = IndexerJobData;
 	type Step = IndexerJobStepInput;
 	type RunMetadata = IndexerJobRunMetadata;
+	type RunError = IndexerError;
 
 	const NAME: &'static str = "indexer";
 	const IS_BATCHED: bool = true;
@@ -159,7 +160,7 @@ impl StatefulJob for IndexerJobInit {
 		&self,
 		ctx: &WorkerContext,
 		data: &mut Option<Self::Data>,
-	) -> Result<JobInitOutput<Self::RunMetadata, Self::Step>, JobError> {
+	) -> Result<JobInitOutput<Self>, JobError> {
 		let init = self;
 		let location_id = init.location.id;
 		let location_path = maybe_missing(&init.location.path, "location.path").map(Path::new)?;
@@ -314,11 +315,7 @@ impl StatefulJob for IndexerJobInit {
 				paths_and_sizes,
 			},
 			steps,
-			errors
-				.into_iter()
-				.map(|e| format!("{e}"))
-				.collect::<Vec<_>>()
-				.into(),
+			errors,
 		)
 			.into())
 	}
@@ -330,7 +327,7 @@ impl StatefulJob for IndexerJobInit {
 		CurrentStep { step, .. }: CurrentStep<'_, Self::Step>,
 		data: &Self::Data,
 		run_metadata: &Self::RunMetadata,
-	) -> Result<JobStepOutput<Self::Step, Self::RunMetadata>, JobError> {
+	) -> Result<JobStepOutput<Self>, JobError> {
 		let init = self;
 		let mut new_metadata = Self::RunMetadata::default();
 		match step {
@@ -456,16 +453,7 @@ impl StatefulJob for IndexerJobInit {
 					],
 				);
 
-				Ok((
-					more_steps,
-					new_metadata,
-					errors
-						.into_iter()
-						.map(|e| format!("{e}"))
-						.collect::<Vec<_>>()
-						.into(),
-				)
-					.into())
+				Ok((more_steps, new_metadata, errors).into())
 			}
 		}
 	}

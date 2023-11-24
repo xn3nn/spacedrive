@@ -1,5 +1,5 @@
 use crate::{
-	job::JobRunErrors,
+	job::{JobRunErrors, NonCriticalRunError},
 	location::file_path_helper::{file_path_for_media_processor, IsolatedFilePathData},
 	prisma::{location, media_data, PrismaClient},
 	util::error::FileIOError,
@@ -31,6 +31,33 @@ pub enum MediaDataError {
 	#[error("failed to join tokio task: {0}")]
 	TokioJoinHandle(#[from] tokio::task::JoinError),
 }
+
+#[derive(Debug)]
+pub struct ExtractError {
+	path: Box<Path>,
+	error: MediaDataError,
+}
+
+impl std::fmt::Display for ExtractError {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(
+			f,
+			"Couldn't extract media data for file: \"{}\"; Error: {}",
+			self.path.display(),
+			self.error
+		)
+	}
+}
+
+impl std::error::Error for ExtractError {}
+
+impl From<ExtractError> for rspc::Error {
+	fn from(e: ExtractError) -> Self {
+		Self::with_cause(rspc::ErrorCode::InternalServerError, e.to_string(), e)
+	}
+}
+
+impl NonCriticalRunError for ExtractError {}
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct MediaDataExtractorMetadata {
@@ -70,10 +97,10 @@ pub async fn process(
 	location_path: impl AsRef<Path>,
 	db: &PrismaClient,
 	ctx_update_fn: &impl Fn(usize),
-) -> Result<(MediaDataExtractorMetadata, JobRunErrors), MediaDataError> {
+) -> Result<(MediaDataExtractorMetadata, JobRunErrors<ExtractError>), MediaDataError> {
 	let mut run_metadata = MediaDataExtractorMetadata::default();
 	if files_paths.is_empty() {
-		return Ok((run_metadata, JobRunErrors::default()));
+		return Ok((run_metadata, JobRunErrors::<ExtractError>::default()));
 	}
 
 	let location_path = location_path.as_ref();
@@ -93,7 +120,7 @@ pub async fn process(
 	if files_paths.len() == objects_already_with_media_data.len() {
 		// All files already have media data, skipping
 		run_metadata.skipped = files_paths.len() as u32;
-		return Ok((run_metadata, JobRunErrors::default()));
+		return Ok((run_metadata, JobRunErrors::<ExtractError>::default()));
 	}
 
 	let objects_already_with_media_data = objects_already_with_media_data
@@ -142,7 +169,10 @@ pub async fn process(
 						// No exif data on path, skipping
 						run_metadata.skipped += 1;
 					}
-					Err(e) => errors.push((e, path)),
+					Err(error) => errors.push(ExtractError {
+						path: path.into_boxed_path(),
+						error,
+					}),
 				}
 				(media_datas, errors)
 			},
@@ -168,12 +198,5 @@ pub async fn process(
 	run_metadata.extracted = created as u32;
 	run_metadata.skipped += errors.len() as u32;
 
-	Ok((
-		run_metadata,
-		errors
-			.into_iter()
-			.map(|(e, path)| format!("Couldn't process file: \"{}\"; Error: {e}", path.display()))
-			.collect::<Vec<_>>()
-			.into(),
-	))
+	Ok((run_metadata, JobRunErrors(errors)))
 }

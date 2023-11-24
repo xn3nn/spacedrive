@@ -1,5 +1,5 @@
 use crate::{
-	job::{JobRunErrors, JobRunMetadata},
+	job::{JobRunErrors, JobRunMetadata, NonCriticalRunError},
 	location::file_path_helper::{file_path_for_media_processor, FilePathError},
 };
 
@@ -12,7 +12,7 @@ use thiserror::Error;
 use tracing::error;
 
 use super::{
-	media_data_extractor::{self, MediaDataError, MediaDataExtractorMetadata},
+	media_data_extractor::{self, ExtractError, MediaDataError, MediaDataExtractorMetadata},
 	thumbnail::{self, BatchToProcess, ThumbnailerError},
 };
 
@@ -67,7 +67,7 @@ pub async fn process(
 	location_path: impl AsRef<Path>,
 	db: &PrismaClient,
 	ctx_update_fn: &impl Fn(usize),
-) -> Result<(MediaProcessorMetadata, JobRunErrors), MediaProcessorError> {
+) -> Result<(MediaProcessorMetadata, JobRunErrors<ExtractError>), MediaProcessorError> {
 	// Add here new kinds of media processing if necessary in the future
 
 	media_data_extractor::process(files_paths, location_id, location_path, db, ctx_update_fn)

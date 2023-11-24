@@ -10,6 +10,7 @@ use std::{
 	time::Instant,
 };
 
+use itertools::Itertools;
 use sd_prisma::prisma::location;
 
 use async_channel as chan;
@@ -44,30 +45,82 @@ pub struct JobIdentity {
 	pub status: JobStatus,
 }
 
-#[derive(Debug, Default)]
-pub struct JobRunErrors(pub Vec<String>);
+pub trait NonCriticalRunError: std::error::Error + Into<rspc::Error> {}
 
-impl JobRunErrors {
+#[derive(Debug)]
+pub enum InfallibleJobRunError {}
+
+impl fmt::Display for InfallibleJobRunError {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "InfallibleJobRunError")
+	}
+}
+
+impl From<InfallibleJobRunError> for rspc::Error {
+	fn from(_: InfallibleJobRunError) -> Self {
+		unreachable!("InfallibleJobRunError conversion to rspc::Error")
+	}
+}
+
+impl std::error::Error for InfallibleJobRunError {}
+
+impl NonCriticalRunError for InfallibleJobRunError {}
+
+#[derive(Debug)]
+pub struct JobRunErrors<E: NonCriticalRunError>(pub Vec<E>);
+
+impl<E: NonCriticalRunError> JobRunErrors<E> {
 	pub fn is_empty(&self) -> bool {
 		self.0.is_empty()
 	}
 }
 
-impl<I: IntoIterator<Item = String>> From<I> for JobRunErrors {
+impl<E: NonCriticalRunError> Default for JobRunErrors<E> {
+	fn default() -> Self {
+		Self(vec![])
+	}
+}
+
+impl<E: NonCriticalRunError, I: IntoIterator<Item = E>> From<I> for JobRunErrors<E> {
 	fn from(errors: I) -> Self {
 		Self(errors.into_iter().collect())
 	}
 }
 
-impl fmt::Display for JobRunErrors {
+impl<E: NonCriticalRunError> fmt::Display for JobRunErrors<E> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}", self.0.join("\n"))
+		write!(f, "{}", self.0.iter().join("\n"))
 	}
 }
 
+#[derive(Debug)]
+struct ToSaveError(String);
+
+impl From<ToSaveError> for String {
+	fn from(e: ToSaveError) -> Self {
+		e.0
+	}
+}
+
+impl fmt::Display for ToSaveError {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "{}", self.0)
+	}
+}
+
+impl From<ToSaveError> for rspc::Error {
+	fn from(e: ToSaveError) -> Self {
+		Self::new(rspc::ErrorCode::InternalServerError, e.to_string())
+	}
+}
+
+impl std::error::Error for ToSaveError {}
+
+impl NonCriticalRunError for ToSaveError {}
+
 pub struct JobRunOutput {
 	pub metadata: JobMetadata,
-	pub errors: JobRunErrors,
+	errors: JobRunErrors<ToSaveError>,
 	pub next_job: Option<Box<dyn DynJob>>,
 }
 
@@ -88,6 +141,7 @@ pub trait StatefulJob:
 	type Data: Serialize + DeserializeOwned + Send + Sync + fmt::Debug;
 	type Step: Serialize + DeserializeOwned + Send + Sync + fmt::Debug;
 	type RunMetadata: JobRunMetadata;
+	type RunError: NonCriticalRunError + Send + Sync;
 
 	/// The name of the job is a unique human readable identifier for the job.
 	const NAME: &'static str;
@@ -99,7 +153,7 @@ pub trait StatefulJob:
 		&self,
 		ctx: &WorkerContext,
 		data: &mut Option<Self::Data>,
-	) -> Result<JobInitOutput<Self::RunMetadata, Self::Step>, JobError>;
+	) -> Result<JobInitOutput<Self>, JobError>;
 
 	/// The location id where this job will act upon
 	fn target_location(&self) -> location::id::Type;
@@ -111,7 +165,7 @@ pub trait StatefulJob:
 		step: CurrentStep<'_, Self::Step>,
 		data: &Self::Data,
 		run_metadata: &Self::RunMetadata,
-	) -> Result<JobStepOutput<Self::Step, Self::RunMetadata>, JobError>;
+	) -> Result<JobStepOutput<Self>, JobError>;
 
 	/// is called after all steps have been executed
 	async fn finalize(
@@ -255,11 +309,13 @@ impl<SJob: StatefulJob> Job<SJob> {
 		self,
 		node: &Arc<Node>,
 		library: &Arc<Library>,
-	) -> Result<(), JobManagerError> {
+	) -> Result<Uuid, JobManagerError> {
+		let job_id = self.id;
 		node.jobs
 			.clone()
 			.ingest(node, library, Box::new(self))
 			.await
+			.map(|()| job_id)
 	}
 }
 
@@ -306,14 +362,14 @@ where
 	pub run_metadata: Job::RunMetadata,
 }
 
-pub struct JobInitOutput<RunMetadata, Step> {
-	run_metadata: RunMetadata,
-	steps: VecDeque<Step>,
-	errors: JobRunErrors,
+pub struct JobInitOutput<SJob: StatefulJob> {
+	run_metadata: SJob::RunMetadata,
+	steps: VecDeque<SJob::Step>,
+	errors: JobRunErrors<SJob::RunError>,
 }
 
-impl<RunMetadata, Step> From<(RunMetadata, Vec<Step>)> for JobInitOutput<RunMetadata, Step> {
-	fn from((run_metadata, steps): (RunMetadata, Vec<Step>)) -> Self {
+impl<SJob: StatefulJob> From<(SJob::RunMetadata, Vec<SJob::Step>)> for JobInitOutput<SJob> {
+	fn from((run_metadata, steps): (SJob::RunMetadata, Vec<SJob::Step>)) -> Self {
 		Self {
 			run_metadata,
 			steps: VecDeque::from(steps),
@@ -322,27 +378,26 @@ impl<RunMetadata, Step> From<(RunMetadata, Vec<Step>)> for JobInitOutput<RunMeta
 	}
 }
 
-impl<RunMetadata, Step> From<Vec<Step>> for JobInitOutput<RunMetadata, Step>
-where
-	RunMetadata: Default,
-{
-	fn from(steps: Vec<Step>) -> Self {
+impl<SJob: StatefulJob> From<Vec<SJob::Step>> for JobInitOutput<SJob> {
+	fn from(steps: Vec<SJob::Step>) -> Self {
 		Self {
-			run_metadata: RunMetadata::default(),
+			run_metadata: SJob::RunMetadata::default(),
 			steps: VecDeque::from(steps),
 			errors: Default::default(),
 		}
 	}
 }
 
-impl<RunMetadata, Step> From<(RunMetadata, Vec<Step>, JobRunErrors)>
-	for JobInitOutput<RunMetadata, Step>
+impl<SJob: StatefulJob> From<(SJob::RunMetadata, Vec<SJob::Step>, Vec<SJob::RunError>)>
+	for JobInitOutput<SJob>
 {
-	fn from((run_metadata, steps, errors): (RunMetadata, Vec<Step>, JobRunErrors)) -> Self {
+	fn from(
+		(run_metadata, steps, errors): (SJob::RunMetadata, Vec<SJob::Step>, Vec<SJob::RunError>),
+	) -> Self {
 		Self {
 			run_metadata,
 			steps: VecDeque::from(steps),
-			errors,
+			errors: errors.into(),
 		}
 	}
 }
@@ -352,14 +407,14 @@ pub struct CurrentStep<'step, Step> {
 	pub step_number: usize,
 }
 
-pub struct JobStepOutput<Step, RunMetadata> {
-	maybe_more_steps: Option<Vec<Step>>,
-	maybe_more_metadata: Option<RunMetadata>,
-	errors: JobRunErrors,
+pub struct JobStepOutput<SJob: StatefulJob> {
+	maybe_more_steps: Option<Vec<SJob::Step>>,
+	maybe_more_metadata: Option<SJob::RunMetadata>,
+	errors: JobRunErrors<SJob::RunError>,
 }
 
-impl<Step, RunMetadata: JobRunMetadata> From<Vec<Step>> for JobStepOutput<Step, RunMetadata> {
-	fn from(more_steps: Vec<Step>) -> Self {
+impl<SJob: StatefulJob> From<Vec<SJob::Step>> for JobStepOutput<SJob> {
+	fn from(more_steps: Vec<SJob::Step>) -> Self {
 		Self {
 			maybe_more_steps: Some(more_steps),
 			maybe_more_metadata: None,
@@ -368,8 +423,8 @@ impl<Step, RunMetadata: JobRunMetadata> From<Vec<Step>> for JobStepOutput<Step, 
 	}
 }
 
-impl<Step, RunMetadata: JobRunMetadata> From<RunMetadata> for JobStepOutput<Step, RunMetadata> {
-	fn from(more_metadata: RunMetadata) -> Self {
+impl<SJob: StatefulJob> From<(SJob::RunMetadata,)> for JobStepOutput<SJob> {
+	fn from((more_metadata,): (SJob::RunMetadata,)) -> Self {
 		Self {
 			maybe_more_steps: None,
 			maybe_more_metadata: Some(more_metadata),
@@ -378,8 +433,8 @@ impl<Step, RunMetadata: JobRunMetadata> From<RunMetadata> for JobStepOutput<Step
 	}
 }
 
-impl<Step, RunMetadata: JobRunMetadata> From<JobRunErrors> for JobStepOutput<Step, RunMetadata> {
-	fn from(errors: JobRunErrors) -> Self {
+impl<SJob: StatefulJob> From<JobRunErrors<SJob::RunError>> for JobStepOutput<SJob> {
+	fn from(errors: JobRunErrors<SJob::RunError>) -> Self {
 		Self {
 			maybe_more_steps: None,
 			maybe_more_metadata: None,
@@ -388,10 +443,8 @@ impl<Step, RunMetadata: JobRunMetadata> From<JobRunErrors> for JobStepOutput<Ste
 	}
 }
 
-impl<Step, RunMetadata: JobRunMetadata> From<(Vec<Step>, RunMetadata)>
-	for JobStepOutput<Step, RunMetadata>
-{
-	fn from((more_steps, more_metadata): (Vec<Step>, RunMetadata)) -> Self {
+impl<SJob: StatefulJob> From<(Vec<SJob::Step>, SJob::RunMetadata)> for JobStepOutput<SJob> {
+	fn from((more_steps, more_metadata): (Vec<SJob::Step>, SJob::RunMetadata)) -> Self {
 		Self {
 			maybe_more_steps: Some(more_steps),
 			maybe_more_metadata: Some(more_metadata),
@@ -400,36 +453,42 @@ impl<Step, RunMetadata: JobRunMetadata> From<(Vec<Step>, RunMetadata)>
 	}
 }
 
-impl<Step, RunMetadata: JobRunMetadata> From<(RunMetadata, JobRunErrors)>
-	for JobStepOutput<Step, RunMetadata>
+impl<SJob: StatefulJob, E: Into<JobRunErrors<SJob::RunError>>> From<(SJob::RunMetadata, E)>
+	for JobStepOutput<SJob>
 {
-	fn from((more_metadata, errors): (RunMetadata, JobRunErrors)) -> Self {
+	fn from((more_metadata, errors): (SJob::RunMetadata, E)) -> Self {
 		Self {
 			maybe_more_steps: None,
 			maybe_more_metadata: Some(more_metadata),
-			errors,
+			errors: errors.into(),
 		}
 	}
 }
 
-impl<Step, RunMetadata: JobRunMetadata> From<(Vec<Step>, RunMetadata, JobRunErrors)>
-	for JobStepOutput<Step, RunMetadata>
+impl<SJob: StatefulJob> From<(Vec<SJob::Step>, SJob::RunMetadata, Vec<SJob::RunError>)>
+	for JobStepOutput<SJob>
 {
-	fn from((more_steps, more_metadata, errors): (Vec<Step>, RunMetadata, JobRunErrors)) -> Self {
+	fn from(
+		(more_steps, more_metadata, errors): (
+			Vec<SJob::Step>,
+			SJob::RunMetadata,
+			Vec<SJob::RunError>,
+		),
+	) -> Self {
 		Self {
 			maybe_more_steps: Some(more_steps),
 			maybe_more_metadata: Some(more_metadata),
-			errors,
+			errors: errors.into(),
 		}
 	}
 }
 
-impl<Step, RunMetadata: JobRunMetadata> From<Option<()>> for JobStepOutput<Step, RunMetadata> {
+impl<SJob: StatefulJob> From<Option<()>> for JobStepOutput<SJob> {
 	fn from(_: Option<()>) -> Self {
 		Self {
 			maybe_more_steps: None,
 			maybe_more_metadata: None,
-			errors: Vec::new().into(),
+			errors: Default::default(),
 		}
 	}
 }
@@ -689,7 +748,12 @@ impl<SJob: StatefulJob> DynJob for Job<SJob> {
 
 		Ok(JobRunOutput {
 			metadata,
-			errors: errors.into(),
+			errors: JobRunErrors(
+				errors
+					.into_iter()
+					.map(|e| ToSaveError(e.to_string()))
+					.collect(),
+			),
 			next_job: next_jobs.pop_front().map(|mut next_job| {
 				debug!(
 					"Job<id='{job_id}', name='{job_name}'> requesting to spawn '{}' now that it's complete!",
@@ -771,7 +835,7 @@ impl<SJob: StatefulJob> DynJob for Job<SJob> {
 struct InitPhaseOutput<SJob: StatefulJob> {
 	stateful_job: Arc<SJob>,
 	maybe_data: Option<SJob::Data>,
-	output: Result<JobInitOutput<SJob::RunMetadata, SJob::Step>, JobError>,
+	output: Result<JobInitOutput<SJob>, JobError>,
 }
 
 struct JobRunWorkTable {
@@ -784,10 +848,7 @@ struct JobRunWorkTable {
 type InitTaskOutput<SJob> = (
 	Arc<SJob>,
 	Option<<SJob as StatefulJob>::Data>,
-	Result<
-		JobInitOutput<<SJob as StatefulJob>::RunMetadata, <SJob as StatefulJob>::Step>,
-		JobError,
-	>,
+	Result<JobInitOutput<SJob>, JobError>,
 );
 
 #[inline]
@@ -989,21 +1050,16 @@ async fn handle_init_phase<SJob: StatefulJob>(
 	Err(JobError::Critical("unexpect job init end without result"))
 }
 
-type StepTaskOutput<SJob> = Result<
-	JobStepOutput<<SJob as StatefulJob>::Step, <SJob as StatefulJob>::RunMetadata>,
-	JobError,
->;
-
 struct JobStepDataWorkTable<SJob: StatefulJob> {
 	step_number: usize,
 	steps: VecDeque<SJob::Step>,
 	step: Arc<SJob::Step>,
-	step_task: JoinHandle<StepTaskOutput<SJob>>,
+	step_task: JoinHandle<Result<JobStepOutput<SJob>, JobError>>,
 }
 
 struct JobStepsPhaseOutput<SJob: StatefulJob> {
 	steps: VecDeque<SJob::Step>,
-	output: StepTaskOutput<SJob>,
+	output: Result<JobStepOutput<SJob>, JobError>,
 	step_arcs: StepArcs<SJob>,
 }
 
@@ -1034,7 +1090,7 @@ async fn handle_single_step<SJob: StatefulJob>(
 ) -> Result<JobStepsPhaseOutput<SJob>, JobError> {
 	enum StreamMessage<SJob: StatefulJob> {
 		NewCommand(WorkerCommand),
-		StepResult(Result<StepTaskOutput<SJob>, JoinError>),
+		StepResult(Result<Result<JobStepOutput<SJob>, JobError>, JoinError>),
 	}
 
 	let mut status = JobStatus::Running;

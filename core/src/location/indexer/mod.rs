@@ -1,4 +1,5 @@
 use crate::{
+	job::NonCriticalRunError,
 	library::Library,
 	util::{db::inode_to_db, error::FileIOError},
 };
@@ -85,6 +86,8 @@ impl From<IndexerError> for rspc::Error {
 		}
 	}
 }
+
+impl NonCriticalRunError for IndexerError {}
 
 async fn execute_indexer_save_step(
 	location: &location_with_indexer_rules::Data,

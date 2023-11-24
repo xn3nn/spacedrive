@@ -6,7 +6,6 @@ use crate::{
 	},
 	library::Library,
 	location::file_path_helper::push_location_relative_path,
-	object::fs::{construct_target_filename, error::FileSystemJobsError},
 	prisma::{file_path, location},
 	util::error::FileIOError,
 };
@@ -19,7 +18,10 @@ use specta::Type;
 use tokio::{fs, io};
 use tracing::{trace, warn};
 
-use super::{fetch_source_and_target_location_paths, get_many_files_datas, FileData};
+use super::{
+	construct_target_filename, error::ConflictError, fetch_source_and_target_location_paths,
+	get_many_files_datas, FileData,
+};
 
 #[derive(Serialize, Deserialize, Hash, Type, Debug)]
 pub struct FileCutterJobInit {
@@ -39,6 +41,7 @@ impl StatefulJob for FileCutterJobInit {
 	type Data = FileCutterJobData;
 	type Step = FileData;
 	type RunMetadata = ();
+	type RunError = ConflictError;
 
 	const NAME: &'static str = "file_cutter";
 
@@ -50,7 +53,7 @@ impl StatefulJob for FileCutterJobInit {
 		&self,
 		ctx: &WorkerContext,
 		data: &mut Option<Self::Data>,
-	) -> Result<JobInitOutput<Self::RunMetadata, Self::Step>, JobError> {
+	) -> Result<JobInitOutput<Self>, JobError> {
 		let init = self;
 		let Library { db, .. } = &*ctx.library;
 
@@ -85,7 +88,7 @@ impl StatefulJob for FileCutterJobInit {
 		}: CurrentStep<'_, Self::Step>,
 		data: &Self::Data,
 		_: &Self::RunMetadata,
-	) -> Result<JobStepOutput<Self::Step, Self::RunMetadata>, JobError> {
+	) -> Result<JobStepOutput<Self>, JobError> {
 		let full_output = data
 			.full_target_directory_path
 			.join(construct_target_filename(file_data)?);
@@ -101,10 +104,10 @@ impl StatefulJob for FileCutterJobInit {
 						full_output.display()
 					);
 
-					Ok(JobRunErrors(vec![FileSystemJobsError::WouldOverwrite(
-						full_output.into_boxed_path(),
-					)
-					.to_string()])
+					Ok(JobRunErrors(vec![ConflictError {
+						source: file_data.full_path.clone().into_boxed_path(),
+						target: full_output.into_boxed_path(),
+					}])
 					.into())
 				}
 				Err(e) if e.kind() == io::ErrorKind::NotFound => {

@@ -53,11 +53,11 @@ export type Procedures = {
         { key: "ephemeralFiles.deleteFiles", input: LibraryArgs<string[]>, result: null } | 
         { key: "ephemeralFiles.renameFile", input: LibraryArgs<EphemeralRenameFileArgs>, result: null } | 
         { key: "files.convertImage", input: LibraryArgs<ConvertImageArgs>, result: null } | 
-        { key: "files.copyFiles", input: LibraryArgs<FileCopierJobInit>, result: null } | 
+        { key: "files.copyFiles", input: LibraryArgs<FileCopierJobInit>, result: string } | 
         { key: "files.createFolder", input: LibraryArgs<CreateFolderArgs>, result: string } | 
-        { key: "files.cutFiles", input: LibraryArgs<FileCutterJobInit>, result: null } | 
-        { key: "files.deleteFiles", input: LibraryArgs<FileDeleterJobInit>, result: null } | 
-        { key: "files.eraseFiles", input: LibraryArgs<FileEraserJobInit>, result: null } | 
+        { key: "files.cutFiles", input: LibraryArgs<FileCutterJobInit>, result: string } | 
+        { key: "files.deleteFiles", input: LibraryArgs<FileDeleterJobInit>, result: string | null } | 
+        { key: "files.eraseFiles", input: LibraryArgs<FileEraserJobInit>, result: string } | 
         { key: "files.removeAccessTime", input: LibraryArgs<number[]>, result: null } | 
         { key: "files.renameFile", input: LibraryArgs<RenameFileArgs>, result: null } | 
         { key: "files.setFavorite", input: LibraryArgs<SetFavoriteArgs>, result: null } | 
@@ -67,9 +67,9 @@ export type Procedures = {
         { key: "jobs.cancel", input: LibraryArgs<string>, result: null } | 
         { key: "jobs.clear", input: LibraryArgs<string>, result: null } | 
         { key: "jobs.clearAll", input: LibraryArgs<null>, result: null } | 
-        { key: "jobs.generateThumbsForLocation", input: LibraryArgs<GenerateThumbsForLocationArgs>, result: null } | 
-        { key: "jobs.identifyUniqueFiles", input: LibraryArgs<IdentifyUniqueFilesArgs>, result: null } | 
-        { key: "jobs.objectValidator", input: LibraryArgs<ObjectValidatorArgs>, result: null } | 
+        { key: "jobs.generateThumbsForLocation", input: LibraryArgs<GenerateThumbsForLocationArgs>, result: string } | 
+        { key: "jobs.identifyUniqueFiles", input: LibraryArgs<IdentifyUniqueFilesArgs>, result: string } | 
+        { key: "jobs.objectValidator", input: LibraryArgs<ObjectValidatorArgs>, result: string } | 
         { key: "jobs.pause", input: LibraryArgs<string>, result: null } | 
         { key: "jobs.resume", input: LibraryArgs<string>, result: null } | 
         { key: "library.create", input: CreateLibraryArgs, result: LibraryConfigWrapped } | 

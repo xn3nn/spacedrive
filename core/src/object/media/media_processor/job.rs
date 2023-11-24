@@ -1,14 +1,15 @@
 use crate::{
 	invalidate_query,
 	job::{
-		CurrentStep, JobError, JobInitOutput, JobReportUpdate, JobResult, JobStepOutput,
-		StatefulJob, WorkerContext,
+		CurrentStep, InfallibleJobRunError, JobError, JobInitOutput, JobReportUpdate, JobResult,
+		JobRunErrors, JobStepOutput, StatefulJob, WorkerContext,
 	},
 	library::Library,
 	location::file_path_helper::{
 		ensure_file_path_exists, ensure_sub_path_is_directory, ensure_sub_path_is_in_location,
 		file_path_for_media_processor, IsolatedFilePathData,
 	},
+	object::media::media_data_extractor::ExtractError,
 	prisma::{location, PrismaClient},
 	util::db::maybe_missing,
 	Node,
@@ -75,6 +76,7 @@ impl StatefulJob for MediaProcessorJobInit {
 	type Data = MediaProcessorJobData;
 	type Step = MediaProcessorJobStep;
 	type RunMetadata = MediaProcessorMetadata;
+	type RunError = ExtractError;
 
 	const NAME: &'static str = "media_processor";
 	const IS_BATCHED: bool = true;
@@ -87,7 +89,7 @@ impl StatefulJob for MediaProcessorJobInit {
 		&self,
 		ctx: &WorkerContext,
 		data: &mut Option<Self::Data>,
-	) -> Result<JobInitOutput<Self::RunMetadata, Self::Step>, JobError> {
+	) -> Result<JobInitOutput<Self>, JobError> {
 		let Library { db, .. } = ctx.library.as_ref();
 
 		let location_id = self.location.id;
@@ -202,7 +204,7 @@ impl StatefulJob for MediaProcessorJobInit {
 		CurrentStep { step, step_number }: CurrentStep<'_, Self::Step>,
 		data: &Self::Data,
 		_: &Self::RunMetadata,
-	) -> Result<JobStepOutput<Self::Step, Self::RunMetadata>, JobError> {
+	) -> Result<JobStepOutput<Self>, JobError> {
 		match step {
 			MediaProcessorJobStep::ExtractMediaData(file_paths) => process(
 				file_paths,

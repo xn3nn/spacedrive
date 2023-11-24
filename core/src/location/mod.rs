@@ -466,8 +466,9 @@ pub async fn scan_location(
 		regenerate_thumbnails: false,
 	})
 	.spawn(node, library)
-	.await
-	.map_err(Into::into)
+	.await?;
+
+	Ok(())
 }
 
 pub async fn scan_location_sub_path(
@@ -505,8 +506,9 @@ pub async fn scan_location_sub_path(
 		regenerate_thumbnails: false,
 	})
 	.spawn(node, library)
-	.await
-	.map_err(Into::into)
+	.await?;
+
+	Ok(())
 }
 
 pub async fn light_scan_location(

@@ -244,7 +244,7 @@ pub(crate) fn mount() -> AlphaRouter<Ctx> {
 			R.with2(library())
 				.mutation(|(node, library), args: FileDeleterJobInit| async move {
 					match args.file_path_ids.len() {
-						0 => Ok(()),
+						0 => Ok(None),
 						1 => {
 							let (maybe_location, maybe_file_path) = library
 								.db
@@ -283,7 +283,7 @@ pub(crate) fn mount() -> AlphaRouter<Ctx> {
 							} else {
 								fs::remove_file(&full_path).await
 							} {
-								Ok(()) => Ok(()),
+								Ok(()) => Ok(None),
 								Err(e) if e.kind() == io::ErrorKind::NotFound => {
 									warn!(
 										"File not found in the file system, will remove from database: {}",
@@ -297,7 +297,7 @@ pub(crate) fn mount() -> AlphaRouter<Ctx> {
 										.await
 										.map_err(LocationError::from)?;
 
-									Ok(())
+									Ok(None)
 								}
 								Err(e) => {
 									Err(LocationError::from(FileIOError::from((full_path, e)))
@@ -308,6 +308,7 @@ pub(crate) fn mount() -> AlphaRouter<Ctx> {
 						_ => Job::new(args)
 							.spawn(&node, &library)
 							.await
+							.map(Some)
 							.map_err(Into::into),
 					}
 				})

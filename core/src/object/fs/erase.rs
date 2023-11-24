@@ -1,8 +1,8 @@
 use crate::{
 	invalidate_query,
 	job::{
-		CurrentStep, JobError, JobInitOutput, JobResult, JobRunMetadata, JobStepOutput,
-		StatefulJob, WorkerContext,
+		CurrentStep, InfallibleJobRunError, JobError, JobInitOutput, JobResult, JobRunMetadata,
+		JobStepOutput, StatefulJob, WorkerContext,
 	},
 	library::Library,
 	location::{file_path_helper::IsolatedFilePathData, get_location_path_from_location_id},
@@ -59,6 +59,7 @@ impl StatefulJob for FileEraserJobInit {
 	type Data = FileEraserJobData;
 	type Step = FileData;
 	type RunMetadata = FileEraserJobRunMetadata;
+	type RunError = InfallibleJobRunError;
 
 	const NAME: &'static str = "file_eraser";
 
@@ -70,7 +71,7 @@ impl StatefulJob for FileEraserJobInit {
 		&self,
 		ctx: &WorkerContext,
 		data: &mut Option<Self::Data>,
-	) -> Result<JobInitOutput<Self::RunMetadata, Self::Step>, JobError> {
+	) -> Result<JobInitOutput<Self>, JobError> {
 		let init = self;
 		let Library { db, .. } = &*ctx.library;
 
@@ -91,7 +92,7 @@ impl StatefulJob for FileEraserJobInit {
 		CurrentStep { step, .. }: CurrentStep<'_, Self::Step>,
 		data: &Self::Data,
 		_: &Self::RunMetadata,
-	) -> Result<JobStepOutput<Self::Step, Self::RunMetadata>, JobError> {
+	) -> Result<JobStepOutput<Self>, JobError> {
 		let init = self;
 
 		// need to handle stuff such as querying prisma for all paths of a file, and deleting all of those if requested (with a checkbox in the ui)

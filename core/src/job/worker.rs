@@ -547,7 +547,7 @@ impl Worker {
 					report.id, report.name
 				);
 				report.status = JobStatus::CompletedWithErrors;
-				report.errors_text = errors;
+				report.errors_text = errors.into_iter().map(Into::into).collect();
 				report.data = None;
 				report.metadata = match (report.metadata.take(), metadata) {
 					(Some(mut current_metadata), Some(new_metadata)) => {
