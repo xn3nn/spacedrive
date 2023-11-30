@@ -46,9 +46,9 @@ pub(crate) fn mount() -> AlphaRouter<Ctx> {
 										.map(|s| {
 											serde_json::to_string(
 												&serde_json::from_str::<serde_json::Value>(&s)
-													.unwrap(),
+													.expect("failed to parse filters!"),
 											)
-											.unwrap()
+											.expect("failed to stringify filters!")
 										})
 										.map(Some)
 										.map(saved_search::filters::set),
