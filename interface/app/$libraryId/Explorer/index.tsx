@@ -17,6 +17,8 @@ import { ExplorerPath, PATH_BAR_HEIGHT } from './View/ExplorerPath';
 
 import 'react-slidedown/lib/slidedown.css';
 
+import { CopyProgress } from './CopyProgress';
+
 interface Props {
 	emptyNotice?: ExplorerViewProps['emptyNotice'];
 	contextMenu?: () => ReactNode;
@@ -102,7 +104,10 @@ export default function Explorer(props: PropsWithChildren<Props>) {
 					</div>
 				</div>
 			</ExplorerContextMenu>
+
 			{showPathBar && <ExplorerPath />}
+
+			<CopyProgress />
 
 			{explorerStore.showInspector && (
 				<Inspector

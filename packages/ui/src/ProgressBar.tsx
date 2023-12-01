@@ -25,7 +25,7 @@ export const ProgressBar = memo((props: ProgressBarProps) => {
 
 	if (props.pending) {
 		return (
-			<div className="indeterminate-progress-bar h-1 bg-app-button">
+			<div className="indeterminate-progress-bar h-1 w-[95%] bg-app-button">
 				<div className="indeterminate-progress-bar__progress bg-accent"></div>
 			</div>
 		);
@@ -33,7 +33,7 @@ export const ProgressBar = memo((props: ProgressBarProps) => {
 	return (
 		<ProgressPrimitive.Root
 			value={percentage}
-			className={clsx('h-1 w-[94%] overflow-hidden rounded-full bg-app-button')}
+			className={clsx('h-1 w-[95%] overflow-hidden rounded-full bg-app-button')}
 		>
 			<ProgressPrimitive.Indicator
 				style={{ width: `${percentage}%` }}
