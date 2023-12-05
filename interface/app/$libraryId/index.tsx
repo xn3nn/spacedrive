@@ -10,6 +10,7 @@ const pageRoutes: RouteObject = {
 	lazy: () => import('./PageLayout'),
 	children: [
 		{ path: 'people', lazy: () => import('./people') },
+		{ path: 'statistics', lazy: () => import('./statistics') },
 		{ path: 'media', lazy: () => import('./media') },
 		{ path: 'spaces', lazy: () => import('./spaces') },
 		{ path: 'debug', lazy: () => import('./debug') },

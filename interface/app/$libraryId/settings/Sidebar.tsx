@@ -1,6 +1,7 @@
 import {
 	Books,
 	ChartBar,
+	Circuitry,
 	Cloud,
 	Database,
 	FlyingSaucer,
@@ -11,6 +12,7 @@ import {
 	PaintBrush,
 	PuzzlePiece,
 	Receipt,
+	Robot,
 	ShieldCheck,
 	TagSimple,
 	User
@@ -79,6 +81,13 @@ export default () => {
 					<SidebarLink to="client/keybindings">
 						<Icon component={KeyReturn} />
 						Keybinds
+					</SidebarLink>
+					<SidebarLink to="client/models">
+						<Icon component={Circuitry} />
+						Models
+						<div className="ml-2 rounded-full bg-accent px-1 text-[9px] font-semibold text-white">
+							NEW
+						</div>
 					</SidebarLink>
 					<SidebarLink to="client/extensions" disabled>
 						<Icon component={PuzzlePiece} />

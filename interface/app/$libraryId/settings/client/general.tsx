@@ -43,6 +43,13 @@ export const Component = () => {
 					})
 					.int()
 					.nonnegative()
+					.lte(100),
+				neural_engine_percentage: z.coerce
+					.number({
+						invalid_type_error: 'Must use numbers from 0 to 100'
+					})
+					.int()
+					.nonnegative()
 					.lte(100)
 			})
 			.strict(),
@@ -53,7 +60,8 @@ export const Component = () => {
 			p2p_port: node.data?.p2p_port || 0,
 			customOrDefault: node.data?.p2p_port ? 'Custom' : 'Default',
 			background_processing_percentage:
-				node.data?.preferences.thumbnailer.background_processing_percentage || 50
+				node.data?.preferences.thumbnailer.background_processing_percentage || 50,
+			neural_engine_percentage: 75
 		}
 	});
 
@@ -213,6 +221,35 @@ export const Component = () => {
 						}
 						maxLength={3}
 						{...form.register('background_processing_percentage', {
+							valueAsNumber: true
+						})}
+					/>
+				</div>
+			</Setting>
+			<Setting
+				mini
+				registerName="neural_engine_percentage"
+				title="Neural Engine usage"
+				description="Limit how much processing power to allocate your on-device neural engine."
+			>
+				<div className="flex h-[30px] w-80 items-center gap-2">
+					<Slider
+						onValueChange={(value) => {
+							if (value.length > 0) {
+								form.setValue('neural_engine_percentage', value[0] ?? 0);
+							}
+						}}
+						max={100}
+						step={25}
+						min={0}
+						// value={[watchBackgroundProcessingPercentage]}
+					/>
+					<Input
+						className="after:h-initial relative h-[30px] w-[8ch]
+						after:absolute after:right-[0.8em] after:top-1/2 after:inline-block after:-translate-y-2/4 after:content-['%']"
+						defaultValue={75}
+						maxLength={3}
+						{...form.register('neural_engine_percentage', {
 							valueAsNumber: true
 						})}
 					/>

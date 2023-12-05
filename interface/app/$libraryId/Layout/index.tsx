@@ -1,5 +1,6 @@
 import clsx from 'clsx';
-import { Suspense, useEffect, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useHandleOpenCommandPalette } from 'react-cmdk';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
 	ClientContextProvider,
@@ -24,6 +25,7 @@ import {
 import { usePlatform } from '~/util/Platform';
 
 import { QuickPreviewContextProvider } from '../Explorer/QuickPreview/Context';
+import CMDK from './CMDK';
 import { LayoutContext } from './Context';
 import Sidebar from './Sidebar';
 
@@ -43,6 +45,10 @@ const Layout = () => {
 
 	usePlausible();
 	useUpdater();
+
+	const [isOpen, setIsOpen] = useState<boolean>(false);
+
+	useHandleOpenCommandPalette(setIsOpen);
 
 	if (library === null && libraries.data) {
 		const firstLibrary = libraries.data[0];
@@ -80,6 +86,7 @@ const Layout = () => {
 						<QuickPreviewContextProvider>
 							<LibraryContextProvider library={library}>
 								<Suspense fallback={<div className="h-screen w-screen bg-app" />}>
+									<CMDK open={isOpen} setOpen={setIsOpen} />
 									<Outlet />
 								</Suspense>
 							</LibraryContextProvider>
