@@ -7,6 +7,7 @@ import CommandPalette, { filterItems, getItemIndex, JsonStructure } from 'react-
 import { arraysEqual, useLibraryQuery, useOnlineLocations } from '@sd/client';
 import { CheckBox } from '@sd/ui';
 import { Icon } from '~/components';
+import Sparkles from '~/components/Sparkles';
 
 const CMDK = (props: { open: boolean; setOpen: (open: boolean) => void }) => {
 	const [page, setPage] = useState<'root' | 'actions'>('root');
@@ -79,7 +80,7 @@ const CMDK = (props: { open: boolean; setOpen: (open: boolean) => void }) => {
 			items: [
 				{
 					id: 'ask-anything',
-					children: 'Ask Anything',
+					children: <Sparkles>Ask Anything</Sparkles>,
 					icon: 'StarIcon',
 					closeOnSelect: false,
 					onClick: () => setPage('actions')

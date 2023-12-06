@@ -27,3 +27,5 @@ export * from './useRedirectToNewLocation';
 export * from './useWindowState';
 export * from './useIsLocationIndexing';
 export * from './useRouteTitle';
+export * from './usePrefersReducedMotion';
+export * from './useRandomInterval';
