@@ -24,7 +24,7 @@ import { LibrarySection } from './LibrarySection';
 import SidebarLink from './Link';
 import Section from './Section';
 
-const STYLES = `absolute right-1 top-1 flex h-[19px] w-[19px] items-center justify-center rounded-full border border-app-button/40 text-[9px]`;
+const STYLES = `absolute right-1 top-1 flex h-[19px] px-1 items-center justify-center rounded-full border border-app-button/40 text-[9px]`;
 
 export default () => {
 	const { library } = useClientContext();
