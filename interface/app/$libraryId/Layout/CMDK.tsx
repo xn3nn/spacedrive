@@ -80,8 +80,8 @@ const CMDK = (props: { open: boolean; setOpen: (open: boolean) => void }) => {
 			items: [
 				{
 					id: 'ask-anything',
-					children: <Sparkles>Ask Anything</Sparkles>,
-					icon: 'StarIcon',
+					children: '✨ Ask anything',
+
 					closeOnSelect: false,
 					onClick: () => setPage('actions')
 				}
