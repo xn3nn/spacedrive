@@ -79,8 +79,8 @@ const CMDK = (props: { open: boolean; setOpen: (open: boolean) => void }) => {
 			items: [
 				{
 					id: 'ask-anything',
-					children: 'Ask Anything',
-					icon: 'StarIcon',
+					children: '✨ Ask anything',
+
 					closeOnSelect: false,
 					onClick: () => setPage('actions')
 				}
@@ -119,20 +119,20 @@ const CMDK = (props: { open: boolean; setOpen: (open: boolean) => void }) => {
 
 			<CommandPalette.Page id="actions">
 				<CommandPalette.List>
-					<div className="space-y-4 p-4">
-						<div className="flex items-center space-x-2 pt-2">
+					<div className="p-4 space-y-4">
+						<div className="flex items-center pt-2 space-x-2">
 							<CheckBox className="!mt-0" />
 							<p className="text-sm text-ink">Enable Action A</p>
 						</div>
-						<div className="flex items-center space-x-2 pt-2">
+						<div className="flex items-center pt-2 space-x-2">
 							<CheckBox className="!mt-0" />
 							<p className="text-sm text-ink">Enable Action B</p>
 						</div>
-						<div className="flex items-center space-x-2 pt-2">
+						<div className="flex items-center pt-2 space-x-2">
 							<CheckBox className="!mt-0" />
 							<p className="text-sm text-ink">Enable Action C</p>
 						</div>
-						<div className="flex items-center space-x-2 pt-2">
+						<div className="flex items-center pt-2 space-x-2">
 							<CheckBox className="!mt-0" />
 							<p className="text-sm text-ink">Enable Action D</p>
 						</div>
