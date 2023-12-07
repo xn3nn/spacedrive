@@ -53,18 +53,20 @@ const Sparkles = ({ color = DEFAULT_COLOR, children, ...props }: SparklesProps) 
 			nextSparkles.push(sparkle);
 			setSparkles(nextSparkles);
 		},
-		prefersReducedMotion ? null : 50,
-		prefersReducedMotion ? null : 450
+		prefersReducedMotion ? null : 100,
+		prefersReducedMotion ? null : 1000
 	);
+
 	return (
-		<span style={{ display: 'inline-block', position: 'relative' }} {...props}>
+		<span className="relative inline-block" {...props}>
 			{sparkles.map((sparkle) => (
 				<span
 					key={sparkle.id}
 					style={{
 						position: 'absolute',
 						display: 'block',
-						animation: prefersReducedMotion ? 'none' : 'comeInOut 700ms forwards'
+						animation: prefersReducedMotion ? 'none' : 'comeInOut 700ms forwards',
+						...sparkle.style
 					}}
 				>
 					<svg
