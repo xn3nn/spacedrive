@@ -13,9 +13,7 @@ import {
 	UserFocus
 } from '@phosphor-icons/react';
 import { Tag } from '@phosphor-icons/react/dist/ssr';
-import { useNavigate } from 'react-router';
 import { LibraryContextProvider, useClientContext, useFeatureFlag } from '@sd/client';
-import { useKeysMatcher } from '~/hooks';
 
 import { RenderIcon } from '../../Search/util';
 import { EphemeralSection } from './EphemeralSection';
@@ -28,13 +26,6 @@ const STYLES = `absolute right-1 top-1 flex h-[19px] px-1 items-center justify-c
 
 export default () => {
 	const { library } = useClientContext();
-	const navigate = useNavigate();
-	const symbols = useKeysMatcher(['Meta', 'Shift']);
-
-	// useShortcut('navToOverview', (e) => {
-	// 	e.stopPropagation();
-	// 	navigate('overview');
-	// });
 
 	return (
 		<div className="no-scrollbar mask-fade-out flex grow flex-col space-y-5 overflow-x-hidden overflow-y-scroll pb-10">
@@ -63,6 +54,23 @@ export default () => {
 						Cloud
 					</SidebarLink>
 				)}
+				{useFeatureFlag('syncRoute') ||
+					(useFeatureFlag('cloud') && (
+						<div className="space-y-0.5">
+							{useFeatureFlag('syncRoute') && (
+								<SidebarLink to="sync">
+									<Icon component={ArrowsClockwise} />
+									Sync
+								</SidebarLink>
+							)}
+							{useFeatureFlag('cloud') && (
+								<SidebarLink to="cloud">
+									<Icon component={Cloud} />
+									Cloud
+								</SidebarLink>
+							)}
+						</div>
+					))}
 			</div>
 
 			<EphemeralSection />
