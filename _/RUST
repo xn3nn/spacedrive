@@ -1,0 +1,51 @@
+tauri-ipc-listener - 1701934603709
+plugin:rspc:transport - decoded - 49.583µs
+plugin:rspc:transport - 88.166µs
+plugin:rspc:transport - thread(Request { jsonrpc: None, id: String("i7ec3cjmn8"), inner: Query { path: "locations.list", input: Some(Object {"library_id": String("2906a768-4301-4457-9812-cce232134991"), "arg": Null}) } }) - start - 384.25µs
+        handle_json_rpc - start
+        handle_json_rpc - got op - 6.084µs
+        handle_json_rpc - executed chain - 25.084µs
+                 this.0 ready - 18.875µs
+                 this.2 ready - 1.40625ms
+        handle_json_rpc - yielded - 1.438834ms
+plugin:rspc:transport - send - 247.334µs
+        handle_json_rpc - polled stream for result - 1.705875ms
+plugin:rspc:transport - thread(Request { jsonrpc: None, id: String("i7ec3cjmn8"), inner: Query { path: "locations.list", input: Some(Object {"library_id": String("2906a768-4301-4457-9812-cce232134991"), "arg": Null}) } }) - end - 1.711292ms
+tauri-ipc-listener - 1701934603973
+plugin:rspc:transport - decoded - 58.125µs
+plugin:rspc:transport - 96.542µs
+plugin:rspc:transport - thread(Request { jsonrpc: None, id: String("vu3jgm9kzfn"), inner: Query { path: "search.ephemeralPaths", input: Some(Object {"library_id": String("2906a768-4301-4457-9812-cce232134991"), "arg": Object {"path": String("/Users/oscar/sd-stuff/test-location"), "withHiddenFiles": Bool(false), "order": Object {"field": String("name"), "value": String("Asc")}}}) } }) - start - 325.958µs
+        handle_json_rpc - start
+        handle_json_rpc - got op - 5.709µs
+        handle_json_rpc - executed chain - 45.834µs
+                 this.0 ready - 22.583µs
+entering user code at 1701934603974
+                                 - search.ephemeralPaths
+                                 - walked - 1.273412125s
+                                 - order match - 1.3055775s
+                                 - denormalise - 1.461914s
+ending user code at 1701934605436
+                 this.2 ready - 1.635134458s
+        handle_json_rpc - yielded - 1.635196125s
+plugin:rspc:transport - send - 205.792167ms
+        handle_json_rpc - polled stream for result - 1.841007542s
+plugin:rspc:transport - thread(Request { jsonrpc: None, id: String("vu3jgm9kzfn"), inner: Query { path: "search.ephemeralPaths", input: Some(Object {"library_id": String("2906a768-4301-4457-9812-cce232134991"), "arg": Object {"path": String("/Users/oscar/sd-stuff/test-location"), "withHiddenFiles": Bool(false), "order": Object {"field": String("name"), "value": String("Asc")}}}) } }) - end - 1.841024458s
+tauri-ipc-listener - 1701934607669
+plugin:rspc:transport - decoded - 80.125µs
+plugin:rspc:transport - 131.459µs
+plugin:rspc:transport - thread(Request { jsonrpc: None, id: String("nv8v9rwcnl"), inner: Query { path: "search.ephemeralPaths", input: Some(Object {"library_id": String("2906a768-4301-4457-9812-cce232134991"), "arg": Object {"path": String("/Users/oscar/sd-stuff/test-location"), "withHiddenFiles": Bool(false), "order": Object {"field": String("name"), "value": String("Asc")}}}) } }) - start - 474.75µs
+        handle_json_rpc - start
+        handle_json_rpc - got op - 5.959µs
+        handle_json_rpc - executed chain - 43.792µs
+                 this.0 ready - 51.792µs
+entering user code at 1701934607669
+                                 - search.ephemeralPaths
+                                 - walked - 1.445738s
+                                 - order match - 1.477040209s
+                                 - denormalise - 1.629321625s
+ending user code at 1701934609299
+                 this.2 ready - 1.799323792s
+        handle_json_rpc - yielded - 1.799384959s
+plugin:rspc:transport - send - 199.078041ms
+        handle_json_rpc - polled stream for result - 1.998480459s
+plugin:rspc:transport - thread(Request { jsonrpc: None, id: String("nv8v9rwcnl"), inner: Query { path: "search.ephemeralPaths", input: Some(Object {"library_id": String("2906a768-4301-4457-9812-cce232134991"), "arg": Object {"path": String("/Users/oscar/sd-stuff/test-location"), "withHiddenFiles": Bool(false), "order": Object {"field": String("name"), "value": String("Asc")}}}) } }) - end - 1.99848725s

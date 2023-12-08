@@ -57,4 +57,5 @@ serde_json = { version = "1.0" }
 if-watch = { git = "https://github.com/oscartbeaumont/if-watch.git", rev = "f732786057e57250e863a9ea0b1874e4cc9907c2" }
 
 # Beta features
-rspc = { git = "https://github.com/spacedriveapp/rspc.git", rev = "f3347e2e8bfe3f37bfacc437ca329fe71cdcb048" }
+rspc = { git = "https://github.com/spacedriveapp/rspc.git", rev = "878f4080f218b7d70af064eda6514fea78088ba2" }
+# rspc = { path = "/Users/oscar/Desktop/rspc-sd-fork" }

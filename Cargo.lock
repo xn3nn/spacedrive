@@ -2986,7 +2986,7 @@ checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 [[package]]
 name = "httpz"
 version = "0.0.6"
-source = "git+https://github.com/spacedriveapp/rspc.git?rev=f3347e2e8bfe3f37bfacc437ca329fe71cdcb048#f3347e2e8bfe3f37bfacc437ca329fe71cdcb048"
+source = "git+https://github.com/spacedriveapp/rspc.git?rev=878f4080f218b7d70af064eda6514fea78088ba2#878f4080f218b7d70af064eda6514fea78088ba2"
 dependencies = [
  "async-tungstenite",
  "axum",
@@ -6580,7 +6580,7 @@ dependencies = [
 [[package]]
 name = "rspc"
 version = "0.1.4"
-source = "git+https://github.com/spacedriveapp/rspc.git?rev=f3347e2e8bfe3f37bfacc437ca329fe71cdcb048#f3347e2e8bfe3f37bfacc437ca329fe71cdcb048"
+source = "git+https://github.com/spacedriveapp/rspc.git?rev=878f4080f218b7d70af064eda6514fea78088ba2#878f4080f218b7d70af064eda6514fea78088ba2"
 dependencies = [
  "futures",
  "futures-channel",

@@ -128,3 +128,6 @@ version = "0.1.6"
 [dev-dependencies]
 tracing-test = "^0.2.4"
 aovec = "1.1.0"
+
+[profile.release]
+debug = true

@@ -14,6 +14,7 @@ use std::{
 	collections::HashMap,
 	path::{Path, PathBuf},
 	sync::Arc,
+	time::{Duration, Instant},
 };
 
 use sd_file_ext::{extensions::Extension, kind::ObjectKind};
@@ -94,8 +95,13 @@ pub async fn walk(
 	node: Arc<Node>,
 	library: Arc<Library>,
 ) -> Result<NonIndexedFileSystemEntries, NonIndexedLocationError> {
+	println!("\n\n-- START WALK --");
+	let time = Instant::now();
+
 	let path = full_path.as_ref();
 	let mut read_dir = fs::read_dir(path).await.map_err(|e| (path, e))?;
+
+	println!("READ DIR: {:?}", time.elapsed());
 
 	let mut directories = vec![];
 	let mut errors = vec![];
@@ -106,17 +112,27 @@ pub async fn walk(
 		[(!with_hidden_files).then(|| IndexerRule::from(no_hidden()))],
 	);
 
+	println!("RULES: {:?}", time.elapsed());
+
 	let mut thumbnails_to_generate = vec![];
 	// Generating thumbnails for PDFs is kinda slow, so we're leaving them for last in the batch
 	let mut document_thumbnails_to_generate = vec![];
 
+	let mut times = Vec::new();
+	let mut indexer_rule_apply = Vec::new();
+	let mut resolve_extension_conflict = Vec::new();
+	let mut cas_id_time = Vec::new();
+
 	while let Some(entry) = read_dir.next_entry().await.map_err(|e| (path, e))? {
+		let now = Instant::now();
+
 		let Ok((entry_path, name)) = normalize_path(entry.path())
 			.map_err(|e| errors.push(NonIndexedLocationError::from((path, e)).into()))
 		else {
 			continue;
 		};
 
+		let a = Instant::now();
 		if let Ok(rule_results) = IndexerRule::apply_all(&rules, &entry_path)
 			.await
 			.map_err(|e| errors.push(e.into()))
@@ -131,6 +147,7 @@ pub async fn walk(
 		} else {
 			continue;
 		}
+		indexer_rule_apply.push(a.elapsed());
 
 		let Ok(metadata) = entry
 			.metadata()
@@ -158,10 +175,12 @@ pub async fn walk(
 				.and_then(|s| s.to_str().map(str::to_string))
 				.unwrap_or_default();
 
+			let b = Instant::now();
 			let kind = Extension::resolve_conflicting(&path, false)
 				.await
 				.map(Into::into)
 				.unwrap_or(ObjectKind::Unknown);
+			resolve_extension_conflict.push(b.elapsed());
 
 			let should_generate_thumbnail = {
 				#[cfg(feature = "ffmpeg")]
@@ -179,7 +198,9 @@ pub async fn walk(
 			};
 
 			let thumbnail_key = if should_generate_thumbnail {
-				if let Ok(cas_id) = generate_cas_id(&path, metadata.len())
+				let b = Instant::now();
+
+				let result = if let Ok(cas_id) = generate_cas_id(&path, metadata.len())
 					.await
 					.map_err(|e| errors.push(NonIndexedLocationError::from((path, e)).into()))
 				{
@@ -200,7 +221,11 @@ pub async fn walk(
 					Some(get_ephemeral_thumb_key(&cas_id))
 				} else {
 					None
-				}
+				};
+
+				cas_id_time.push(b.elapsed());
+
+				result
 			} else {
 				None
 			};
@@ -221,13 +246,76 @@ pub async fn walk(
 				},
 			});
 		}
+
+		// println!("{:?} {:?}", now.elapsed(), now.elapsed().as_millis());
+		times.push(now.elapsed());
 	}
+
+	println!("ITERATOR TOTAL: {:?}", time.elapsed());
+
+	// if times.len() != 0 {
+	// 	let sum = times.iter().map(|d| d.as_nanos()).sum::<u128>();
+	// 	println!(
+	// 		"\tAVERAGE TIME PER ITER: {:?} {:?} {:?}/{}",
+	// 		sum,
+	// 		sum / (times.len() as u128),
+	// 		sum as f64 / times.len() as f64,
+	// 		times.len()
+	// 	);
+	// }
+	// if indexer_rule_apply.len() != 0 {
+	// 	let sum = indexer_rule_apply
+	// 		.iter()
+	// 		.map(|d| d.as_nanos())
+	// 		.sum::<u128>();
+	// 	let time_per_iter = sum / indexer_rule_apply.len() as u128;
+	// 	let percentage_total = sum as f64 / time.elapsed().as_nanos() as f64 * 100.0;
+
+	// 	println!(
+	// 		"\tINDEXER RULE APPLY: {:?} {:?}/{} {:?}",
+	// 		Duration::from_nanos(sum as u64),
+	// 		time_per_iter,
+	// 		indexer_rule_apply.len(),
+	// 		percentage_total
+	// 	);
+	// }
+	// if resolve_extension_conflict.len() != 0 {
+	// 	let sum = resolve_extension_conflict
+	// 		.iter()
+	// 		.map(|d: &Duration| d.as_nanos())
+	// 		.sum::<u128>();
+	// 	let time_per_iter = sum / resolve_extension_conflict.len() as u128;
+	// 	let percentage_total = sum as f64 / time.elapsed().as_nanos() as f64 * 100.0;
+
+	// 	println!(
+	// 		"\tRESOLVER EXT CONFLICT: {:?} {:?}/{} {:?}",
+	// 		Duration::from_nanos(sum as u64),
+	// 		time_per_iter,
+	// 		resolve_extension_conflict.len(),
+	// 		percentage_total
+	// 	);
+	// }
+	// if cas_id_time.len() != 0 {
+	// 	let sum = cas_id_time.iter().map(|d| d.as_nanos()).sum::<u128>();
+	// 	let time_per_iter = sum / cas_id_time.len() as u128;
+	// 	let percentage_total = sum as f64 / time.elapsed().as_nanos() as f64 * 100.0;
+
+	// 	println!(
+	// 		"\tCAS ID TIME: {:?} {:?}/{} {:?}",
+	// 		Duration::from_nanos(sum as u64),
+	// 		time_per_iter,
+	// 		cas_id_time.len(),
+	// 		percentage_total
+	// 	);
+	// }
 
 	thumbnails_to_generate.extend(document_thumbnails_to_generate);
 
 	node.thumbnailer
 		.new_ephemeral_thumbnails_batch(BatchToProcess::new(thumbnails_to_generate, false, false))
 		.await;
+
+	println!("NEW EPHEMERAL THUMBNAILS BATCH: {:?}", time.elapsed());
 
 	let mut locations = library
 		.db
@@ -248,6 +336,8 @@ pub async fn walk(
 				.map(|location_path| (location_path, location))
 		})
 		.collect::<HashMap<_, _>>();
+
+	println!("PRISMA LOCATIONS GET: {:?}", time.elapsed());
 
 	for (directory, name, metadata) in directories {
 		if let Some(location) = locations.remove(&directory) {
@@ -274,6 +364,8 @@ pub async fn walk(
 			});
 		}
 	}
+
+	println!("-- END WALK -- {:?}\n\n", time.elapsed());
 
 	Ok(NonIndexedFileSystemEntries { entries, errors })
 }

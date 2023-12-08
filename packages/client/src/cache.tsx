@@ -168,6 +168,7 @@ export function useNormalisedCache() {
 }
 
 function updateNodes(cache: Store, data: CacheNode[] | undefined) {
+	console.time('updateNodes');
 	if (!data) return;
 
 	for (const item of data) {
@@ -183,6 +184,7 @@ function updateNodes(cache: Store, data: CacheNode[] | undefined) {
 		// TODO: This should be a deepmerge but that would break stuff like `size_in_bytes` or `inode` as the arrays are joined.
 		cache.nodes[item.__type]![item.__id] = copy;
 	}
+	console.timeEnd('updateNodes');
 }
 
 export type UseCacheResult<T> = T extends (infer A)[]
@@ -199,7 +201,12 @@ export function useCache<T>(data: T | undefined) {
 	const [i, setI] = useState(0); // TODO: Remove this
 
 	const state = useMemo(
-		() => restore(cache.cache, subscribed, data) as UseCacheResult<T>,
+		() => {
+			console.time('restoreCache1');
+			const result = restore(cache.cache, subscribed, data) as UseCacheResult<T>;
+			console.timeEnd('restoreCache1');
+			return result;
+		},
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[cache, data, i]
 	);

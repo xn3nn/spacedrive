@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowRight, Info } from '@phosphor-icons/react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { iconNames } from '@sd/assets/util';
+import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 import { memo, Suspense, useDeferredValue, useMemo } from 'react';
 import { useLocation } from 'react-router';
@@ -10,6 +11,7 @@ import {
 	useCache,
 	useLibraryQuery,
 	useNodes,
+	useRspcLibraryContext,
 	type EphemeralPathOrder
 } from '@sd/client';
 import { Button, Tooltip } from '@sd/ui';
@@ -176,7 +178,8 @@ const EphemeralExplorer = memo((props: { args: PathParams }) => {
 
 	const settingsSnapshot = explorerSettings.useSettingsSnapshot();
 
-	const query = useLibraryQuery(
+	const rspc = useRspcLibraryContext();
+	const query = useQuery(
 		[
 			'search.ephemeralPaths',
 			{
@@ -185,10 +188,24 @@ const EphemeralExplorer = memo((props: { args: PathParams }) => {
 				order: settingsSnapshot.order
 			}
 		],
+		(input) => {
+			console.log('EPHEMERAL SENDING - ', +Date.now());
+			return rspc.client.query([
+				'search.ephemeralPaths',
+				{
+					path: path ?? (os === 'windows' ? 'C:\\' : '/'),
+					withHiddenFiles: settingsSnapshot.showHiddenFiles,
+					order: settingsSnapshot.order
+				}
+			]);
+		},
 		{
 			enabled: path != null,
 			suspense: true,
-			onSuccess: () => getExplorerStore().resetNewThumbnails()
+			onSuccess: () => {
+				console.log('EPHEMERAL RESULT - ', +Date.now());
+				getExplorerStore().resetNewThumbnails();
+			}
 		}
 	);
 	useNodes(query.data?.nodes);

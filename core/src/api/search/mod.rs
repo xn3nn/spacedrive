@@ -16,7 +16,10 @@ use crate::{
 	object::media::thumbnail::get_indexed_thumb_key,
 };
 
-use std::path::PathBuf;
+use std::{
+	path::PathBuf,
+	time::{Instant, SystemTime, UNIX_EPOCH},
+};
 
 use rspc::{alpha::AlphaRouter, ErrorCode};
 use sd_cache::{CacheNode, Model, Normalise, Reference};
@@ -113,8 +116,21 @@ pub fn mount() -> AlphaRouter<Ctx> {
 				     with_hidden_files,
 				     order,
 				 }| async move {
+					println!(
+						"entering user code at {:?}",
+						SystemTime::now()
+							.duration_since(UNIX_EPOCH)
+							.expect("Time went backwards")
+							.as_millis()
+					);
+
+					let time = Instant::now();
+					println!("\t\t\t\t - search.ephemeralPaths");
+
 					let mut paths =
 						non_indexed::walk(path, with_hidden_files, node, library).await?;
+
+					println!("\t\t\t\t - walked - {:?}", time.elapsed());
 
 					macro_rules! order_match {
 						($order:ident, [$(($variant:ident, |$i:ident| $func:expr)),+]) => {{
@@ -148,7 +164,18 @@ pub fn mount() -> AlphaRouter<Ctx> {
 						)
 					}
 
+					println!("\t\t\t\t - order match - {:?}", time.elapsed());
+
 					let (nodes, entries) = paths.entries.normalise(|item| item.id());
+
+					println!("\t\t\t\t - denormalise - {:?}", time.elapsed());
+					println!(
+						"ending user code at {:?}",
+						SystemTime::now()
+							.duration_since(UNIX_EPOCH)
+							.expect("Time went backwards")
+							.as_millis()
+					);
 
 					Ok(EphemeralPathsResult {
 						entries,

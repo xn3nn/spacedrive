@@ -39,7 +39,7 @@ pub mod custom_uri;
 mod env;
 pub(crate) mod job;
 pub mod library;
-pub(crate) mod location;
+pub mod location;
 pub(crate) mod node;
 pub(crate) mod notifications;
 pub(crate) mod object;
