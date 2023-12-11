@@ -4,7 +4,7 @@ import './CMDK.scss';
 import clsx from 'clsx';
 import { useState } from 'react';
 import CommandPalette, { filterItems, getItemIndex, JsonStructure } from 'react-cmdk';
-import { arraysEqual, useLibraryQuery, useOnlineLocations } from '@sd/client';
+import { arraysEqual, useCache, useLibraryQuery, useNodes, useOnlineLocations } from '@sd/client';
 import { CheckBox } from '@sd/ui';
 import { Icon } from '~/components';
 import Sparkles from '~/components/Sparkles';
@@ -14,6 +14,9 @@ const CMDK = (props: { open: boolean; setOpen: (open: boolean) => void }) => {
 	const [search, setSearch] = useState('');
 
 	const locationsQuery = useLibraryQuery(['locations.list'], { keepPreviousData: true });
+	useNodes(locationsQuery.data?.nodes);
+	const locations = useCache(locationsQuery.data?.items);
+
 	const onlineLocations = useOnlineLocations();
 
 	function handleClose(open: boolean) {
@@ -27,8 +30,8 @@ const CMDK = (props: { open: boolean; setOpen: (open: boolean) => void }) => {
 			{
 				heading: 'Locations',
 				id: 'locations',
-				items: locationsQuery.data
-					? locationsQuery.data.map((location) => ({
+				items: locations
+					? locations.map((location) => ({
 							id: location.id,
 							children: location.name,
 							icon: () => (
