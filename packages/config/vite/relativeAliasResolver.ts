@@ -1,8 +1,11 @@
 // BE REALLY DAMN CAREFUL MODIFYING THIS FILE: https://github.com/spacedriveapp/spacedrive/pull/1353
 
 import fs from 'fs/promises';
-import path from 'path';
+import path, { dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { Alias } from 'vite';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const projectPath = path.resolve(__dirname, '../../../');
 const pkgJsonCache = new Map();

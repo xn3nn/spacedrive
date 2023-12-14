@@ -1,13 +1,19 @@
-import react from '@vitejs/plugin-react';
+// import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { createHtmlPlugin } from 'vite-plugin-html';
+// import solid from 'vite-plugin-solid';
 import svg from 'vite-plugin-svgr';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig({
 	plugins: [
 		tsconfigPaths(),
-		react(),
+		// react({
+		// 	exclude: ['**/*.solid.*']
+		// }),
+		// solid({
+		// 	include: ['**/*.solid.*']
+		// }),
 		svg({ svgrOptions: { icon: true } }),
 		createHtmlPlugin({
 			minify: true
@@ -18,10 +24,10 @@ export default defineConfig({
 			localsConvention: 'camelCaseOnly'
 		}
 	},
-	root: 'src',
-	build: {
-		sourcemap: true,
-		outDir: '../dist',
-		assetsDir: '.'
-	}
+	root: 'src'
+	// build: {
+	// 	sourcemap: true,
+	// 	outDir: '../dist',
+	// 	assetsDir: '.'
+	// }
 });

@@ -107,9 +107,7 @@ export const createDefaultExplorerSettings = <TOrder extends Ordering>(args?: {
 	}) satisfies ExplorerSettings<TOrder>;
 
 export type CutCopyState =
-	| {
-			type: 'Idle';
-	  }
+	| { type: 'Idle' }
 	| {
 			type: 'Cut' | 'Copy';
 			sourceParentPath: string; // this is used solely for preventing copy/cutting to the same path (as that will truncate the file)

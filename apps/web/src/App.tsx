@@ -1,3 +1,6 @@
+import '@sd/ui/style/style.scss';
+import '~/patches';
+
 import { hydrate, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
@@ -85,7 +88,7 @@ const cache = createCache();
 
 const routes = createRoutes(platform, cache);
 
-function App() {
+export function App() {
 	const router = useRouter();
 
 	const domEl = useRef<HTMLDivElement>(null);
@@ -125,8 +128,6 @@ function App() {
 		</ScreenshotWrapper>
 	);
 }
-
-export default App;
 
 function useRouter() {
 	const [router, setRouter] = useState(() => {

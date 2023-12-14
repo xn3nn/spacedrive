@@ -11,9 +11,9 @@
 		"lint": "eslint src --cache"
 	},
 	"dependencies": {
-		"@remix-run/router": "^1.13.1",
-		"@rspc/client": "=0.0.0-main-799eec5d",
-		"@rspc/tauri": "=0.0.0-main-799eec5d",
+		"@remix-run/router": "^1.14.0",
+		"@rspc/client": "0.0.0-main-45466c86",
+		"@rspc/tauri": "0.0.0-main-45466c86",
 		"@sd/client": "workspace:*",
 		"@sd/interface": "workspace:*",
 		"@sd/ui": "workspace:*",
@@ -24,20 +24,20 @@
 		"react": "^18.2.0",
 		"react-dom": "^18.2.0",
 		"react-router-dom": "6.20.1",
-		"sonner": "^1.0.3"
+		"sonner": "^1.2.4"
 	},
 	"devDependencies": {
 		"@sd/config": "workspace:*",
-		"@sentry/vite-plugin": "^2.9.0",
-		"@tauri-apps/cli": "^1.5.6",
-		"@types/react": "^18.2.34",
-		"@types/react-dom": "^18.2.14",
-		"@vitejs/plugin-react": "^4.1.1",
+		"@sentry/vite-plugin": "^2.10.2",
+		"@tauri-apps/cli": "^1.5.8",
+		"@types/react": "^18.2.45",
+		"@types/react-dom": "^18.2.17",
+		"@vitejs/plugin-react": "^4.2.1",
 		"sass": "^1.69.5",
-		"typescript": "^5.2.2",
-		"vite": "^4.5.0",
+		"typescript": "^5.3.3",
+		"vite": "^5.0.9",
 		"vite-plugin-html": "^3.2.0",
 		"vite-plugin-svgr": "^3.3.0",
-		"vite-tsconfig-paths": "^4.2.1"
+		"vite-tsconfig-paths": "^4.2.2"
 	}
 }

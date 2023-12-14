@@ -7,8 +7,8 @@ import duration from 'dayjs/plugin/duration';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { PropsWithChildren, Suspense } from 'react';
 import { RouterProvider, RouterProviderProps } from 'react-router-dom';
+import { ReactToSolidBridgeProvider } from 'react-solid-bridge';
 import {
-	CacheProvider,
 	NotificationContextProvider,
 	P2PContextProvider,
 	useInvalidateQuery,

@@ -4,12 +4,15 @@ import {
 	forwardRef,
 	HTMLAttributes,
 	SyntheticEvent,
+	useEffect,
 	useImperativeHandle,
 	useMemo,
 	useRef,
 	useState
 } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
+import * as Solid from 'solid-js';
+import { render } from 'solid-js/web';
 import { getItemFilePath, useLibraryContext, type ExplorerItem } from '@sd/client';
 import { useIsDark } from '~/hooks';
 import { pdfViewerEnabled } from '~/util/pdfViewer';
@@ -174,18 +177,21 @@ export const FileThumb = forwardRef<HTMLImageElement, ThumbProps>((props, ref) =
 
 			case 'icon':
 				return (
-					<LayeredFileIcon
-						{...props.childProps}
-						ref={ref}
-						src={src}
-						kind={itemData.kind}
-						extension={itemData.extension}
-						onLoad={() => onLoad('icon')}
-						onError={(e) => onError('icon', e)}
-						decoding={props.size ? 'async' : 'sync'}
-						className={className}
-						draggable={false}
-					/>
+					<>
+						{/* <RenderSolid element={}/> */}
+						<LayeredFileIcon
+							{...props.childProps}
+							ref={ref}
+							src={src}
+							kind={itemData.kind}
+							extension={itemData.extension}
+							onLoad={() => onLoad('icon')}
+							onError={(e) => onError('icon', e)}
+							decoding={props.size ? 'async' : 'sync'}
+							className={className}
+							draggable={false}
+						/>
+					</>
 				);
 			default:
 				return <></>;
@@ -242,10 +248,7 @@ interface ThumbnailProps extends Omit<ImageProps, 'blackBarsStyle' | 'size'> {
 }
 
 const Thumbnail = forwardRef<HTMLImageElement, ThumbnailProps>(
-	(
-		{ crossOrigin, blackBars, blackBarsSize, extension, cover, className, style, ...props },
-		_ref
-	) => {
+	({ blackBars, blackBarsSize, extension, cover, className, style, ...props }, _ref) => {
 		const ref = useRef<HTMLImageElement>(null);
 		useImperativeHandle<HTMLImageElement | null, HTMLImageElement | null>(
 			_ref,
@@ -294,3 +297,13 @@ const Thumbnail = forwardRef<HTMLImageElement, ThumbnailProps>(
 		);
 	}
 );
+
+function RenderSolid({ element }: { element: () => Solid.JSX.Element }) {
+	const ref = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		return render(element, ref.current!);
+	}, [element]);
+
+	return <div ref={ref} />;
+}

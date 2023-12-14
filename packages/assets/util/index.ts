@@ -15,7 +15,7 @@ export const iconNames = Object.fromEntries(
 export const getIconByName = (name: IconTypes, isDark?: boolean) => {
 	let _name = name;
 	if (!isDark) _name = (name + '_Light') as IconTypes;
-	return icons[name];
+	return icons[name] as string;
 };
 
 /**
@@ -31,7 +31,7 @@ export const getIcon = (
 	isDark?: boolean,
 	extension?: string | null,
 	isDir?: boolean
-) => {
+): string => {
 	// If the request is for a directory/folder, return the appropriate version.
 	if (isDir) return icons[isDark ? 'Folder' : 'Folder_Light'];
 

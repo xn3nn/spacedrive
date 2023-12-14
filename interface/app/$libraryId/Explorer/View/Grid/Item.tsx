@@ -80,7 +80,7 @@ export const GridItem = ({ children, item, ...props }: Props) => {
 				}
 			}}
 		>
-			{children({ item: item, selected, cut })}
+			<children item={item} selected={selected} cut={cut} />
 		</div>
 	);
 };

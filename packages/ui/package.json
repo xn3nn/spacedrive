@@ -20,7 +20,7 @@
 	},
 	"dependencies": {
 		"@headlessui/react": "^1.7.17",
-		"@phosphor-icons/react": "^2.0.13",
+		"@phosphor-icons/react": "^2.0.15",
 		"@radix-ui/react-checkbox": "^1.0.4",
 		"@radix-ui/react-context-menu": "^2.1.5",
 		"@radix-ui/react-dialog": "^1.0.5",
@@ -41,26 +41,26 @@
 		"react-dom": "^18.2.0",
 		"react-loading-icons": "^1.1.0",
 		"react-router-dom": "6.20.1",
-		"sonner": "^1.0.3",
+		"sonner": "^1.2.4",
 		"use-debounce": "^9.0.4",
 		"zod": "~3.22.4"
 	},
 	"devDependencies": {
-		"@babel/core": "^7.23.2",
+		"@babel/core": "^7.23.6",
 		"@headlessui/tailwindcss": "^0.2.0",
 		"@sd/config": "workspace:*",
-		"@storybook/types": "^7.5.2",
-		"@tailwindcss/forms": "^0.5.6",
+		"@storybook/types": "^7.6.4",
+		"@tailwindcss/forms": "^0.5.7",
 		"@tailwindcss/typography": "^0.5.10",
 		"@types/node": "~18.17.19",
-		"@types/react": "^18.2.34",
-		"@types/react-dom": "^18.2.14",
+		"@types/react": "^18.2.45",
+		"@types/react-dom": "^18.2.17",
 		"autoprefixer": "^10.4.16",
-		"postcss": "^8.4.31",
+		"postcss": "^8.4.32",
 		"sass": "^1.69.5",
-		"tailwindcss": "^3.3.5",
+		"tailwindcss": "^3.3.6",
 		"tailwindcss-animate": "^1.0.7",
 		"tailwindcss-radix": "^2.8.0",
-		"typescript": "^5.2.2"
+		"typescript": "^5.3.3"
 	}
 }
