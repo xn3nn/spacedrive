@@ -45,26 +45,36 @@ impl Metadata for PeerMetadata {
 				.map(|os| os.parse().map_err(|_| "Unable to parse 'OperationSystem'!"))
 				.transpose()?,
 			// some sort of switch case to get something like this "mac_studio", "macbook", "iphone", "android", "windows", "linux", "other"
-			device_kind: Some(get_mac_device_kind()),
+			device_kind: Some(get_mac_model_name().unwrap_or_else(|_| "Unknown".into())),
 			version: data.get("version").map(|v| v.to_owned()),
 		})
 	}
 }
 
-pub fn get_mac_device_kind() -> String {
+pub fn get_mac_model_name() -> Result<String, String> {
 	let output = Command::new("system_profiler")
 		.arg("SPHardwareDataType")
-		.output()
-		.expect("Failed to execute command");
+		.output();
 
-	let output_str = String::from_utf8_lossy(&output.stdout);
-
-	if output_str.contains("Mac Studio") {
-		"mac_studio".to_owned()
-	} else if output_str.contains("MacBook") {
-		"macbook".to_owned()
-	} else {
-		"other".to_owned()
+	match output {
+		Ok(output) => {
+			if output.status.success() {
+				let output_str = String::from_utf8_lossy(&output.stdout);
+				let lines: Vec<&str> = output_str.split('\n').collect();
+				for line in lines {
+					if line.to_lowercase().contains("model name") {
+						return Ok(line.to_string());
+					}
+				}
+				Err("Model name not found".to_string())
+			} else {
+				Err(format!(
+					"Command executed with a non-zero status. STDERR: {}",
+					String::from_utf8_lossy(&output.stderr)
+				))
+			}
+		}
+		Err(e) => Err(format!("Failed to execute command: {}", e)),
 	}
 }
 

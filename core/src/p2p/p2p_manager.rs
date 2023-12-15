@@ -19,7 +19,7 @@ use crate::{
 };
 
 use super::{
-	get_mac_device_kind, LibraryMetadata, LibraryServices, P2PEvent, P2PManagerActor,
+	get_mac_model_name, LibraryMetadata, LibraryServices, P2PEvent, P2PManagerActor,
 	PairingManager, PeerMetadata,
 };
 
@@ -94,7 +94,7 @@ impl P2PManager {
 			let config = self.node_config_manager.get().await;
 			PeerMetadata {
 				name: config.name.clone(),
-				device_kind: Some(get_mac_device_kind()),
+				device_kind: Some(get_mac_model_name().unwrap_or_else(|_| "Unknown".into())),
 				operating_system: Some(OperatingSystem::get_os()),
 				version: Some(env!("CARGO_PKG_VERSION").to_string()),
 			}
