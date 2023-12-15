@@ -7,6 +7,7 @@ use std::{
 use sd_p2p::{
 	spacetunnel::RemoteIdentity, Manager, ManagerConfig, ManagerError, PeerStatus, Service,
 };
+use sd_utils::get_hardware_model_name;
 use serde::Serialize;
 use specta::Type;
 use tokio::sync::{broadcast, mpsc, oneshot, Mutex};
@@ -19,8 +20,7 @@ use crate::{
 };
 
 use super::{
-	get_mac_model_name, LibraryMetadata, LibraryServices, P2PEvent, P2PManagerActor,
-	PairingManager, PeerMetadata,
+	LibraryMetadata, LibraryServices, P2PEvent, P2PManagerActor, PairingManager, PeerMetadata,
 };
 
 pub struct P2PManager {
@@ -94,7 +94,7 @@ impl P2PManager {
 			let config = self.node_config_manager.get().await;
 			PeerMetadata {
 				name: config.name.clone(),
-				device_kind: Some(get_mac_model_name().unwrap_or_else(|_| "Unknown".into())),
+				device_kind: Some(get_hardware_model_name().unwrap_or_else(|_| "Unknown".into())),
 				operating_system: Some(OperatingSystem::get_os()),
 				version: Some(env!("CARGO_PKG_VERSION").to_string()),
 			}

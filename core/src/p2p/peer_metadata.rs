@@ -53,33 +53,6 @@ impl Metadata for PeerMetadata {
 	}
 }
 
-pub fn get_mac_model_name() -> Result<String, String> {
-	let output = Command::new("system_profiler")
-		.arg("SPHardwareDataType")
-		.output();
-
-	match output {
-		Ok(output) => {
-			if output.status.success() {
-				let output_str = String::from_utf8_lossy(&output.stdout);
-				let lines: Vec<&str> = output_str.split('\n').collect();
-				for line in lines {
-					if line.to_lowercase().contains("model name") {
-						return Ok(line.to_string());
-					}
-				}
-				Err("Model name not found".to_string())
-			} else {
-				Err(format!(
-					"Command executed with a non-zero status. STDERR: {}",
-					String::from_utf8_lossy(&output.stderr)
-				))
-			}
-		}
-		Err(e) => Err(format!("Failed to execute command: {}", e)),
-	}
-}
-
 /// Represents the operating system which the remote peer is running.
 /// This is not used internally and predominantly is designed to be used for display purposes by the embedding application.
 #[derive(Debug, Clone, Type, Serialize, Deserialize)]

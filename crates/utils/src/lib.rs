@@ -1,4 +1,8 @@
+mod hardware;
+
 use uuid::Uuid;
+
+pub use hardware::*;
 
 /// Combines an iterator of `T` and an iterator of `Option<T>`,
 /// removing any `None` values in the process
