@@ -25,6 +25,9 @@ impl Metadata for PeerMetadata {
 		if let Some(version) = self.version {
 			map.insert("version".to_owned(), version);
 		}
+		if let Some(device_kind) = self.device_kind {
+			map.insert("device_kind".to_owned(), device_kind);
+		}
 		map
 	}
 
@@ -44,8 +47,7 @@ impl Metadata for PeerMetadata {
 				.get("os")
 				.map(|os| os.parse().map_err(|_| "Unable to parse 'OperationSystem'!"))
 				.transpose()?,
-			// some sort of switch case to get something like this "mac_studio", "macbook", "iphone", "android", "windows", "linux", "other"
-			device_kind: Some(get_mac_model_name().unwrap_or_else(|_| "Unknown".into())),
+			device_kind: data.get("device_kind").map(|v| v.to_owned()),
 			version: data.get("version").map(|v| v.to_owned()),
 		})
 	}
