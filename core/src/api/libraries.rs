@@ -7,8 +7,10 @@ use crate::{
 };
 
 use sd_cache::{Model, Normalise, NormalisedResult, NormalisedResults};
+use sd_file_ext::kind::ObjectKind;
 use sd_p2p::spacetunnel::RemoteIdentity;
-use sd_prisma::prisma::{indexer_rule, statistics};
+use sd_prisma::prisma::{file_path, indexer_rule, object, statistics};
+use strum::IntoEnumIterator;
 
 use std::{convert::identity, sync::Arc};
 
@@ -138,6 +140,39 @@ pub(crate) fn mount() -> AlphaRouter<Ctx> {
 						.exec()
 						.await?)
 				})
+		})
+		.procedure("kindStatistics", {
+			#[derive(Serialize, Deserialize, Type, Default)]
+			pub struct KindStatistic {
+				kind: i32,
+				name: String,
+				count: i32,
+				total_bytes: String,
+			}
+			#[derive(Serialize, Deserialize, Type, Default)]
+			pub struct KindStatistics {
+				statistics: Vec<KindStatistic>,
+			}
+			R.with2(library()).query(|(_, library), _: ()| async move {
+				let mut statistics: Vec<KindStatistic> = vec![];
+				for kind in ObjectKind::iter() {
+					let count = library
+						.db
+						.object()
+						.count(vec![object::kind::equals(Some(kind as i32))])
+						.exec()
+						.await?;
+
+					statistics.push(KindStatistic {
+						kind: kind as i32,
+						name: kind.to_string(),
+						count: count as i32,
+						total_bytes: "0".to_string(),
+					});
+				}
+
+				Ok(KindStatistics { statistics })
+			})
 		})
 		.procedure("create", {
 			#[derive(Deserialize, Type, Default)]

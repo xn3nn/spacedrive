@@ -3,6 +3,7 @@ use std::{collections::HashMap, env, str::FromStr};
 use sd_p2p::Metadata;
 use serde::{Deserialize, Serialize};
 use specta::Type;
+use std::process::Command;
 
 use crate::node::Platform;
 
@@ -10,6 +11,7 @@ use crate::node::Platform;
 pub struct PeerMetadata {
 	pub name: String,
 	pub operating_system: Option<OperatingSystem>,
+	pub device_kind: Option<String>,
 	pub version: Option<String>,
 }
 
@@ -42,8 +44,27 @@ impl Metadata for PeerMetadata {
 				.get("os")
 				.map(|os| os.parse().map_err(|_| "Unable to parse 'OperationSystem'!"))
 				.transpose()?,
+			// some sort of switch case to get something like this "mac_studio", "macbook", "iphone", "android", "windows", "linux", "other"
+			device_kind: Some(get_mac_device_kind()),
 			version: data.get("version").map(|v| v.to_owned()),
 		})
+	}
+}
+
+pub fn get_mac_device_kind() -> String {
+	let output = Command::new("system_profiler")
+		.arg("SPHardwareDataType")
+		.output()
+		.expect("Failed to execute command");
+
+	let output_str = String::from_utf8_lossy(&output.stdout);
+
+	if output_str.contains("Mac Studio") {
+		"mac_studio".to_owned()
+	} else if output_str.contains("MacBook") {
+		"macbook".to_owned()
+	} else {
+		"other".to_owned()
 	}
 }
 

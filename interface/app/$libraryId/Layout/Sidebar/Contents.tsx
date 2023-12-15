@@ -9,11 +9,15 @@ import {
 	Eraser,
 	FilmStrip,
 	Heart,
+	Link,
+	MagnifyingGlass,
 	MapPin,
+	Planet,
 	UserFocus
 } from '@phosphor-icons/react';
 import { Tag } from '@phosphor-icons/react/dist/ssr';
 import { LibraryContextProvider, useClientContext, useFeatureFlag } from '@sd/client';
+import { SubtleButton } from '~/components';
 
 import { RenderIcon } from '../../Search/util';
 import { EphemeralSection } from './EphemeralSection';
@@ -28,12 +32,63 @@ export default () => {
 	const { library } = useClientContext();
 
 	return (
-		<div className="no-scrollbar mask-fade-out flex grow flex-col space-y-5 overflow-x-hidden overflow-y-scroll pb-10">
-			<div className="space-y-0.5">
-				<SidebarLink to="statistics">
-					<Icon component={ChartDonut} />
-					Statistics
-				</SidebarLink>
+		<div className="no-scrollbar mask-fade-out flex grow flex-col space-y-5 overflow-x-hidden overflow-y-scroll pb-10 pt-3">
+			<div className=" space-y-0.5">
+				<Section
+					name="Library"
+					actionArea={
+						<div className="flex items-center space-x-1">
+							<SubtleButton />
+						</div>
+					}
+				>
+					<div className="space-y-0.5">
+						<SidebarLink to="statistics">
+							<Icon component={Planet} />
+							Overview
+						</SidebarLink>
+
+						<SidebarLink to="recents">
+							<Icon component={Clock} />
+							Recents
+							<div className={STYLES}>34</div>
+						</SidebarLink>
+						<SidebarLink to="favorites">
+							<Icon component={Heart} />
+							Favorites
+							<div className={STYLES}>2</div>
+						</SidebarLink>
+						<SidebarLink to="labels">
+							<Icon component={Tag} />
+							Labels
+							<div className={STYLES}>642</div>
+						</SidebarLink>
+						{/* <SidebarLink to="imports">
+							<Icon component={ArchiveBox} />
+							Imports
+						</SidebarLink>
+						<SidebarLink to="albums">
+							<RenderIcon className="mr-2 h-4 w-4 " icon="Album20" />
+							Albums
+							<div className={STYLES}>14</div>
+						</SidebarLink>
+						<SidebarLink to="people">
+							<Icon component={UserFocus} />
+							People
+							<div className={STYLES}>44</div>
+						</SidebarLink>
+						<SidebarLink to="places">
+							<Icon component={MapPin} />
+							Places
+							<div className={STYLES}>78</div>
+						</SidebarLink>
+						<SidebarLink to="projects">
+							<Icon component={Briefcase} />
+							Projects
+							<div className={STYLES}>4</div>
+						</SidebarLink> */}
+					</div>
+				</Section>
 
 				{useFeatureFlag('syncRoute') && (
 					<SidebarLink to="sync">
@@ -74,48 +129,6 @@ export default () => {
 			</div>
 
 			<EphemeralSection />
-			<Section name="Library">
-				<div className="space-y-0.5">
-					<SidebarLink to="recents">
-						<Icon component={Clock} />
-						Recents
-						<div className={STYLES}>34</div>
-					</SidebarLink>
-					<SidebarLink to="favorites">
-						<Icon component={Heart} />
-						Favorites
-					</SidebarLink>
-					<SidebarLink to="imports">
-						<Icon component={ArchiveBox} />
-						Imports
-					</SidebarLink>
-					<SidebarLink to="albums">
-						<RenderIcon className="mr-2 h-4 w-4 " icon="Album20" />
-						Albums
-						<div className={STYLES}>14</div>
-					</SidebarLink>
-					<SidebarLink to="labels">
-						<Icon component={Tag} />
-						Labels
-						<div className={STYLES}>642</div>
-					</SidebarLink>
-					<SidebarLink to="people">
-						<Icon component={UserFocus} />
-						People
-						<div className={STYLES}>44</div>
-					</SidebarLink>
-					<SidebarLink to="places">
-						<Icon component={MapPin} />
-						Places
-						<div className={STYLES}>78</div>
-					</SidebarLink>
-					<SidebarLink to="projects">
-						<Icon component={Briefcase} />
-						Projects
-						<div className={STYLES}>4</div>
-					</SidebarLink>
-				</div>
-			</Section>
 
 			{library && (
 				<LibraryContextProvider library={library}>

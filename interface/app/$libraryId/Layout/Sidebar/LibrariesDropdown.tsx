@@ -16,7 +16,7 @@ export default () => {
 						`w-full text-sidebar-ink`,
 						// these classname overrides are messy
 						// but they work
-						`!border-sidebar-line/50 !bg-sidebar-box ring-offset-sidebar active:!border-sidebar-line active:!bg-sidebar-button ui-open:!border-sidebar-line ui-open:!bg-sidebar-button`,
+						`mt-2 !border-sidebar-line/50 !bg-sidebar-box ring-offset-sidebar active:!border-sidebar-line active:!bg-sidebar-button ui-open:!border-sidebar-line ui-open:!bg-sidebar-button`,
 						(library === null || libraries.isLoading) && '!text-sidebar-inkFaint'
 					)}
 				>

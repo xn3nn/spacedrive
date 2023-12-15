@@ -16,6 +16,7 @@ export type Procedures = {
         { key: "invalidation.test-invalidate", input: never, result: number } | 
         { key: "jobs.isActive", input: LibraryArgs<null>, result: boolean } | 
         { key: "jobs.reports", input: LibraryArgs<null>, result: JobGroup[] } | 
+        { key: "library.kindStatistics", input: LibraryArgs<null>, result: KindStatistics } | 
         { key: "library.list", input: never, result: NormalisedResults<LibraryConfigWrapped> } | 
         { key: "library.statistics", input: LibraryArgs<null>, result: Statistics } | 
         { key: "locations.get", input: LibraryArgs<number>, result: { item: Reference<Location>; nodes: CacheNode[] } | null } | 
@@ -324,6 +325,10 @@ export type JobStatus = "Queued" | "Running" | "Completed" | "Canceled" | "Faile
 
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key in string]: JsonValue }
 
+export type KindStatistic = { kind: number; name: string; count: number; total_bytes: string }
+
+export type KindStatistics = { statistics: KindStatistic[] }
+
 /**
  * Can wrap a query argument to require it to contain a `library_id` and provide helpers for working with libraries.
  */
@@ -475,7 +480,7 @@ export type PairingDecision = { decision: "accept"; libraryId: string } | { deci
 
 export type PairingStatus = { type: "EstablishingConnection" } | { type: "PairingRequested" } | { type: "LibraryAlreadyExists" } | { type: "PairingDecisionRequest" } | { type: "PairingInProgress"; data: { library_name: string; library_description: string | null } } | { type: "InitialSyncProgress"; data: number } | { type: "PairingComplete"; data: string } | { type: "PairingRejected" }
 
-export type PeerMetadata = { name: string; operating_system: OperatingSystem | null; version: string | null }
+export type PeerMetadata = { name: string; operating_system: OperatingSystem | null; device_kind: string | null; version: string | null }
 
 export type PlusCode = string
 

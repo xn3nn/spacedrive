@@ -1,23 +1,21 @@
-import { Lock, LockSimple } from '@phosphor-icons/react';
+import { LockSimple } from '@phosphor-icons/react';
 import {
-	Drive,
 	DriveAmazonS3,
 	DriveDropbox,
 	DriveGoogleDrive,
-	HDD,
 	Laptop,
 	Mobile,
-	SD,
 	Server,
 	SilverBox
 } from '@sd/assets/icons';
 import { ReactComponent as Ellipsis } from '@sd/assets/svgs/ellipsis.svg';
 import { useEffect, useMemo, useState } from 'react';
 import { byteSize } from '@sd/client';
-import { Button, Card, CircularProgress, ScreenHeading, tw } from '@sd/ui';
+import { Button, Card, CircularProgress, tw } from '@sd/ui';
 
-import { InfoPill } from './Explorer/Inspector';
-import { TopBarPortal } from './TopBar/Portal';
+import { useIsDark } from '../../../hooks';
+import { TopBarPortal } from '../TopBar/Portal';
+import FileKindStatistics from './FileKindStatistics';
 
 type StatisticItemProps = {
 	name: string;
@@ -32,6 +30,8 @@ const Pill = tw.div`px-1.5 py-[1px] rounded text-tiny font-medium text-ink-dull 
 
 const StatisticItem = ({ icon, name, connection_type, ...stats }: StatisticItemProps) => {
 	const [mounted, setMounted] = useState(false);
+
+	const isDark = useIsDark();
 
 	const { total_space, free_space, remaining_space } = useMemo(() => {
 		return {
@@ -64,7 +64,7 @@ const StatisticItem = ({ icon, name, connection_type, ...stats }: StatisticItemP
 					trackStrokeWidth={6}
 					strokeColor={progress > 90 ? '#E14444' : '#2599FF'}
 					fillColor="transparent"
-					trackStrokeColor="#252631"
+					trackStrokeColor={isDark ? '#252631' : '#efefef'}
 					strokeLinecap="square"
 					className="flex items-center justify-center"
 					transition="stroke-dashoffset 1s ease 0s, stroke 1s ease"
@@ -100,18 +100,22 @@ const StatisticItem = ({ icon, name, connection_type, ...stats }: StatisticItemP
 
 export const Component = () => {
 	return (
-		<div className="m-8">
+		<div className="mx-8">
 			<TopBarPortal
 				left={
 					<div className="flex gap-2">
-						<span className="font-medium">Statistics</span>
+						<span className="font-medium">Overview</span>
 						<Button className="!p-[5px]" variant="subtle">
 							<Ellipsis className="h-3 w-3" />
 						</Button>
 					</div>
 				}
+				// right={
+
+				// }
 			/>
 
+			<FileKindStatistics />
 			<div className="mb-2 font-bold">Devices</div>
 			<div className=" grid grid-cols-4 gap-3">
 				<StatisticItem
@@ -152,7 +156,7 @@ export const Component = () => {
 				<StatisticItem
 					name="James Pine"
 					icon={DriveDropbox}
-					total_space="1074877906944"
+					total_space="104877906944"
 					free_space="074877906944"
 					color="#0362FF"
 					connection_type="cloud"
@@ -174,7 +178,7 @@ export const Component = () => {
 					connection_type="cloud"
 				/>
 			</div>
-			<div className="mb-2 mt-8 font-bold">Local Volumes</div>
+			{/* <div className="mb-2 mt-8 font-bold">Local Volumes</div>
 			<div className=" grid grid-cols-4 gap-3">
 				<StatisticItem
 					name="Macintosh HD"
@@ -200,7 +204,7 @@ export const Component = () => {
 					color="#0362FF"
 					connection_type="cloud"
 				/>
-			</div>
+			</div> */}
 		</div>
 	);
 };

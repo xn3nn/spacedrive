@@ -28,7 +28,7 @@ export default () => {
 	return (
 		<div
 			className={clsx(
-				'relative flex min-h-full w-44 shrink-0 grow-0 flex-col gap-2.5 border-r border-sidebar-divider bg-sidebar px-2.5 pb-2 pt-3 transition-[padding-top] ease-linear motion-reduce:transition-none',
+				'relative flex min-h-full w-44 shrink-0 grow-0 flex-col border-r border-sidebar-divider bg-sidebar px-2.5 pb-2 pt-3 transition-[padding-top] ease-linear motion-reduce:transition-none',
 				os === 'macOS' && windowState.isFullScreen
 					? '-mt-2 pt-[8.75px] duration-100'
 					: 'pt-2.5 duration-75',
@@ -49,6 +49,7 @@ export default () => {
 				/>
 			)}
 			<LibrariesDropdown />
+			{/* Contents IS the scroll, gamer */}
 			<Contents />
 			<Footer />
 		</div>

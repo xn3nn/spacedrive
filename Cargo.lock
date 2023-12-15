@@ -7077,6 +7077,7 @@ dependencies = [
  "serde_json",
  "specta",
  "strum",
+ "strum_macros",
  "tokio",
 ]
 
