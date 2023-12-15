@@ -23,7 +23,7 @@ type StatisticItemProps = {
 	total_space: string;
 	free_space: string;
 	color: string;
-	connection_type: 'p2p' | 'proxy' | 'cloud';
+	connection_type: 'lan' | 'p2p' | 'cloud';
 };
 
 const Pill = tw.div`px-1.5 py-[1px] rounded text-tiny font-medium text-ink-dull bg-app-box border border-app-line`;
@@ -85,11 +85,8 @@ const StatisticItem = ({ icon, name, connection_type, ...stats }: StatisticItemP
 				</div>
 			</div>
 			<div className="flex h-10 flex-row items-center gap-1.5  border-t border-app-line px-2">
-				<Pill>{connection_type}</Pill>
+				<Pill className="uppercase">{connection_type}</Pill>
 				<div className="grow" />
-				<Button size="icon" variant="outline">
-					<LockSimple weight="fill" className="h-3 w-3 opacity-50" />
-				</Button>
 				<Button size="icon" variant="outline">
 					<Ellipsis className="h-3 w-3 opacity-50" />
 				</Button>
@@ -121,10 +118,10 @@ export const Component = () => {
 				<StatisticItem
 					name="Jam Macbook Pro"
 					icon={Laptop}
-					total_space="1074877906944"
-					free_space="121026553275"
+					total_space="1074077906944"
+					free_space="121006553275"
 					color="#0362FF"
-					connection_type="p2p"
+					connection_type="lan"
 				/>
 				<StatisticItem
 					name="Spacestudio"
@@ -132,7 +129,7 @@ export const Component = () => {
 					total_space="4098046511104"
 					free_space="969004651119"
 					color="#0362FF"
-					connection_type="proxy"
+					connection_type="p2p"
 				/>
 				<StatisticItem
 					name="Jamie's iPhone"
@@ -140,7 +137,7 @@ export const Component = () => {
 					total_space="500046511104"
 					free_space="39006511104"
 					color="#0362FF"
-					connection_type="proxy"
+					connection_type="p2p"
 				/>
 				<StatisticItem
 					name="Titan NAS"
@@ -148,7 +145,7 @@ export const Component = () => {
 					total_space="60000046511104"
 					free_space="43000046511104"
 					color="#0362FF"
-					connection_type="proxy"
+					connection_type="p2p"
 				/>
 			</div>
 			<div className="mb-2 mt-8 font-bold">Clouds</div>
