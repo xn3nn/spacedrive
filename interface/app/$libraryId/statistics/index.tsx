@@ -9,6 +9,7 @@ import {
 	SilverBox
 } from '@sd/assets/icons';
 import { ReactComponent as Ellipsis } from '@sd/assets/svgs/ellipsis.svg';
+import clsx from 'clsx';
 import { useEffect, useMemo, useState } from 'react';
 import { byteSize } from '@sd/client';
 import { Button, Card, CircularProgress, tw } from '@sd/ui';
@@ -16,6 +17,7 @@ import { Button, Card, CircularProgress, tw } from '@sd/ui';
 import { useIsDark } from '../../../hooks';
 import { TopBarPortal } from '../TopBar/Portal';
 import FileKindStatistics from './FileKindStatistics';
+import { HorizontalScroll } from './HorizontalScroll';
 
 type StatisticItemProps = {
 	name: string;
@@ -55,8 +57,8 @@ const StatisticItem = ({ icon, name, connection_type, ...stats }: StatisticItemP
 	}, [total_space, free_space, mounted]);
 
 	return (
-		<Card className="flex max-w-[280px] flex-col bg-app-box/50 !p-0">
-			<div className="flex flex-row items-center justify-center gap-5 p-4">
+		<Card className="flex max-w-[280px] flex-col bg-app-box/50 !p-0 ">
+			<div className="flex flex-row items-center justify-center gap-5 p-4 px-8 ">
 				<CircularProgress
 					radius={40}
 					progress={progress}
@@ -97,7 +99,7 @@ const StatisticItem = ({ icon, name, connection_type, ...stats }: StatisticItemP
 
 export const Component = () => {
 	return (
-		<div className="mx-8">
+		<div>
 			<TopBarPortal
 				left={
 					<div className="flex gap-2">
@@ -111,97 +113,128 @@ export const Component = () => {
 
 				// }
 			/>
+			<div className="mt-4 flex flex-col gap-3">
+				<OverviewSection title="File Kinds">
+					<FileKindStatistics />
+				</OverviewSection>
+				<OverviewSection title="Devices">
+					<StatisticItem
+						name="Jam Macbook Pro"
+						icon={Laptop}
+						total_space="1074077906944"
+						free_space="121006553275"
+						color="#0362FF"
+						connection_type="lan"
+					/>
+					<StatisticItem
+						name="Spacestudio"
+						icon={SilverBox}
+						total_space="4098046511104"
+						free_space="969004651119"
+						color="#0362FF"
+						connection_type="p2p"
+					/>
+					<StatisticItem
+						name="Jamie's iPhone"
+						icon={Mobile}
+						total_space="500046511104"
+						free_space="39006511104"
+						color="#0362FF"
+						connection_type="p2p"
+					/>
+					<StatisticItem
+						name="Titan NAS"
+						icon={Server}
+						total_space="60000046511104"
+						free_space="43000046511104"
+						color="#0362FF"
+						connection_type="p2p"
+					/>
+					<StatisticItem
+						name="Jam Macbook Pro"
+						icon={Laptop}
+						total_space="1074077906944"
+						free_space="121006553275"
+						color="#0362FF"
+						connection_type="lan"
+					/>
+					<StatisticItem
+						name="Spacestudio"
+						icon={SilverBox}
+						total_space="4098046511104"
+						free_space="969004651119"
+						color="#0362FF"
+						connection_type="p2p"
+					/>
+					<StatisticItem
+						name="Jamie's iPhone"
+						icon={Mobile}
+						total_space="500046511104"
+						free_space="39006511104"
+						color="#0362FF"
+						connection_type="p2p"
+					/>
+					<StatisticItem
+						name="Titan NAS"
+						icon={Server}
+						total_space="60000046511104"
+						free_space="43000046511104"
+						color="#0362FF"
+						connection_type="p2p"
+					/>
+				</OverviewSection>
 
-			<FileKindStatistics />
-			<div className="mb-2 font-bold">Devices</div>
-			<div className=" grid grid-cols-4 gap-3">
-				<StatisticItem
-					name="Jam Macbook Pro"
-					icon={Laptop}
-					total_space="1074077906944"
-					free_space="121006553275"
-					color="#0362FF"
-					connection_type="lan"
-				/>
-				<StatisticItem
-					name="Spacestudio"
-					icon={SilverBox}
-					total_space="4098046511104"
-					free_space="969004651119"
-					color="#0362FF"
-					connection_type="p2p"
-				/>
-				<StatisticItem
-					name="Jamie's iPhone"
-					icon={Mobile}
-					total_space="500046511104"
-					free_space="39006511104"
-					color="#0362FF"
-					connection_type="p2p"
-				/>
-				<StatisticItem
-					name="Titan NAS"
-					icon={Server}
-					total_space="60000046511104"
-					free_space="43000046511104"
-					color="#0362FF"
-					connection_type="p2p"
-				/>
+				<OverviewSection title="Cloud Drives">
+					<StatisticItem
+						name="James Pine"
+						icon={DriveDropbox}
+						total_space="104877906944"
+						free_space="074877906944"
+						color="#0362FF"
+						connection_type="cloud"
+					/>
+					<StatisticItem
+						name="Spacedrive S3"
+						icon={DriveAmazonS3}
+						total_space="1074877906944"
+						free_space="704877906944"
+						color="#0362FF"
+						connection_type="cloud"
+					/>
+					<StatisticItem
+						name="Jamie Pine"
+						icon={DriveGoogleDrive}
+						total_space="1374877906944"
+						free_space="174877906944"
+						color="#0362FF"
+						connection_type="cloud"
+					/>
+				</OverviewSection>
 			</div>
-			<div className="mb-2 mt-8 font-bold">Clouds</div>
-			<div className=" grid grid-cols-4 gap-3">
-				<StatisticItem
-					name="James Pine"
-					icon={DriveDropbox}
-					total_space="104877906944"
-					free_space="074877906944"
-					color="#0362FF"
-					connection_type="cloud"
-				/>
-				<StatisticItem
-					name="Spacedrive S3"
-					icon={DriveAmazonS3}
-					total_space="1074877906944"
-					free_space="704877906944"
-					color="#0362FF"
-					connection_type="cloud"
-				/>
-				<StatisticItem
-					name="Jamie Pine"
-					icon={DriveGoogleDrive}
-					total_space="1374877906944"
-					free_space="174877906944"
-					color="#0362FF"
-					connection_type="cloud"
-				/>
+		</div>
+	);
+};
+
+const OverviewSection = ({
+	children,
+	title,
+	className,
+	fullWidthContent
+}: React.HTMLAttributes<HTMLDivElement> & { title: string; fullWidthContent?: boolean }) => {
+	return (
+		<div className={clsx('group w-full', className)}>
+			<div className="mb-3 flex w-full items-center gap-3 pl-8 pr-4">
+				<div className="font-bold">{title}</div>
+				{/* <div className="grow" /> */}
+				<Button
+					className="!p-[5px] opacity-0 transition-opacity group-hover:opacity-100"
+					size="icon"
+					variant="subtle"
+				>
+					<Ellipsis className="h-3 w-3 text-ink-faint/50" />
+				</Button>
 			</div>
-			{/* <div className="mb-2 mt-8 font-bold">Local Volumes</div>
-			<div className=" grid grid-cols-4 gap-3">
-				<StatisticItem
-					name="Macintosh HD"
-					icon={HDD}
-					total_space="1074877906944"
-					free_space="174877906944"
-					color="#0362FF"
-					connection_type="cloud"
-				/>
-				<StatisticItem
-					name="Cannon 128gb"
-					icon={SD}
-					total_space="124877906944"
-					free_space="124877906944"
-					color="#0362FF"
-					connection_type="cloud"
-				/>
-				<StatisticItem
-					name="A001"
-					icon={Drive}
-					total_space="124877906944"
-					free_space="104877906944"
-					color="#0362FF"
-					connection_type="cloud"
-				/>
-			</div> */}
+			<HorizontalScroll>{children}</HorizontalScroll>
 		</div>
 	);
 };
