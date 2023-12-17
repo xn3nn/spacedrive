@@ -1,32 +1,24 @@
 import {
-	ArchiveBox,
 	ArrowsClockwise,
-	Briefcase,
-	ChartDonut,
 	Clock,
 	Cloud,
 	CopySimple,
 	Eraser,
 	FilmStrip,
 	Heart,
-	Link,
-	MagnifyingGlass,
-	MapPin,
-	Planet,
-	UserFocus
+	Planet
 } from '@phosphor-icons/react';
 import { Tag } from '@phosphor-icons/react/dist/ssr';
 import { LibraryContextProvider, useClientContext, useFeatureFlag } from '@sd/client';
 import { SubtleButton } from '~/components';
 
-import { RenderIcon } from '../../Search/util';
 import { EphemeralSection } from './EphemeralSection';
 import Icon from './Icon';
 import { LibrarySection } from './LibrarySection';
 import SidebarLink from './Link';
 import Section from './Section';
 
-const STYLES = `absolute right-1 top-1 flex h-[19px] px-1 items-center justify-center rounded-full border border-app-button/40 text-[9px]`;
+export const COUNT_STYLE = `absolute right-1 min-w-[20px] top-1 flex h-[19px] px-1 items-center justify-center rounded-full border border-app-button/40 text-[9px]`;
 
 export default () => {
 	const { library } = useClientContext();
@@ -51,17 +43,17 @@ export default () => {
 						<SidebarLink to="recents">
 							<Icon component={Clock} />
 							Recents
-							<div className={STYLES}>34</div>
+							<div className={COUNT_STYLE}>34</div>
 						</SidebarLink>
 						<SidebarLink to="favorites">
 							<Icon component={Heart} />
 							Favorites
-							<div className={STYLES}>2</div>
+							<div className={COUNT_STYLE}>2</div>
 						</SidebarLink>
 						<SidebarLink to="labels">
 							<Icon component={Tag} />
 							Labels
-							<div className={STYLES}>642</div>
+							<div className={COUNT_STYLE}>642</div>
 						</SidebarLink>
 						{/* <SidebarLink to="imports">
 							<Icon component={ArchiveBox} />
@@ -70,22 +62,22 @@ export default () => {
 						<SidebarLink to="albums">
 							<RenderIcon className="mr-2 h-4 w-4 " icon="Album20" />
 							Albums
-							<div className={STYLES}>14</div>
+							<div className={COUNT_STYLE}>14</div>
 						</SidebarLink>
 						<SidebarLink to="people">
 							<Icon component={UserFocus} />
 							People
-							<div className={STYLES}>44</div>
+							<div className={COUNT_STYLE}>44</div>
 						</SidebarLink>
 						<SidebarLink to="places">
 							<Icon component={MapPin} />
 							Places
-							<div className={STYLES}>78</div>
+							<div className={COUNT_STYLE}>78</div>
 						</SidebarLink>
 						<SidebarLink to="projects">
 							<Icon component={Briefcase} />
 							Projects
-							<div className={STYLES}>4</div>
+							<div className={COUNT_STYLE}>4</div>
 						</SidebarLink> */}
 					</div>
 				</Section>

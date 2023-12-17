@@ -1,4 +1,3 @@
-import { LockSimple } from '@phosphor-icons/react';
 import {
 	DriveAmazonS3,
 	DriveDropbox,
@@ -6,12 +5,13 @@ import {
 	Laptop,
 	Mobile,
 	Server,
-	SilverBox
+	SilverBox,
+	Tablet
 } from '@sd/assets/icons';
 import { ReactComponent as Ellipsis } from '@sd/assets/svgs/ellipsis.svg';
 import clsx from 'clsx';
 import { useEffect, useMemo, useState } from 'react';
-import { byteSize } from '@sd/client';
+import { byteSize, useDiscoveredPeers, useLibraryQuery, useNodes } from '@sd/client';
 import { Button, Card, CircularProgress, tw } from '@sd/ui';
 
 import { useIsDark } from '../../../hooks';
@@ -98,26 +98,45 @@ const StatisticItem = ({ icon, name, connection_type, ...stats }: StatisticItemP
 };
 
 export const Component = () => {
+	const stats = useLibraryQuery(['library.statistics'], {
+		refetchOnWindowFocus: false,
+		initialData: { total_bytes_capacity: '0', library_db_size: '0' }
+	});
+	const locations = useLibraryQuery(['locations.list'], {
+		refetchOnWindowFocus: false
+	});
+	useNodes(locations.data?.nodes);
+
+	const discoveredPeers = useDiscoveredPeers();
+
+	const libraryTotals = useMemo(() => {
+		if (locations.data && discoveredPeers) {
+			const capacity = byteSize(stats.data?.total_bytes_capacity);
+			const free_space = byteSize(stats.data?.total_bytes_free);
+			const db_size = byteSize(stats.data?.library_db_size);
+			const preview_media = byteSize(stats.data?.preview_media_bytes);
+
+			return { capacity, free_space, db_size, preview_media };
+		}
+	}, [locations, discoveredPeers, stats]);
+
 	return (
 		<div>
 			<TopBarPortal
 				left={
-					<div className="flex gap-2">
-						<span className="font-medium">Overview</span>
+					<div className="flex items-center gap-2">
+						<span className="truncate text-sm font-medium">Overview</span>
 						<Button className="!p-[5px]" variant="subtle">
-							<Ellipsis className="h-3 w-3" />
+							<Ellipsis className="h- w-3 opacity-50" />
 						</Button>
 					</div>
 				}
-				// right={
-
-				// }
 			/>
 			<div className="mt-4 flex flex-col gap-3">
 				<OverviewSection title="File Kinds">
 					<FileKindStatistics />
 				</OverviewSection>
-				<OverviewSection title="Devices">
+				<OverviewSection count={8} title="Devices">
 					<StatisticItem
 						name="Jam Macbook Pro"
 						icon={Laptop}
@@ -151,40 +170,24 @@ export const Component = () => {
 						connection_type="p2p"
 					/>
 					<StatisticItem
-						name="Jam Macbook Pro"
-						icon={Laptop}
+						name="Jamie's iPad"
+						icon={Tablet}
 						total_space="1074077906944"
 						free_space="121006553275"
 						color="#0362FF"
 						connection_type="lan"
 					/>
 					<StatisticItem
-						name="Spacestudio"
-						icon={SilverBox}
+						name="Jamie's Air"
+						icon={Laptop}
 						total_space="4098046511104"
 						free_space="969004651119"
-						color="#0362FF"
-						connection_type="p2p"
-					/>
-					<StatisticItem
-						name="Jamie's iPhone"
-						icon={Mobile}
-						total_space="500046511104"
-						free_space="39006511104"
-						color="#0362FF"
-						connection_type="p2p"
-					/>
-					<StatisticItem
-						name="Titan NAS"
-						icon={Server}
-						total_space="60000046511104"
-						free_space="43000046511104"
 						color="#0362FF"
 						connection_type="p2p"
 					/>
 				</OverviewSection>
 
-				<OverviewSection title="Cloud Drives">
+				<OverviewSection count={3} title="Cloud Drives">
 					<StatisticItem
 						name="James Pine"
 						icon={DriveDropbox}
@@ -215,25 +218,29 @@ export const Component = () => {
 	);
 };
 
+const COUNT_STYLE = `min-w-[20px] flex h-[20px] px-1 items-center justify-center rounded-full border border-app-button/40 text-[9px]`;
+
 const OverviewSection = ({
 	children,
 	title,
 	className,
-	fullWidthContent
-}: React.HTMLAttributes<HTMLDivElement> & { title: string; fullWidthContent?: boolean }) => {
+	count
+}: React.HTMLAttributes<HTMLDivElement> & { title?: string; count?: number }) => {
 	return (
 		<div className={clsx('group w-full', className)}>
-			<div className="mb-3 flex w-full items-center gap-3 pl-8 pr-4">
-				<div className="font-bold">{title}</div>
-				{/* <div className="grow" /> */}
-				<Button
-					className="!p-[5px] opacity-0 transition-opacity group-hover:opacity-100"
-					size="icon"
-					variant="subtle"
-				>
-					<Ellipsis className="h-3 w-3 text-ink-faint/50" />
-				</Button>
-			</div>
+			{title && (
+				<div className="mb-3 flex w-full items-center gap-3 pl-8 pr-4">
+					<div className="font-bold">{title}</div>
+					{count && <div className={COUNT_STYLE}>{count}</div>}
+					<Button
+						className="!p-[5px] opacity-0 transition-opacity group-hover:opacity-100"
+						size="icon"
+						variant="subtle"
+					>
+						<Ellipsis className="h-3 w-3 text-ink-faint " />
+					</Button>
+				</div>
+			)}
 			<HorizontalScroll>{children}</HorizontalScroll>
 		</div>
 	);
