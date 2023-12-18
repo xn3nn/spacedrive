@@ -21,19 +21,19 @@ edition = "2021"
 repository = "https://github.com/spacedriveapp/spacedrive"
 
 [workspace.dependencies]
-prisma-client-rust = { git = "https://github.com/spacedriveapp/prisma-client-rust", rev = "9f8ac122e8f2b2e4957b71f48a37e06565adba40", features = [
+prisma-client-rust = { git = "https://github.com/spacedriveapp/prisma-client-rust", rev = "2d262af4c194bd812418e183944fc79938817680", features = [
 	"rspc",
 	"sqlite-create-many",
 	"migrations",
 	"sqlite",
 ], default-features = false }
-prisma-client-rust-cli = { git = "https://github.com/spacedriveapp/prisma-client-rust", rev = "9f8ac122e8f2b2e4957b71f48a37e06565adba40", features = [
+prisma-client-rust-cli = { git = "https://github.com/spacedriveapp/prisma-client-rust", rev = "2d262af4c194bd812418e183944fc79938817680", features = [
 	"rspc",
 	"sqlite-create-many",
 	"migrations",
 	"sqlite",
 ], default-features = false }
-prisma-client-rust-sdk = { git = "https://github.com/spacedriveapp/prisma-client-rust", rev = "9f8ac122e8f2b2e4957b71f48a37e06565adba40", features = [
+prisma-client-rust-sdk = { git = "https://github.com/spacedriveapp/prisma-client-rust", rev = "2d262af4c194bd812418e183944fc79938817680", features = [
 	"sqlite",
 ], default-features = false }
 
@@ -43,7 +43,7 @@ tracing-appender = "0.2.3"
 
 rspc = { version = "0.1.4" }
 specta = { git = "https://github.com/oscartbeaumont/specta", rev = "673e3f55d246cd90e70c706ba4ca7f5818e99ba9" }
-tauri-specta = { git = "https://github.com/oscartbeaumont/tauri-specta", rev = "71c4054d184c5f4a5336a4dcd4f779050f445d13" }
+tauri-specta = { git = "https://github.com/oscartbeaumont/tauri-specta", rev = "123e1833c3951a6f5bf802dba3d06e96815d078f" }
 
 swift-rs = { version = "1.0.6" }
 

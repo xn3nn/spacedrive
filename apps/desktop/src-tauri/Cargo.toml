@@ -23,6 +23,9 @@ tauri = { version = "=2.0.0-alpha.18", features = [
 ] }
 tauri-plugin-updater = { version = "=2.0.0-alpha.5" }
 tauri-plugin-window-state = { version = "=2.0.0-alpha.5" }
+tauri-plugin-dialog = "2.0.0-alpha.5"
+tauri-plugin-os = "2.0.0-alpha.5"
+tauri-plugin-shell = "2.0.0-alpha.5"
 
 rspc = { workspace = true, features = ["tauri"] }
 sd-core = { path = "../../../core", features = [

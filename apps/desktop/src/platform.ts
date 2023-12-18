@@ -1,7 +1,7 @@
-import { dialog, invoke, os, shell } from '@tauri-apps/api';
-import { confirm } from '@tauri-apps/api/dialog';
+// import { dialog, invoke, os, shell } from '@tauri-apps/api';
 import { homeDir } from '@tauri-apps/api/path';
-import { open } from '@tauri-apps/api/shell';
+import { confirm } from '@tauri-apps/plugin-dialog';
+import { open } from '@tauri-apps/plugin-shell';
 import { OperatingSystem, Platform } from '@sd/interface';
 
 import { commands } from './commands';
@@ -42,7 +42,7 @@ export const platform = {
 		`${customUriServerUrl}file/${libraryId}/${locationLocalId}/${filePathId}${queryParams}`,
 	getFileUrlByPath: (path) =>
 		`${customUriServerUrl}local-file-by-path/${encodeURIComponent(path)}${queryParams}`,
-	openLink: shell.open,
+	// openLink: shell.open,
 	getOs,
 	openDirectoryPickerDialog: (opts) => {
 		const result = dialog.open({ directory: true, ...opts });

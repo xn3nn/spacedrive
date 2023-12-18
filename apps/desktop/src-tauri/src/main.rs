@@ -10,12 +10,12 @@ use sd_core::{Node, NodeError};
 use sd_fda::DiskAccess;
 use serde::{Deserialize, Serialize};
 use tauri::{
-	api::path, ipc::RemoteDomainAccessScope, window::PlatformWebview, AppHandle, FileDropEvent,
-	Manager, WindowEvent,
+	async_runtime::block_on, window::PlatformWebview, AppHandle, FileDropEvent, Manager,
+	WindowEvent,
 };
 use tauri_plugins::{sd_error_plugin, sd_server_plugin};
 use tauri_specta::ts;
-use tokio::time::sleep;
+use tokio::{task::block_in_place, time::sleep};
 use tracing::error;
 
 mod tauri_plugins;
@@ -43,14 +43,15 @@ async fn request_fda_macos() {
 #[tauri::command(async)]
 #[specta::specta]
 async fn set_menu_bar_item_state(_window: tauri::Window, _id: String, _enabled: bool) {
-	#[cfg(target_os = "macos")]
-	{
-		_window
-			.menu_handle()
-			.get_item(&_id)
-			.set_enabled(_enabled)
-			.expect("Unable to modify menu item");
-	}
+	// #[cfg(target_os = "macos")]
+	// {
+	// 	_window
+	// 		.menu_handle()
+	// 		.get_item(&_id)
+	// 		.set_enabled(_enabled)
+	// 		.expect("Unable to modify menu item");
+	// }
+	todo!();
 }
 
 #[tauri::command(async)]
@@ -90,8 +91,10 @@ fn reload_webview_inner(webview: PlatformWebview) {
 #[tauri::command(async)]
 #[specta::specta]
 async fn reset_spacedrive(app_handle: AppHandle) {
-	let data_dir = path::data_dir()
-		.unwrap_or_else(|| PathBuf::from("./"))
+	let data_dir = app_handle
+		.path()
+		.data_dir()
+		.unwrap_or_else(|_| PathBuf::from("./"))
 		.join("spacedrive");
 
 	#[cfg(debug_assertions)]
@@ -111,20 +114,21 @@ async fn refresh_menu_bar(
 	_node: tauri::State<'_, Arc<Node>>,
 	_app_handle: AppHandle,
 ) -> Result<(), ()> {
-	#[cfg(target_os = "macos")]
-	{
-		let menu_handles: Vec<tauri::window::MenuHandle> = _app_handle
-			.windows()
-			.iter()
-			.map(|x| x.1.menu_handle())
-			.collect();
+	// #[cfg(target_os = "macos")]
+	// {
+	// 	let menu_handles: Vec<tauri::window::MenuHandle> = _app_handle
+	// 		.windows()
+	// 		.iter()
+	// 		.map(|x| x.1.menu_handle())
+	// 		.collect();
 
-		let has_library = !_node.libraries.get_all().await.is_empty();
+	// 	let has_library = !_node.libraries.get_all().await.is_empty();
 
-		for menu in menu_handles {
-			menu::set_library_locked_menu_items_enabled(menu, has_library);
-		}
-	}
+	// 	for menu in menu_handles {
+	// 		menu::set_library_locked_menu_items_enabled(menu, has_library);
+	// 	}
+	// }
+	todo!();
 
 	Ok(())
 }
@@ -159,65 +163,6 @@ async fn main() -> tauri::Result<()> {
 	#[cfg(target_os = "linux")]
 	sd_desktop_linux::normalize_environment();
 
-	let data_dir = path::data_dir()
-		.unwrap_or_else(|| PathBuf::from("./"))
-		.join("spacedrive");
-
-	#[cfg(debug_assertions)]
-	let data_dir = data_dir.join("dev");
-
-	// The `_guard` must be assigned to variable for flushing remaining logs on main exit through Drop
-	let (_guard, result) = match Node::init_logger(&data_dir) {
-		Ok(guard) => (
-			Some(guard),
-			Node::new(
-				data_dir,
-				sd_core::Env {
-					api_url: "https://app.spacedrive.com".to_string(),
-					client_id: CLIENT_ID.to_string(),
-				},
-			)
-			.await,
-		),
-		Err(err) => (None, Err(NodeError::Logger(err))),
-	};
-
-	let app = tauri::Builder::default();
-
-	let (node_router, app) = match result {
-		Ok((node, router)) => (Some((node, router)), app),
-		Err(err) => {
-			error!("Error starting up the node: {err:#?}");
-			(None, app.plugin(sd_error_plugin(err)))
-		}
-	};
-
-	let (node, router) = if let Some((node, router)) = node_router {
-		(node, router)
-	} else {
-		panic!("Unable to get the node or router");
-	};
-
-	let app = app
-		.plugin(rspc::integrations::tauri::plugin(router, {
-			let node = node.clone();
-			move || node.clone()
-		}))
-		.plugin(sd_server_plugin(node.clone()).unwrap()) // TODO: Handle `unwrap`
-		.manage(node.clone());
-
-	// macOS expected behavior is for the app to not exit when the main window is closed.
-	// Instead, the window is hidden and the dock icon remains so that on user click it should show the window again.
-	#[cfg(target_os = "macos")]
-	let app = app.on_window_event(|event| {
-		if let tauri::WindowEvent::CloseRequested { api, .. } = event.event() {
-			if event.window().label() == "main" {
-				AppHandle::hide(&event.window().app_handle()).expect("Window should hide on macOS");
-				api.prevent_close();
-			}
-		}
-	});
-
 	let specta_builder = {
 		let specta_builder = ts::builder()
 			.commands(tauri_specta::collect_commands![
@@ -237,8 +182,8 @@ async fn main() -> tauri::Result<()> {
 				file::reveal_items,
 				theme::lock_app_theme,
 				// TODO: move to plugin w/tauri-specta
-				updater::check_for_update,
-				updater::install_update
+				// updater::check_for_update,
+				// updater::install_update
 			])
 			.events(tauri_specta::collect_events![OnFileDrop])
 			.config(specta::ts::ExportConfig::default().formatter(specta::ts::formatter::prettier));
@@ -249,62 +194,133 @@ async fn main() -> tauri::Result<()> {
 		specta_builder.into_plugin()
 	};
 
+	let app = tauri::Builder::default()
+		.plugin(tauri_plugin_dialog::init())
+		.plugin(tauri_plugin_os::init())
+		.plugin(tauri_plugin_shell::init());
+	// .plugin(tauri_plugin_updater::Builder::new().build()); // TODO: Fix this updater
+
+	// macOS expected behavior is for the app to not exit when the main window is closed.
+	// Instead, the window is hidden and the dock icon remains so that on user click it should show the window again.
+	#[cfg(target_os = "macos")]
+	let app = app.on_window_event(|event| {
+		if let tauri::WindowEvent::CloseRequested { api, .. } = event.event() {
+			if event.window().label() == "main" {
+				AppHandle::hide(&event.window().app_handle()).expect("Window should hide on macOS");
+				api.prevent_close();
+			}
+		}
+	});
+
+	let mut _guard = None;
 	let app = app
-		.plugin(updater::plugin())
+		// .plugin(updater::plugin()) // TODO
 		.plugin(tauri_plugin_window_state::Builder::default().build())
 		.plugin(specta_builder)
 		.setup(move |app| {
-			let app = app.handle();
+			// We need a the app handle to determine the data directory now.
+			// This means all the setup code has to be within `setup`, however it doesn't support async so we `block_on`.
+			block_in_place(|| {
+				block_on(async move {
+					let app = app.handle();
 
-			app.windows().iter().for_each(|(_, window)| {
-				tokio::spawn({
-					let window = window.clone();
-					async move {
-						sleep(Duration::from_secs(3)).await;
-						if !window.is_visible().unwrap_or(true) {
-							// This happens if the JS bundle crashes and hence doesn't send ready event.
-							println!(
+					let data_dir = app
+						.path()
+						.home_dir()
+						.unwrap_or_else(|_| PathBuf::from("./"))
+						.join("spacedrive");
+
+					#[cfg(debug_assertions)]
+					let data_dir = data_dir.join("dev");
+
+					// The `_guard` must be assigned to variable for flushing remaining logs on main exit through Drop
+					let (__guard, result) = match Node::init_logger(&data_dir) {
+						Ok(guard) => (
+							Some(guard),
+							Node::new(
+								data_dir,
+								sd_core::Env {
+									api_url: "https://app.spacedrive.com".to_string(),
+									client_id: CLIENT_ID.to_string(),
+								},
+							)
+							.await,
+						),
+						Err(err) => (None, Err(NodeError::Logger(err))),
+					};
+
+					// We need to ensure the guard is kept for the programs lifetime, not just the lifetime of the setup function.
+					_guard = __guard;
+
+					match result {
+						Ok((node, router)) => {
+							app.plugin(rspc::integrations::tauri::plugin(router, {
+								let node = node.clone();
+								move || node.clone()
+							}))
+							.unwrap();
+							app.plugin(sd_server_plugin(node.clone()).unwrap()).unwrap(); // TODO: Handle `unwrap`
+							app.manage(node.clone());
+						}
+						Err(err) => {
+							error!("Error starting up the node: {err:#?}");
+							app.plugin(sd_error_plugin(err)).unwrap();
+						}
+					};
+
+					app.windows().iter().for_each(|(_, window)| {
+						tokio::spawn({
+							let window = window.clone();
+							async move {
+								sleep(Duration::from_secs(3)).await;
+								if !window.is_visible().unwrap_or(true) {
+									// This happens if the JS bundle crashes and hence doesn't send ready event.
+									println!(
 							"Window did not emit `app_ready` event fast enough. Showing window..."
 						);
-							window.show().expect("Main window should show");
-						}
-					}
-				});
-
-				#[cfg(target_os = "windows")]
-				window.set_decorations(true).unwrap();
-
-				#[cfg(target_os = "macos")]
-				{
-					use sd_desktop_macos::{blur_window_background, set_titlebar_style};
-
-					let nswindow = window.ns_window().unwrap();
-
-					unsafe { set_titlebar_style(&nswindow, true) };
-					unsafe { blur_window_background(&nswindow) };
-
-					tokio::spawn({
-						let libraries = node.libraries.clone();
-						let menu_handle = window.menu_handle();
-						async move {
-							if libraries.get_all().await.is_empty() {
-								menu::set_library_locked_menu_items_enabled(menu_handle, false);
+									window.show().expect("Main window should show");
+								}
 							}
+						});
+
+						#[cfg(target_os = "windows")]
+						window.set_decorations(true).unwrap();
+
+						#[cfg(target_os = "macos")]
+						{
+							use sd_desktop_macos::{blur_window_background, set_titlebar_style};
+
+							let nswindow = window.ns_window().unwrap();
+
+							unsafe { set_titlebar_style(&nswindow, true) };
+							unsafe { blur_window_background(&nswindow) };
+
+							// tokio::spawn({
+							// 	let libraries = node.libraries.clone();
+							// 	let menu_handle = window.menu_handle();
+							// 	async move {
+							// 		if libraries.get_all().await.is_empty() {
+							// 			menu::set_library_locked_menu_items_enabled(menu_handle, false);
+							// 		}
+							// 	}
+							// });
+							// todo!(); // TODO
 						}
 					});
-				}
-			});
 
-			// Configure IPC for custom protocol
-			app.ipc_scope().configure_remote_access(
-				RemoteDomainAccessScope::new("localhost")
-					.allow_on_scheme("spacedrive")
-					.add_window("main"),
-			);
+					// Configure IPC for custom protocol
+					// app.ipc_scope().configure_remote_access(
+					// 	RemoteDomainAccessScope::new("localhost")
+					// 		.allow_on_scheme("spacedrive")
+					// 		.add_window("main"),
+					// );
+					// todo!(); // TODO
+				})
+			});
 
 			Ok(())
 		})
-		.on_menu_event(menu::handle_menu_event)
+		// .on_menu_event(menu::handle_menu_event) // TODO
 		.on_window_event(|event| match event.event() {
 			WindowEvent::Resized(_) => {
 				let (_state, command) = if event
@@ -329,23 +345,24 @@ async fn main() -> tauri::Result<()> {
 				}
 			}
 			WindowEvent::FileDrop(event) => match event {
-				FileDropEvent::Dropped(event) => {
-					// if let Err(err) = OnFileDrop {
-					// 	path: event.path().to_string_lossy().to_string(),
-					// 	x: event.x(),
-					// 	y: event.y(),
-					// }
-					// .emit_all(&handle)
-					// {
-					// 	error!("Error while emitting file drop event: {err:#?}");
-					// }
+				FileDropEvent::Dropped { paths, position } => {
+					println!("{:?} {:?}", paths, position); // TODO: Use this
+					                    // if let Err(err) = OnFileDrop {
+					                    // 	path: event.path().to_string_lossy().to_string(),
+					                    // 	x: event.x(),
+					                    // 	y: event.y(),
+					                    // }
+					                    // .emit_all(&handle)
+					                    // {
+					                    // 	error!("Error while emitting file drop event: {err:#?}");
+					                    // }
 				}
 				_ => {}
 			},
 			_ => {}
 		})
-		.menu(menu::get_menu())
-		.manage(updater::State::default())
+		// .menu(menu::get_menu())
+		// .manage(updater::State::default())
 		.build(tauri::generate_context!())?;
 
 	app.run(|_, _| {});

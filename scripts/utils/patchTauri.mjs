@@ -80,7 +80,7 @@ export async function patchTauri(root, nativeDeps, targets, bundles, args) {
 				},
 				resources: resources.files,
 			},
-			updater: /** @type {{ pubkey?: string }} */ ({}),
+			// updater: /** @type {{ pubkey?: string }} */ ({}),
 		},
 	}
 

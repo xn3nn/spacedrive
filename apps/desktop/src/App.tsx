@@ -1,7 +1,7 @@
 import { createMemoryHistory } from '@remix-run/router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { listen } from '@tauri-apps/api/event';
-import { appWindow } from '@tauri-apps/api/window';
+// import { appWindow } from '@tauri-apps/api/window';
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CacheProvider, createCache, RspcProvider } from '@sd/client';
@@ -43,22 +43,22 @@ export default function App() {
 		commands.appReady();
 	}, []);
 
-	useEffect(() => {
-		const keybindListener = listen('keybind', (input) => {
-			document.dispatchEvent(new KeybindEvent(input.payload as string));
-		});
+	// useEffect(() => {
+	// 	const keybindListener = listen('keybind', (input) => {
+	// 		document.dispatchEvent(new KeybindEvent(input.payload as string));
+	// 	});
 
-		const dropEventListener = appWindow.onFileDropEvent((event) => {
-			if (event.payload.type === 'drop') {
-				getDragAndDropState().droppedFiles = event.payload.paths;
-			}
-		});
+	// 	const dropEventListener = appWindow.onFileDropEvent((event) => {
+	// 		if (event.payload.type === 'drop') {
+	// 			getDragAndDropState().droppedFiles = event.payload.paths;
+	// 		}
+	// 	});
 
-		return () => {
-			keybindListener.then((unlisten) => unlisten());
-			dropEventListener.then((unlisten) => unlisten());
-		};
-	}, []);
+	// 	return () => {
+	// 		keybindListener.then((unlisten) => unlisten());
+	// 		dropEventListener.then((unlisten) => unlisten());
+	// 	};
+	// }, []);
 
 	return (
 		<RspcProvider queryClient={queryClient}>

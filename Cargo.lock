@@ -489,7 +489,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4af014b17dd80e8af9fa689b2d4a211ddba6eb583c1622f35d0cb543f6b17e4"
 dependencies = [
  "atk-sys",
- "glib",
+ "glib 0.18.4",
  "libc",
 ]
 
@@ -499,8 +499,8 @@ version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "251e0b7d90e33e0ba930891a505a9a35ece37b2dd37a14f3ffc306c13b980009"
 dependencies = [
- "glib-sys",
- "gobject-sys",
+ "glib-sys 0.18.1",
+ "gobject-sys 0.18.0",
  "libc",
  "system-deps",
 ]
@@ -979,7 +979,7 @@ checksum = "f33613627f0dea6a731b0605101fad59ba4f193a52c96c4687728d822605a8a1"
 dependencies = [
  "bitflags 2.4.1",
  "cairo-sys-rs",
- "glib",
+ "glib 0.18.4",
  "libc",
  "once_cell",
  "thiserror",
@@ -991,7 +991,7 @@ version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "685c9fa8e590b8b3d678873528d83411db17242a73fccaed827770ea0fedda51"
 dependencies = [
- "glib-sys",
+ "glib-sys 0.18.1",
  "libc",
  "system-deps",
 ]
@@ -2649,7 +2649,7 @@ dependencies = [
  "gdk-pixbuf",
  "gdk-sys",
  "gio",
- "glib",
+ "glib 0.18.4",
  "libc",
  "pango",
 ]
@@ -2662,7 +2662,7 @@ checksum = "446f32b74d22c33b7b258d4af4ffde53c2bf96ca2e29abdf1a785fe59bd6c82c"
 dependencies = [
  "gdk-pixbuf-sys",
  "gio",
- "glib",
+ "glib 0.18.4",
  "libc",
  "once_cell",
 ]
@@ -2673,9 +2673,9 @@ version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9839ea644ed9c97a34d129ad56d38a25e6756f99f3a88e15cd39c20629caf7"
 dependencies = [
- "gio-sys",
- "glib-sys",
- "gobject-sys",
+ "gio-sys 0.18.1",
+ "glib-sys 0.18.1",
+ "gobject-sys 0.18.0",
  "libc",
  "system-deps",
 ]
@@ -2688,9 +2688,9 @@ checksum = "31ff856cb3386dae1703a920f803abafcc580e9b5f711ca62ed1620c25b51ff2"
 dependencies = [
  "cairo-sys-rs",
  "gdk-pixbuf-sys",
- "gio-sys",
- "glib-sys",
- "gobject-sys",
+ "gio-sys 0.18.1",
+ "glib-sys 0.18.1",
+ "gobject-sys 0.18.0",
  "libc",
  "pango-sys",
  "pkg-config",
@@ -2704,8 +2704,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a90fbf5c033c65d93792192a49a8efb5bb1e640c419682a58bb96f5ae77f3d4a"
 dependencies = [
  "gdk-sys",
- "glib-sys",
- "gobject-sys",
+ "glib-sys 0.18.1",
+ "gobject-sys 0.18.0",
  "libc",
  "pkg-config",
  "system-deps",
@@ -2718,7 +2718,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fee8f00f4ee46cad2939b8990f5c70c94ff882c3028f3cc5abf950fa4ab53043"
 dependencies = [
  "gdk-sys",
- "glib-sys",
+ "glib-sys 0.18.1",
  "libc",
  "system-deps",
  "x11",
@@ -2745,6 +2745,16 @@ checksum = "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a"
 dependencies = [
  "typenum",
  "version_check",
+]
+
+[[package]]
+name = "gethostname"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0176e0459c2e4a1fe232f984bca6890e681076abb9934f6cea7c326f3fc47818"
+dependencies = [
+ "libc",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -2807,8 +2817,8 @@ dependencies = [
  "futures-core",
  "futures-io",
  "futures-util",
- "gio-sys",
- "glib",
+ "gio-sys 0.18.1",
+ "glib 0.18.4",
  "libc",
  "once_cell",
  "pin-project-lite",
@@ -2818,15 +2828,50 @@ dependencies = [
 
 [[package]]
 name = "gio-sys"
+version = "0.16.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e9b693b8e39d042a95547fc258a7b07349b1f0b48f4b2fa3108ba3c51c0b5229"
+dependencies = [
+ "glib-sys 0.16.3",
+ "gobject-sys 0.16.3",
+ "libc",
+ "system-deps",
+ "winapi",
+]
+
+[[package]]
+name = "gio-sys"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37566df850baf5e4cb0dfb78af2e4b9898d817ed9263d1090a2df958c64737d2"
 dependencies = [
- "glib-sys",
- "gobject-sys",
+ "glib-sys 0.18.1",
+ "gobject-sys 0.18.0",
  "libc",
  "system-deps",
  "winapi",
+]
+
+[[package]]
+name = "glib"
+version = "0.16.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16aa2475c9debed5a32832cb5ff2af5a3f9e1ab9e69df58eaadc1ab2004d6eba"
+dependencies = [
+ "bitflags 1.3.2",
+ "futures-channel",
+ "futures-core",
+ "futures-executor",
+ "futures-task",
+ "futures-util",
+ "gio-sys 0.16.3",
+ "glib-macros 0.16.8",
+ "glib-sys 0.16.3",
+ "gobject-sys 0.16.3",
+ "libc",
+ "once_cell",
+ "smallvec 1.11.2",
+ "thiserror",
 ]
 
 [[package]]
@@ -2841,15 +2886,30 @@ dependencies = [
  "futures-executor",
  "futures-task",
  "futures-util",
- "gio-sys",
- "glib-macros",
- "glib-sys",
- "gobject-sys",
+ "gio-sys 0.18.1",
+ "glib-macros 0.18.3",
+ "glib-sys 0.18.1",
+ "gobject-sys 0.18.0",
  "libc",
  "memchr",
  "once_cell",
  "smallvec 1.11.2",
  "thiserror",
+]
+
+[[package]]
+name = "glib-macros"
+version = "0.16.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb1a9325847aa46f1e96ffea37611b9d51fc4827e67f79e7de502a297560a67b"
+dependencies = [
+ "anyhow",
+ "heck 0.4.1",
+ "proc-macro-crate 1.3.1",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -2864,6 +2924,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.39",
+]
+
+[[package]]
+name = "glib-sys"
+version = "0.16.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c61a4f46316d06bfa33a7ac22df6f0524c8be58e3db2d9ca99ccb1f357b62a65"
+dependencies = [
+ "libc",
+ "system-deps",
 ]
 
 [[package]]
@@ -2898,11 +2968,22 @@ dependencies = [
 
 [[package]]
 name = "gobject-sys"
+version = "0.16.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3520bb9c07ae2a12c7f2fbb24d4efc11231c8146a86956413fb1a79bb760a0f1"
+dependencies = [
+ "glib-sys 0.16.3",
+ "libc",
+ "system-deps",
+]
+
+[[package]]
+name = "gobject-sys"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0850127b514d1c4a4654ead6dedadb18198999985908e6ffe4436f53c785ce44"
 dependencies = [
- "glib-sys",
+ "glib-sys 0.18.1",
  "libc",
  "system-deps",
 ]
@@ -2930,7 +3011,7 @@ dependencies = [
  "gdk",
  "gdk-pixbuf",
  "gio",
- "glib",
+ "glib 0.18.4",
  "gtk-sys",
  "gtk3-macros",
  "libc",
@@ -2948,9 +3029,9 @@ dependencies = [
  "cairo-sys-rs",
  "gdk-pixbuf-sys",
  "gdk-sys",
- "gio-sys",
- "glib-sys",
- "gobject-sys",
+ "gio-sys 0.18.1",
+ "glib-sys 0.18.1",
+ "gobject-sys 0.18.0",
  "libc",
  "pango-sys",
  "system-deps",
@@ -3557,6 +3638,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f518f335dce6725a761382244631d86cf0ccb2863413590b31338feb467f9c3"
 
 [[package]]
+name = "is-docker"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "928bae27f42bc99b60d9ac7334e3a21d10ad8f1835a4e12ec3ec0464765ed1b3"
+dependencies = [
+ "once_cell",
+]
+
+[[package]]
 name = "is-terminal"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3565,6 +3655,16 @@ dependencies = [
  "hermit-abi",
  "rustix 0.38.26",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "is-wsl"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "173609498df190136aa7dea1a91db051746d339e18476eed5ca40521f02d7aa5"
+dependencies = [
+ "is-docker",
+ "once_cell",
 ]
 
 [[package]]
@@ -3613,7 +3713,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca5671e9ffce8ffba57afc24070e906da7fc4b1ba66f2cabebf61bf2ea257fcc"
 dependencies = [
  "bitflags 1.3.2",
- "glib",
+ "glib 0.18.4",
  "javascriptcore-rs-sys",
 ]
 
@@ -3623,8 +3723,8 @@ version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af1be78d14ffa4b75b66df31840478fef72b51f8c2465d4ca7c194da9f7a5124"
 dependencies = [
- "glib-sys",
- "gobject-sys",
+ "glib-sys 0.18.1",
+ "gobject-sys 0.18.0",
  "libc",
  "system-deps",
 ]
@@ -3811,7 +3911,7 @@ version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "03589b9607c868cc7ae54c0b2a22c8dc03dd41692d48f2d7df73615c6a95dc0a"
 dependencies = [
- "glib",
+ "glib 0.18.4",
  "gtk",
  "gtk-sys",
  "libappindicator-sys",
@@ -5126,6 +5226,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "objc-foundation"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1add1b659e36c9607c7aab864a76c7a4c2760cd0cd2e120f3fb8b952c7e22bf9"
+dependencies = [
+ "block",
+ "objc",
+ "objc_id",
+]
+
+[[package]]
 name = "objc_exception"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5172,6 +5283,17 @@ name = "opaque-debug"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
+
+[[package]]
+name = "open"
+version = "4.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a083c0c7e5e4a8ec4176346cf61f67ac674e8bfb059d9226e1c54a96b377c12"
+dependencies = [
+ "is-wsl",
+ "libc",
+ "pathdiff",
+]
 
 [[package]]
 name = "opener"
@@ -5294,6 +5416,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a86ed3f5f244b372d6b1a00b72ef7f8876d0bc6a78a4c9985c53614041512063"
 
 [[package]]
+name = "os_info"
+version = "3.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "006e42d5b888366f1880eda20371fedde764ed2213dc8496f49622fa0c99cd5e"
+dependencies = [
+ "log",
+ "serde",
+ "winapi",
+]
+
+[[package]]
+name = "os_pipe"
+version = "1.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ae859aa07428ca9a929b936690f8b12dc5f11dd8c6992a18ca93919f28bc177"
+dependencies = [
+ "libc",
+ "windows-sys 0.48.0",
+]
+
+[[package]]
 name = "overload"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5315,7 +5458,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ca27ec1eb0457ab26f3036ea52229edbdb74dee1edd29063f5b9b010e7ebee4"
 dependencies = [
  "gio",
- "glib",
+ "glib 0.18.4",
  "libc",
  "once_cell",
  "pango-sys",
@@ -5327,8 +5470,8 @@ version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "436737e391a843e5933d6d9aa102cb126d501e815b83601365a948a518555dc5"
 dependencies = [
- "glib-sys",
- "gobject-sys",
+ "glib-sys 0.18.1",
+ "gobject-sys 0.18.0",
  "libc",
  "system-deps",
 ]
@@ -5448,6 +5591,12 @@ name = "paste"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "de3145af08024dea9fa9914f381a17b8fc6034dfb00f3a84013f7ff43f29ed4c"
+
+[[package]]
+name = "pathdiff"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8835116a5c179084a830efb3adc117ab007512b535bc1a21c991d3b32a6b44dd"
 
 [[package]]
 name = "pbkdf2"
@@ -5894,7 +6043,7 @@ dependencies = [
 [[package]]
 name = "prisma-client-rust"
 version = "0.6.8"
-source = "git+https://github.com/spacedriveapp/prisma-client-rust?rev=9f8ac122e8f2b2e4957b71f48a37e06565adba40#9f8ac122e8f2b2e4957b71f48a37e06565adba40"
+source = "git+https://github.com/spacedriveapp/prisma-client-rust?rev=2d262af4c194bd812418e183944fc79938817680#2d262af4c194bd812418e183944fc79938817680"
 dependencies = [
  "base64 0.13.1",
  "bigdecimal 0.3.1",
@@ -5915,7 +6064,7 @@ dependencies = [
  "serde",
  "serde-value",
  "serde_json",
- "specta 2.0.0-rc.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "specta",
  "tempdir",
  "thiserror",
  "tokio",
@@ -5927,7 +6076,7 @@ dependencies = [
 [[package]]
 name = "prisma-client-rust-cli"
 version = "0.6.8"
-source = "git+https://github.com/spacedriveapp/prisma-client-rust?rev=9f8ac122e8f2b2e4957b71f48a37e06565adba40#9f8ac122e8f2b2e4957b71f48a37e06565adba40"
+source = "git+https://github.com/spacedriveapp/prisma-client-rust?rev=2d262af4c194bd812418e183944fc79938817680#2d262af4c194bd812418e183944fc79938817680"
 dependencies = [
  "directories 4.0.1",
  "flate2",
@@ -5947,7 +6096,7 @@ dependencies = [
 [[package]]
 name = "prisma-client-rust-generator"
 version = "0.6.8"
-source = "git+https://github.com/spacedriveapp/prisma-client-rust?rev=9f8ac122e8f2b2e4957b71f48a37e06565adba40#9f8ac122e8f2b2e4957b71f48a37e06565adba40"
+source = "git+https://github.com/spacedriveapp/prisma-client-rust?rev=2d262af4c194bd812418e183944fc79938817680#2d262af4c194bd812418e183944fc79938817680"
 dependencies = [
  "directories 4.0.1",
  "flate2",
@@ -5967,19 +6116,19 @@ dependencies = [
 [[package]]
 name = "prisma-client-rust-macros"
 version = "0.6.8"
-source = "git+https://github.com/spacedriveapp/prisma-client-rust?rev=9f8ac122e8f2b2e4957b71f48a37e06565adba40#9f8ac122e8f2b2e4957b71f48a37e06565adba40"
+source = "git+https://github.com/spacedriveapp/prisma-client-rust?rev=2d262af4c194bd812418e183944fc79938817680#2d262af4c194bd812418e183944fc79938817680"
 dependencies = [
  "convert_case 0.6.0",
  "proc-macro2",
  "quote",
- "specta 2.0.0-rc.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "specta",
  "syn 1.0.109",
 ]
 
 [[package]]
 name = "prisma-client-rust-sdk"
 version = "0.6.8"
-source = "git+https://github.com/spacedriveapp/prisma-client-rust?rev=9f8ac122e8f2b2e4957b71f48a37e06565adba40#9f8ac122e8f2b2e4957b71f48a37e06565adba40"
+source = "git+https://github.com/spacedriveapp/prisma-client-rust?rev=2d262af4c194bd812418e183944fc79938817680#2d262af4c194bd812418e183944fc79938817680"
 dependencies = [
  "convert_case 0.5.0",
  "dmmf",
@@ -6750,6 +6899,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "rfd"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "241a0deb168c88050d872294f7b3106c1dfa8740942bcc97bc91b98e97b5c501"
+dependencies = [
+ "block",
+ "dispatch",
+ "glib-sys 0.18.1",
+ "gobject-sys 0.18.0",
+ "gtk-sys",
+ "js-sys",
+ "log",
+ "objc",
+ "objc-foundation",
+ "objc_id",
+ "raw-window-handle",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "windows-sys 0.48.0",
+]
+
+[[package]]
 name = "rgb"
 version = "0.8.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6841,7 +7013,7 @@ dependencies = [
  "pin-project",
  "serde",
  "serde_json",
- "specta 2.0.0-rc.7 (git+https://github.com/oscartbeaumont/specta?rev=673e3f55d246cd90e70c706ba4ca7f5818e99ba9)",
+ "specta",
  "tauri",
  "thiserror",
  "tokio",
@@ -7110,7 +7282,7 @@ version = "0.0.0"
 dependencies = [
  "serde",
  "serde_json",
- "specta 2.0.0-rc.7 (git+https://github.com/oscartbeaumont/specta?rev=673e3f55d246cd90e70c706ba4ca7f5818e99ba9)",
+ "specta",
 ]
 
 [[package]]
@@ -7133,7 +7305,7 @@ dependencies = [
  "rspc",
  "serde",
  "serde_json",
- "specta 2.0.0-rc.7 (git+https://github.com/oscartbeaumont/specta?rev=673e3f55d246cd90e70c706ba4ca7f5818e99ba9)",
+ "specta",
  "thiserror",
  "uuid",
 ]
@@ -7196,7 +7368,7 @@ dependencies = [
  "serde_repr",
  "serde_with",
  "slotmap",
- "specta 2.0.0-rc.7 (git+https://github.com/oscartbeaumont/specta?rev=673e3f55d246cd90e70c706ba4ca7f5818e99ba9)",
+ "specta",
  "static_assertions",
  "strum",
  "strum_macros",
@@ -7252,7 +7424,7 @@ dependencies = [
  "serde",
  "serde-big-array",
  "serde_json",
- "specta 2.0.0-rc.7 (git+https://github.com/oscartbeaumont/specta?rev=673e3f55d246cd90e70c706ba4ca7f5818e99ba9)",
+ "specta",
  "thiserror",
  "tokio",
  "uuid",
@@ -7277,9 +7449,12 @@ dependencies = [
  "sd-fda",
  "sd-prisma",
  "serde",
- "specta 2.0.0-rc.7 (git+https://github.com/oscartbeaumont/specta?rev=673e3f55d246cd90e70c706ba4ca7f5818e99ba9)",
+ "specta",
  "tauri",
  "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-os",
+ "tauri-plugin-shell",
  "tauri-plugin-updater",
  "tauri-plugin-window-state",
  "tauri-specta",
@@ -7341,7 +7516,7 @@ version = "0.0.0"
 dependencies = [
  "serde",
  "serde_json",
- "specta 2.0.0-rc.7 (git+https://github.com/oscartbeaumont/specta?rev=673e3f55d246cd90e70c706ba4ca7f5818e99ba9)",
+ "specta",
  "strum",
  "tokio",
 ]
@@ -7359,7 +7534,7 @@ dependencies = [
  "resvg",
  "rspc",
  "serde",
- "specta 2.0.0-rc.7 (git+https://github.com/oscartbeaumont/specta?rev=673e3f55d246cd90e70c706ba4ca7f5818e99ba9)",
+ "specta",
  "thiserror",
  "tracing",
 ]
@@ -7375,7 +7550,7 @@ dependencies = [
  "rand_chacha 0.3.1",
  "serde",
  "serde_json",
- "specta 2.0.0-rc.7 (git+https://github.com/oscartbeaumont/specta?rev=673e3f55d246cd90e70c706ba4ca7f5818e99ba9)",
+ "specta",
  "thiserror",
 ]
 
@@ -7425,7 +7600,7 @@ dependencies = [
  "pin-project-lite",
  "rand_core 0.6.4",
  "serde",
- "specta 2.0.0-rc.7 (git+https://github.com/oscartbeaumont/specta?rev=673e3f55d246cd90e70c706ba4ca7f5818e99ba9)",
+ "specta",
  "streamunordered",
  "thiserror",
  "tokio",
@@ -7468,7 +7643,7 @@ dependencies = [
  "prisma-client-rust",
  "serde",
  "serde_json",
- "specta 2.0.0-rc.7 (git+https://github.com/oscartbeaumont/specta?rev=673e3f55d246cd90e70c706ba4ca7f5818e99ba9)",
+ "specta",
  "uhlc 0.5.2",
  "uuid",
 ]
@@ -7780,6 +7955,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "shared_child"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0d94659ad3c2137fef23ae75b03d5241d633f8acded53d672decfa0e6e0caef"
+dependencies = [
+ "libc",
+ "winapi",
+]
+
+[[package]]
 name = "shlex"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7912,7 +8097,7 @@ checksum = "471f924a40f31251afc77450e781cb26d55c0b650842efafc9c6cbd2f7cc4f9f"
 dependencies = [
  "futures-channel",
  "gio",
- "glib",
+ "glib 0.18.4",
  "libc",
  "soup3-sys",
 ]
@@ -7923,9 +8108,9 @@ version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ebe8950a680a12f24f15ebe1bf70db7af98ad242d9db43596ad3108aab86c27"
 dependencies = [
- "gio-sys",
- "glib-sys",
- "gobject-sys",
+ "gio-sys 0.18.1",
+ "glib-sys 0.18.1",
+ "gobject-sys 0.18.0",
  "libc",
  "system-deps",
 ]
@@ -7933,47 +8118,21 @@ dependencies = [
 [[package]]
 name = "specta"
 version = "2.0.0-rc.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18938fc0c7c0e8b7c8f4702e8cb53c218d4442f5b7420dd8b3d9640ca9a46712"
+source = "git+https://github.com/oscartbeaumont/specta?rev=673e3f55d246cd90e70c706ba4ca7f5818e99ba9#673e3f55d246cd90e70c706ba4ca7f5818e99ba9"
 dependencies = [
  "bigdecimal 0.4.2",
  "chrono",
  "indexmap 2.1.0",
  "once_cell",
  "paste",
- "specta-macros 2.0.0-rc.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "thiserror",
- "uuid",
-]
-
-[[package]]
-name = "specta"
-version = "2.0.0-rc.7"
-source = "git+https://github.com/oscartbeaumont/specta?rev=673e3f55d246cd90e70c706ba4ca7f5818e99ba9#673e3f55d246cd90e70c706ba4ca7f5818e99ba9"
-dependencies = [
- "chrono",
- "once_cell",
- "paste",
  "serde",
  "serde_json",
- "specta-macros 2.0.0-rc.7 (git+https://github.com/oscartbeaumont/specta?rev=673e3f55d246cd90e70c706ba4ca7f5818e99ba9)",
+ "specta-macros",
  "tauri",
  "thiserror",
  "tokio",
  "uhlc 0.6.3",
  "uuid",
-]
-
-[[package]]
-name = "specta-macros"
-version = "2.0.0-rc.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05080358d47cc706229b854d51c6477208de2b022ec0e16f1572c8cdc5263c8e"
-dependencies = [
- "Inflector",
- "proc-macro2",
- "quote",
- "syn 1.0.109",
 ]
 
 [[package]]
@@ -8285,6 +8444,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "sys-locale"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e801cf239ecd6ccd71f03d270d67dd53d13e90aab208bf4b8fe4ad957ea949b0"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "sysinfo"
 version = "0.29.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8359,8 +8527,8 @@ dependencies = [
  "gdkwayland-sys",
  "gdkx11-sys",
  "gio",
- "glib",
- "glib-sys",
+ "glib 0.18.4",
+ "glib-sys 0.18.1",
  "gtk",
  "image",
  "instant",
@@ -8532,6 +8700,73 @@ dependencies = [
 ]
 
 [[package]]
+name = "tauri-plugin-dialog"
+version = "2.0.0-alpha.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ead9b1276ed45ffec0a27ff51239614fa9b462a7483f5cb98f0c555a40754e9"
+dependencies = [
+ "glib 0.16.9",
+ "log",
+ "raw-window-handle",
+ "rfd",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-fs",
+ "thiserror",
+]
+
+[[package]]
+name = "tauri-plugin-fs"
+version = "2.0.0-alpha.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "330c81479fdc92bab8609d896249e016404f9fac24a27ddf66e1daafd4db1a35"
+dependencies = [
+ "anyhow",
+ "glob",
+ "serde",
+ "tauri",
+ "thiserror",
+ "uuid",
+]
+
+[[package]]
+name = "tauri-plugin-os"
+version = "2.0.0-alpha.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0dfd82d59cdf0229ffe62d38e12bdfee053c4f915883afe6f982b672a7e28d44"
+dependencies = [
+ "gethostname",
+ "log",
+ "os_info",
+ "serde",
+ "serde_json",
+ "serialize-to-javascript",
+ "sys-locale",
+ "tauri",
+ "thiserror",
+]
+
+[[package]]
+name = "tauri-plugin-shell"
+version = "2.0.0-alpha.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bdf84ccb3f5ac4df2dfeb5e2f09b9048d8633d9b98d72c701aba72642790f2d9"
+dependencies = [
+ "encoding_rs",
+ "log",
+ "open",
+ "os_pipe",
+ "regex",
+ "serde",
+ "serde_json",
+ "shared_child",
+ "tauri",
+ "thiserror",
+]
+
+[[package]]
 name = "tauri-plugin-updater"
 version = "2.0.0-alpha.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8614,13 +8849,13 @@ dependencies = [
 [[package]]
 name = "tauri-specta"
 version = "2.0.0-rc.4"
-source = "git+https://github.com/oscartbeaumont/tauri-specta?rev=71c4054d184c5f4a5336a4dcd4f779050f445d13#71c4054d184c5f4a5336a4dcd4f779050f445d13"
+source = "git+https://github.com/oscartbeaumont/tauri-specta?rev=123e1833c3951a6f5bf802dba3d06e96815d078f#123e1833c3951a6f5bf802dba3d06e96815d078f"
 dependencies = [
  "heck 0.4.1",
  "indoc",
  "serde",
  "serde_json",
- "specta 2.0.0-rc.7 (git+https://github.com/oscartbeaumont/specta?rev=673e3f55d246cd90e70c706ba4ca7f5818e99ba9)",
+ "specta",
  "tauri",
  "tauri-specta-macros",
  "thiserror",
@@ -8629,7 +8864,7 @@ dependencies = [
 [[package]]
 name = "tauri-specta-macros"
 version = "2.0.0-rc.4"
-source = "git+https://github.com/oscartbeaumont/tauri-specta?rev=71c4054d184c5f4a5336a4dcd4f779050f445d13#71c4054d184c5f4a5336a4dcd4f779050f445d13"
+source = "git+https://github.com/oscartbeaumont/tauri-specta?rev=123e1833c3951a6f5bf802dba3d06e96815d078f#123e1833c3951a6f5bf802dba3d06e96815d078f"
 dependencies = [
  "heck 0.4.1",
  "proc-macro2",
@@ -9788,10 +10023,10 @@ dependencies = [
  "gdk",
  "gdk-sys",
  "gio",
- "gio-sys",
- "glib",
- "glib-sys",
- "gobject-sys",
+ "gio-sys 0.18.1",
+ "glib 0.18.4",
+ "glib-sys 0.18.1",
+ "gobject-sys 0.18.0",
  "gtk",
  "gtk-sys",
  "javascriptcore-rs",
@@ -9810,9 +10045,9 @@ dependencies = [
  "bitflags 1.3.2",
  "cairo-sys-rs",
  "gdk-sys",
- "gio-sys",
- "glib-sys",
- "gobject-sys",
+ "gio-sys 0.18.1",
+ "glib-sys 0.18.1",
+ "gobject-sys 0.18.0",
  "gtk-sys",
  "javascriptcore-rs-sys",
  "libc",
