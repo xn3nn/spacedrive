@@ -78,11 +78,11 @@ importers:
   apps/desktop:
     dependencies:
       '@oscartbeaumont-sd/rspc-client':
-        specifier: '=0.0.0-main-dc31e5b2'
-        version: 0.0.0-main-dc31e5b2
+        specifier: '=0.0.0-main-56eb8b89'
+        version: 0.0.0-main-56eb8b89
       '@oscartbeaumont-sd/rspc-tauri':
-        specifier: '=0.0.0-main-dc31e5b2'
-        version: 0.0.0-main-dc31e5b2(@tauri-apps/api@2.0.0-alpha.12)
+        specifier: '=0.0.0-main-56eb8b89'
+        version: 0.0.0-main-56eb8b89(@tauri-apps/api@2.0.0-alpha.12)
       '@remix-run/router':
         specifier: ^1.13.1
         version: 1.13.1(patch_hash=wdk5klbkacqsve2yzdckjvtjz4)
@@ -338,11 +338,11 @@ importers:
         specifier: ^3.1.0
         version: 3.3.2(react-hook-form@7.47.0)
       '@oscartbeaumont-sd/rspc-client':
-        specifier: '=0.0.0-main-dc31e5b2'
-        version: 0.0.0-main-dc31e5b2
+        specifier: '=0.0.0-main-56eb8b89'
+        version: 0.0.0-main-56eb8b89
       '@oscartbeaumont-sd/rspc-react':
-        specifier: '=0.0.0-main-dc31e5b2'
-        version: 0.0.0-main-dc31e5b2(@oscartbeaumont-sd/rspc-client@0.0.0-main-dc31e5b2)(@tanstack/react-query@4.36.1)(react@18.2.0)
+        specifier: '=0.0.0-main-56eb8b89'
+        version: 0.0.0-main-56eb8b89(@oscartbeaumont-sd/rspc-client@0.0.0-main-56eb8b89)(@tanstack/react-query@4.36.1)(react@18.2.0)
       '@react-native-async-storage/async-storage':
         specifier: ~1.18.2
         version: 1.18.2(react-native@0.72.6)
@@ -573,8 +573,8 @@ importers:
         specifier: ^4.5.15
         version: 4.5.15
       '@oscartbeaumont-sd/rspc-client':
-        specifier: '=0.0.0-main-dc31e5b2'
-        version: 0.0.0-main-dc31e5b2
+        specifier: '=0.0.0-main-56eb8b89'
+        version: 0.0.0-main-56eb8b89
       '@sd/client':
         specifier: workspace:*
         version: link:../../packages/client
@@ -847,11 +847,11 @@ importers:
   packages/client:
     dependencies:
       '@oscartbeaumont-sd/rspc-client':
-        specifier: '=0.0.0-main-dc31e5b2'
-        version: 0.0.0-main-dc31e5b2
+        specifier: '=0.0.0-main-56eb8b89'
+        version: 0.0.0-main-56eb8b89
       '@oscartbeaumont-sd/rspc-react':
-        specifier: '=0.0.0-main-dc31e5b2'
-        version: 0.0.0-main-dc31e5b2(@oscartbeaumont-sd/rspc-client@0.0.0-main-dc31e5b2)(@tanstack/react-query@4.36.1)(react@18.2.0)
+        specifier: '=0.0.0-main-56eb8b89'
+        version: 0.0.0-main-56eb8b89(@oscartbeaumont-sd/rspc-client@0.0.0-main-56eb8b89)(@tanstack/react-query@4.36.1)(react@18.2.0)
       '@tanstack/react-query':
         specifier: ^4.36.1
         version: 4.36.1(react-dom@18.2.0)(react-native@0.72.6)(react@18.2.0)
@@ -6748,28 +6748,28 @@ packages:
     engines: {node: '>=14'}
     dev: false
 
-  /@oscartbeaumont-sd/rspc-client@0.0.0-main-dc31e5b2:
-    resolution: {integrity: sha512-/XxwfgXOOKrbhhLKBzRNIAAfhhasvzbVo5xr/Md3MnnPT9O0+rBy4/ducZPznLusFyz4qT3q3m41DPHxB0JxCw==}
+  /@oscartbeaumont-sd/rspc-client@0.0.0-main-56eb8b89:
+    resolution: {integrity: sha512-oGMPONMub3bo+ortGr14iV41OYZATXQk9JCDJ/VuENmAfUYZ+PiWfHNMdZ5ljJVW4GKf0gFD5xhQscvfrOvEow==}
     dev: false
 
-  /@oscartbeaumont-sd/rspc-react@0.0.0-main-dc31e5b2(@oscartbeaumont-sd/rspc-client@0.0.0-main-dc31e5b2)(@tanstack/react-query@4.36.1)(react@18.2.0):
-    resolution: {integrity: sha512-686tAMJjbfGJ+72sGHrj3+g8q021113IO7MQDBYviTsjgZt7Pcl1p5Ckbhl4L/zvp1qsJafbEig3Nr6mRS1GjA==}
+  /@oscartbeaumont-sd/rspc-react@0.0.0-main-56eb8b89(@oscartbeaumont-sd/rspc-client@0.0.0-main-56eb8b89)(@tanstack/react-query@4.36.1)(react@18.2.0):
+    resolution: {integrity: sha512-uDMEEhpflW+VrSuChm/T5/e0r9HdnVKNCDIhQ97NMB9yat8lVS750H5EcXYE1ayobr3InrRjwGsaC7ri/fQqyA==}
     peerDependencies:
-      '@oscartbeaumont-sd/rspc-client': 0.0.0-main-dc31e5b2
+      '@oscartbeaumont-sd/rspc-client': 0.0.0-main-56eb8b89
       '@tanstack/react-query': ^4.26.0
       react: ^18.2.0
     dependencies:
-      '@oscartbeaumont-sd/rspc-client': 0.0.0-main-dc31e5b2
+      '@oscartbeaumont-sd/rspc-client': 0.0.0-main-56eb8b89
       '@tanstack/react-query': 4.36.1(react-dom@18.2.0)(react-native@0.72.6)(react@18.2.0)
       react: 18.2.0
     dev: false
 
-  /@oscartbeaumont-sd/rspc-tauri@0.0.0-main-dc31e5b2(@tauri-apps/api@2.0.0-alpha.12):
-    resolution: {integrity: sha512-YbOwVRwptEfo/6k5z7SnaiMU0TkL5/fwCdxNzgY/eWr6c/+0mdZ9FTeWgSnqkcloA6StkUikA+gmzImHssdT+Q==}
+  /@oscartbeaumont-sd/rspc-tauri@0.0.0-main-56eb8b89(@tauri-apps/api@2.0.0-alpha.12):
+    resolution: {integrity: sha512-3/7lR29+0MsN1+YANDuZlL/YE2xWW2tLy7G3a2SrB51iyOaPw6gmJKB6ber4bOCfCWq2lxp38Vrfy5rUbBhfxA==}
     peerDependencies:
-      '@tauri-apps/api': ^1.2.0
+      '@tauri-apps/api': ^2.0.0-alpha.12
     dependencies:
-      '@oscartbeaumont-sd/rspc-client': 0.0.0-main-dc31e5b2
+      '@oscartbeaumont-sd/rspc-client': 0.0.0-main-56eb8b89
       '@tauri-apps/api': 2.0.0-alpha.12
     dev: false
 

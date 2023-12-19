@@ -95,10 +95,10 @@ export async function patchTauri(root, nativeDeps, targets, bundles, args) {
 	}
 
 	if (args[0] === 'build') {
-		if (tauriConfig?.tauri?.updater?.active) {
-			const pubKey = await tauriUpdaterKey(nativeDeps)
-			if (pubKey != null) tauriPatch.tauri.updater.pubkey = pubKey
-		}
+		// if (tauriConfig?.tauri?.updater?.active) {
+		// 	const pubKey = await tauriUpdaterKey(nativeDeps)
+		// 	if (pubKey != null) tauriPatch.tauri.updater.pubkey = pubKey
+		// }
 	}
 
 	if (osType === 'Darwin') {
