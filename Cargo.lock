@@ -3844,6 +3844,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "httpz"
+version = "0.0.6"
+source = "git+https://github.com/spacedriveapp/rspc.git?rev=6b7caa5bfd44888ce5145a8607eb490a4f142c29#6b7caa5bfd44888ce5145a8607eb490a4f142c29"
+dependencies = [
+ "async-tungstenite",
+ "axum",
+ "base64 0.21.5",
+ "cookie 0.17.0",
+ "form_urlencoded",
+ "futures",
+ "http",
+ "hyper",
+ "sha1",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "humantime"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8065,7 +8083,7 @@ dependencies = [
  "futures",
  "futures-channel",
  "futures-locks",
- "httpz",
+ "httpz 0.0.6",
  "nougat",
  "pin-project",
  "pprof",
@@ -8087,13 +8105,16 @@ dependencies = [
  "futures",
  "futures-channel",
  "futures-locks",
+ "httpz 0.0.6 (git+https://github.com/spacedriveapp/rspc.git?rev=6b7caa5bfd44888ce5145a8607eb490a4f142c29)",
  "nougat",
  "pin-project",
  "serde",
  "serde_json",
  "specta",
+ "tauri",
  "thiserror",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
@@ -8397,7 +8418,7 @@ name = "sd-cloud-api"
 version = "0.1.0"
 dependencies = [
  "reqwest",
- "rspc 0.1.4",
+ "rspc 0.1.4 (git+https://github.com/spacedriveapp/rspc.git?rev=6b7caa5bfd44888ce5145a8607eb490a4f142c29)",
  "serde",
  "serde_json",
  "specta",
@@ -8444,7 +8465,7 @@ dependencies = [
  "reqwest",
  "rmp-serde",
  "rmpv",
- "rspc 0.1.4",
+ "rspc 0.1.4 (git+https://github.com/spacedriveapp/rspc.git?rev=6b7caa5bfd44888ce5145a8607eb490a4f142c29)",
  "sd-cache",
  "sd-cloud-api",
  "sd-core-sync",
@@ -8513,7 +8534,7 @@ dependencies = [
  "hex",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
- "rspc 0.1.4",
+ "rspc 0.1.4 (git+https://github.com/spacedriveapp/rspc.git?rev=6b7caa5bfd44888ce5145a8607eb490a4f142c29)",
  "secret-service",
  "security-framework",
  "serde",
@@ -8536,7 +8557,7 @@ dependencies = [
  "opener",
  "prisma-client-rust",
  "rand 0.8.5",
- "rspc 0.1.4",
+ "rspc 0.1.4 (git+https://github.com/spacedriveapp/rspc.git?rev=6b7caa5bfd44888ce5145a8607eb490a4f142c29)",
  "sd-core",
  "sd-desktop-linux",
  "sd-desktop-macos",
@@ -8627,7 +8648,7 @@ dependencies = [
  "once_cell",
  "pdfium-render",
  "resvg",
- "rspc 0.1.4",
+ "rspc 0.1.4 (git+https://github.com/spacedriveapp/rspc.git?rev=6b7caa5bfd44888ce5145a8607eb490a4f142c29)",
  "serde",
  "specta",
  "thiserror",
@@ -8666,7 +8687,7 @@ dependencies = [
  "futures-channel",
  "futures-locks",
  "once_cell",
- "rspc 0.1.4",
+ "rspc 0.1.4 (git+https://github.com/spacedriveapp/rspc.git?rev=6b7caa5bfd44888ce5145a8607eb490a4f142c29)",
  "sd-core",
  "serde_json",
  "tokio",
@@ -8725,7 +8746,7 @@ dependencies = [
  "http",
  "include_dir",
  "mime_guess",
- "rspc 0.1.4",
+ "rspc 0.1.4 (git+https://github.com/spacedriveapp/rspc.git?rev=6b7caa5bfd44888ce5145a8607eb490a4f142c29)",
  "sd-core",
  "tokio",
  "tracing",

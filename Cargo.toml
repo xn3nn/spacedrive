@@ -41,7 +41,7 @@ tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 tracing-appender = "0.2.3"
 
-rspc = { path = "./crates/rspc" }
+rspc = "0.1.4"
 specta = { git = "https://github.com/oscartbeaumont/specta", rev = "673e3f55d246cd90e70c706ba4ca7f5818e99ba9" }
 tauri-specta = { git = "https://github.com/oscartbeaumont/tauri-specta", rev = "123e1833c3951a6f5bf802dba3d06e96815d078f" }
 
