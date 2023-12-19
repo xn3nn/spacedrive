@@ -1,10 +1,12 @@
 import { type ProcedureDef } from '@rspc/client';
-import { AlphaRSPCError, initRspc } from '@rspc/client/v2';
+import { AlphaRSPCError, initRspc, wsBatchLink } from '@rspc/client/v2';
 import { createReactQueryHooks, type Context } from '@rspc/solid';
 import { QueryClient } from '@tanstack/react-query';
 import { createContext, useContext, type ParentProps } from 'solid-js';
 import { match, P } from 'ts-pattern';
-import { currentLibraryCache, type LibraryArgs, type Procedures } from '@sd/client';
+import { type LibraryArgs, type Procedures } from '@sd/client';
+
+import { currentLibraryCache } from './useClientContext';
 
 type NonLibraryProcedure<T extends keyof Procedures> =
 	| Exclude<Procedures[T], { input: LibraryArgs<any> }>
@@ -71,11 +73,14 @@ const libraryHooks = createReactQueryHooks<LibraryProceduresDef>(libraryClient, 
 });
 
 // TODO: Allow both hooks to use a unified context -> Right now they override each others local state
-export function RspcProvider({ queryClient, children }: ParentProps<{ queryClient: QueryClient }>) {
+export function RspcProvider(props: ParentProps<{ queryClient: QueryClient }>) {
 	return (
-		<libraryHooks.Provider client={libraryClient as any} queryClient={queryClient}>
-			<nonLibraryHooks.Provider client={nonLibraryClient as any} queryClient={queryClient}>
-				{children as any}
+		<libraryHooks.Provider client={libraryClient as any} queryClient={props.queryClient}>
+			<nonLibraryHooks.Provider
+				client={nonLibraryClient as any}
+				queryClient={props.queryClient}
+			>
+				{props.children}
 			</nonLibraryHooks.Provider>
 		</libraryHooks.Provider>
 	);

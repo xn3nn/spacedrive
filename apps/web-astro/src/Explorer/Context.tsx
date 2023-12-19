@@ -1,7 +1,7 @@
 import { createContext, useContext, type ParentProps } from 'solid-js';
 
-import { Ordering } from './store';
-import { type CreateExplorer } from './useExplorer';
+import { type CreateExplorer } from './createExplorer';
+import { type Ordering } from './store';
 
 /**
  * Context that must wrap anything to do with the explorer.

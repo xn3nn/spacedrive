@@ -16,24 +16,35 @@ export function VirtualGrid({ grid, children, ...props }: GridProps) {
 
 	const [offset, setOffset] = Solid.createSignal(0);
 
-	const useVisibilityObserver = createVisibilityObserver();
+	// const useVisibilityObserver = createVisibilityObserver();
 	let loadMoreRef: HTMLDivElement | undefined;
-	const inView = useVisibilityObserver(() => loadMoreRef);
+	// const inView = useVisibilityObserver(() => loadMoreRef);
 
 	const rowVirtualizer = createVirtualizer({
-		...grid().virtualizer.rowVirtualizer(),
+		get count() {
+			return grid().virtualizer.rowVirtualizer.count;
+		},
+		getScrollElement: () => grid().virtualizer.rowVirtualizer.getScrollElement(),
+		estimateSize: (index) => grid().virtualizer.rowVirtualizer.estimateSize(index),
 		get scrollMargin() {
 			return offset();
 		}
 	});
 
-	const columnVirtualizer = createVirtualizer(grid().virtualizer.columnVirtualizer());
+	const columnVirtualizer = createVirtualizer({
+		horizontal: true,
+		get count() {
+			return grid().virtualizer.columnVirtualizer.count;
+		},
+		getScrollElement: () => grid().virtualizer.columnVirtualizer.getScrollElement(),
+		estimateSize: (index) => grid().virtualizer.columnVirtualizer.estimateSize(index)
+	});
 
-	const width = columnVirtualizer.getTotalSize();
-	const height = rowVirtualizer.getTotalSize();
+	const width = Solid.createMemo(() => columnVirtualizer.getTotalSize());
+	const height = Solid.createMemo(() => rowVirtualizer.getTotalSize());
 
-	const internalWidth = () => width - (grid().padding.left + grid().padding.right);
-	const internalHeight = () => height - (grid().padding.top + grid().padding.bottom);
+	const internalWidth = () => width() - (grid().padding.left + grid().padding.right);
+	const internalHeight = () => height() - (grid().padding.top + grid().padding.bottom);
 
 	const loadMoreTriggerHeight = Solid.createMemo(() => {
 		if (grid().horizontal || !grid().onLoadMore || !grid().rowCount || !grid().totalRowCount)
@@ -54,9 +65,9 @@ export function VirtualGrid({ grid, children, ...props }: GridProps) {
 			loadMoreHeight = Math.max(0, rowVirtualizer.scrollElement.clientHeight - offset);
 		}
 
-		const triggerHeight = height - lastRowTop + loadMoreHeight;
+		const triggerHeight = height() - lastRowTop + loadMoreHeight;
 
-		return Math.min(height, triggerHeight);
+		return Math.min(height(), triggerHeight);
 	});
 
 	const loadMoreTriggerWidth = Solid.createMemo(() => {
@@ -76,9 +87,9 @@ export function VirtualGrid({ grid, children, ...props }: GridProps) {
 		const loadMoreWidth =
 			grid().loadMoreSize ?? columnVirtualizer.scrollElement?.clientWidth ?? 0;
 
-		const triggerWidth = width - lastColumnLeft + loadMoreWidth;
+		const triggerWidth = width() - lastColumnLeft + loadMoreWidth;
 
-		return Math.min(width, triggerWidth);
+		return Math.min(width(), triggerWidth);
 	});
 
 	Solid.createEffect(
@@ -95,24 +106,32 @@ export function VirtualGrid({ grid, children, ...props }: GridProps) {
 		)
 	);
 
-	Solid.createEffect(() => {
-		if (inView()) grid().onLoadMore?.();
-	});
+	// Solid.createEffect(() => {
+	// 	if (inView()) grid().onLoadMore?.();
+	// });
 
-	Solid.createEffect(() => {
-		const element = grid().scrollRef();
-		if (!element) return;
+	// Solid.createEffect(() => {
+	// 	const element = grid().scrollRef();
+	// 	if (!element) return;
 
-		const observer = new MutationObserver(() => setOffset(ref?.offsetTop ?? 0));
+	// 	const observer = new MutationObserver(() => setOffset(ref?.offsetTop ?? 0));
 
-		observer.observe(element, {
-			childList: true
-		});
+	// 	observer.observe(element, {
+	// 		childList: true
+	// 	});
 
-		return () => observer.disconnect();
-	});
+	// 	return () => observer.disconnect();
+	// });
 
-	Solid.createEffect(() => setOffset(ref?.offsetTop ?? 0), []);
+	// Solid.createEffect(() => setOffset(ref?.offsetTop ?? 0), []);
+
+	Solid.createEffect(() =>
+		console.log({
+			row: rowVirtualizer.getVirtualItems(),
+			column: columnVirtualizer.getVirtualItems(),
+			virtualizer: grid().virtualizer
+		})
+	);
 
 	return (
 		<div
@@ -121,8 +140,8 @@ export function VirtualGrid({ grid, children, ...props }: GridProps) {
 			style={{
 				...props.style,
 				position: 'relative',
-				width: width.toString(),
-				height: height.toString()
+				width: `${width()}px`,
+				height: `${height()}px`
 			}}
 		>
 			<Solid.Show when={internalWidth() > 0 || internalHeight() > 0}>
@@ -142,47 +161,61 @@ export function VirtualGrid({ grid, children, ...props }: GridProps) {
 					{(virtualRow) => (
 						<Solid.For each={columnVirtualizer.getVirtualItems()}>
 							{(virtualColumn) => {
-								let index = grid().horizontal
-									? virtualColumn.index * grid().rowCount + virtualRow.index
-									: virtualRow.index * grid().columnCount + virtualColumn.index;
+								const index = Solid.createMemo(() => {
+									let index = grid().horizontal
+										? virtualColumn.index * grid().rowCount + virtualRow.index
+										: virtualRow.index * grid().columnCount +
+										  virtualColumn.index;
 
-								if (grid().invert) index = grid().count - 1 - index;
+									if (grid().invert) index = grid().count - 1 - index;
 
-								if (index >= grid().count || index < 0) return null;
+									if (index >= grid().count || index < 0) return null;
+									return { value: index };
+								});
 
 								return (
-									<div
-										data-index={index}
-										style={{
-											'position': 'absolute',
-											'top': 0,
-											'left': 0,
-											'width': `${virtualColumn.size}px`,
-											'height': `${virtualRow.size}px`,
-											'transform': `translateX(${
-												virtualColumn.start
-											}px) translateY(${
-												virtualRow.start -
-												rowVirtualizer.options.scrollMargin
-											}px)`,
-											'padding-left':
-												virtualColumn.index !== 0
-													? grid().gap.x.toString()
-													: 0,
-											'padding-top':
-												virtualRow.index !== 0 ? grid().gap.y.toString() : 0
-										}}
-									>
-										<div
-											style={{
-												margin: 'auto',
-												width: grid().itemSize.width?.toString() ?? '100%',
-												height: grid().itemSize.height?.toString() ?? '100%'
-											}}
-										>
-											{children(index)}
-										</div>
-									</div>
+									<Solid.Show when={index()}>
+										{(index) => (
+											<div
+												data-index={index().value}
+												style={{
+													'position': 'absolute',
+													'top': 0,
+													'left': 0,
+													'width': `${virtualColumn.size}px`,
+													'height': `${virtualRow.size}px`,
+													'transform': `translateX(${
+														virtualColumn.start
+													}px) translateY(${
+														virtualRow.start -
+														rowVirtualizer.options.scrollMargin
+													}px)`,
+													'padding-left':
+														virtualColumn.index !== 0
+															? grid().gap.x.toString()
+															: 0,
+													'padding-top':
+														virtualRow.index !== 0
+															? grid().gap.y.toString()
+															: 0
+												}}
+											>
+												<div
+													style={{
+														margin: 'auto',
+														width:
+															`${grid().itemSize.width?.toString()}px` ??
+															'100%',
+														height:
+															`${grid().itemSize.height?.toString()}px` ??
+															'100%'
+													}}
+												>
+													{children(index().value)}
+												</div>
+											</div>
+										)}
+									</Solid.Show>
 								);
 							}}
 						</Solid.For>

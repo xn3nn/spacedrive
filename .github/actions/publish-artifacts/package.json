@@ -1,4 +1,5 @@
 {
+	"name": "publish-artifacts",
 	"private": true,
 	"scripts": {
 		"build": "ncc build index.ts --minify"

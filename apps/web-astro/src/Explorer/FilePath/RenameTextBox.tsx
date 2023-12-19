@@ -1,6 +1,15 @@
 import { createEventListener } from '@solid-primitives/event-listener';
+import { createResizeObserver } from '@solid-primitives/resize-observer';
 import clsx from 'clsx';
-import { createEffect, createSignal, splitProps, type ComponentProps } from 'solid-js';
+import {
+	createEffect,
+	createMemo,
+	createSignal,
+	JSX,
+	Show,
+	splitProps,
+	type ComponentProps
+} from 'solid-js';
 
 // import { Tooltip } from '@sd/ui';
 
@@ -159,8 +168,8 @@ export function RenameTextBox(props: RenameTextBoxProps) {
 			ref={ref!}
 			role="textbox"
 			contentEditable={allowRename()}
-			className={clsx(
-				'cursor-default overflow-hidden rounded-md px-1.5 py-px text-xs text-ink outline-none',
+			class={clsx(
+				'cursor-default overflow-hidden rounded-md px-1.5 py-px text-center text-xs text-ink outline-none',
 				allowRename() && 'whitespace-normal bg-app !text-ink ring-2 ring-accent-deep',
 				!allowRename && props.idleClassName,
 				props.class
@@ -183,33 +192,116 @@ export function RenameTextBox(props: RenameTextBoxProps) {
 			onKeyDown={handleKeyDown}
 			{...wrapperProps}
 		>
-			{props.name}
-			{/* {allowRename ? (
-				name
-			) : (
-				<TruncatedText text={name} lines={lines} onTruncate={setIsTruncated} />
-			)} */}
+			{allowRename()
+				? props.name
+				: (() => {
+						const ellipsis = createMemo(() => {
+							const extension = props.name.lastIndexOf('.');
+							if (extension !== -1)
+								return `...${props.name.slice(
+									-Math.min(props.name.length - extension + 2, 8)
+								)}`;
+							return `...${props.name.slice(-8)}`;
+						});
+
+						return (
+							<TruncatedText
+								lines={props.lines ?? 2}
+								postfix={ellipsis()}
+								onTruncate={setIsTruncated}
+							>
+								{props.name}
+							</TruncatedText>
+						);
+					})()}
 		</div>
 		// </Tooltip>
 	);
 }
 
-interface TruncatedTextProps {
-	text: string;
-	lines?: number;
-	onTruncate: (wasTruncated: boolean) => void;
-}
+const LINE_HEIGHT = 19;
 
-function TruncatedText(props: TruncatedTextProps) {
-	const ellipsis = () => {
-		const extension = props.text.lastIndexOf('.');
-		if (extension !== -1) return `...${props.text.slice(-(props.text.length - extension + 2))}`;
-		return `...${props.text.slice(-8)}`;
-	};
+function TruncatedText(props: {
+	lines: number;
+	prefix?: JSX.Element;
+	postfix?: JSX.Element;
+	children: string;
+	style?: JSX.CSSProperties;
+	onTruncate?: (wasTruncated: boolean) => void;
+}) {
+	const [cutoff, setCutoff] = createSignal<Array<'left' | 'right'>>([]);
+	const cutoffChildren = createMemo(() => {
+		const length = props.children.length;
+
+		let cursor = length;
+
+		const cutoffsArray = cutoff();
+		for (let i = 1; i <= cutoffsArray.length; i++) {
+			const delta = Math.ceil(length * Math.pow(0.5, i));
+			const cutoff = cutoffsArray[i]!;
+
+			cursor += (cutoff === 'left' ? -1 : 1) * delta;
+		}
+
+		return props.children.slice(0, cursor);
+	});
+
+	let ref!: HTMLDivElement;
+
+	let currentlyTruncating = false;
+
+	const fits = createMemo(
+		() => ref?.getBoundingClientRect().height ?? 0 / LINE_HEIGHT <= props.lines
+	);
+
+	function truncate() {
+		if (fits()) {
+			setCutoff((c) => [...c, 'right' as const]);
+			return (currentlyTruncating = false);
+		}
+
+		setCutoff((c) => [...c, 'left' as const]);
+
+		if (fits()) {
+			return (currentlyTruncating = false);
+		}
+
+		currentlyTruncating = true;
+
+		truncate();
+	}
+
+	function reset() {
+		setCutoff([]);
+
+		if (fits()) return;
+
+		currentlyTruncating = true;
+		truncate();
+	}
+
+	createResizeObserver(
+		() => ref,
+		() => {
+			if (currentlyTruncating) return;
+
+			reset();
+		}
+	);
 
 	return (
-		<TruncateMarkup lines={props.lines} ellipsis={ellipsis} onTruncate={props.onTruncate}>
-			<div>{props.text}</div>
-		</TruncateMarkup>
+		<div
+			style={{
+				'word-break': 'break-word',
+				...props.style
+			}}
+			ref={ref}
+		>
+			<Show when={props.prefix}>
+				<div style={{ display: 'inline-block' }}>{props.prefix}</div>
+			</Show>
+			{cutoffChildren()}
+			{/* <Show when={cutoff().length > 0}>{props.postfix}</Show> */}
+		</div>
 	);
 }

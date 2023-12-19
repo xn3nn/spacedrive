@@ -8,7 +8,7 @@ export function Explorer() {
 
 	return (
 		<div
-			ref={explorer.scrollRef}
+			ref={explorer.setScrollRef}
 			class="custom-scroll explorer-scroll flex flex-1 flex-col overflow-x-hidden"
 			style={
 				{

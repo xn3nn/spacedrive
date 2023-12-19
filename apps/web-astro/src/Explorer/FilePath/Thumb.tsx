@@ -1,14 +1,23 @@
 import { getIcon, getIconByName } from '@sd/assets/util';
 import { createElementSize } from '@solid-primitives/resize-observer';
 import clsx from 'clsx';
-import { createMemo, createSignal, Match, Show, Switch, type ComponentProps } from 'solid-js';
+import {
+	createEffect,
+	createMemo,
+	createSignal,
+	Match,
+	Show,
+	Switch,
+	type ComponentProps
+} from 'solid-js';
 import { createStore } from 'solid-js/store';
 import { getExplorerItemData, type ExplorerItem } from '@sd/client';
 
+import { usePlatform } from '../../Platform';
 import { LayeredFileIcon } from './LayeredFileIcon';
 import classes from './Thumb.module.scss';
 
-interface FileThumbProps extends Pick<ComponentProps<'img'>, 'ref'> {
+interface FileThumbProps extends Pick<ComponentProps<'img'>, 'ref' | 'class'> {
 	data: ExplorerItem;
 	loadOriginal?: boolean;
 	size?: number;
@@ -21,7 +30,6 @@ interface FileThumbProps extends Pick<ComponentProps<'img'>, 'ref'> {
 	extension?: boolean;
 	mediaControls?: boolean;
 	pauseVideo?: boolean;
-	className?: string;
 	frameClassName?: string;
 	childClassName?: string | ((type: ThumbType) => string | undefined);
 	isSidebarPreview?: boolean;
@@ -51,11 +59,13 @@ export function FileThumb(props: FileThumbProps) {
 		return { variant: 'icon' };
 	});
 
+	const platform = usePlatform();
+
 	const src = createMemo<string | undefined>(() => {
 		switch (thumbType().variant) {
 			case 'thumbnail':
-				// if (itemData().thumbnailKey.length > 0)
-				// return platform.getThumbnailUrlByThumbKey(itemData.thumbnailKey);
+				if (itemData().thumbnailKey.length > 0)
+					return platform.getThumbnailUrlByThumbKey(itemData().thumbnailKey);
 
 				break;
 			case 'icon':
@@ -80,11 +90,12 @@ export function FileThumb(props: FileThumbProps) {
 			: props.childClassName;
 
 	const childClassName = 'max-h-full max-w-full object-contain';
-	const frameClassName = clsx(
-		'rounded-sm border-2 border-app-line bg-app-darkBox',
-		props.frameClassName,
-		true ? classes.checkers : classes.checkersLight
-	);
+	const frameClassName = () =>
+		clsx(
+			'rounded-sm border-2 border-app-line bg-app-darkBox',
+			props.frameClassName,
+			true ? classes.checkers : classes.checkersLight
+		);
 
 	const getClass = () => clsx(childClassName, _childClassName());
 
@@ -109,60 +120,79 @@ export function FileThumb(props: FileThumbProps) {
 	};
 
 	return (
-		<Show when={src()}>
-			{(src) => (
-				<Switch>
-					<Match when={thumbType().variant === 'thumbnail'}>
-						<Thumbnail
-							{...props.childProps}
-							ref={props.ref}
-							src={src()}
-							cover={props.cover}
-							onLoad={() => onLoad('thumbnail')}
-							onError={(e) => onError('thumbnail', e)}
-							decoding={props.size ? 'async' : 'sync'}
-							class={clsx(
-								props.cover
-									? [
-											'min-h-full min-w-full object-cover object-center',
-											_childClassName()
-									  ]
-									: getClass(),
-								props.frame &&
-									!(itemData().kind === 'Video' && props.blackBars) &&
-									frameClassName
-							)}
-							crossOrigin="anonymous" // Here it is ok, because it is not a react attr
-							blackBars={
-								props.blackBars && itemData().kind === 'Video' && !props.cover
-							}
-							blackBarsSize={props.blackBarsSize}
-							extension={
-								props.extension &&
-								itemData().extension &&
-								itemData().kind === 'Video'
-									? itemData().extension || undefined
-									: undefined
-							}
-						/>
-					</Match>
-					<Match when={thumbType().variant === 'icon'}>
-						<LayeredFileIcon
-							{...props.childProps}
-							ref={props.ref}
-							src={src()}
-							kind={itemData().kind}
-							extension={itemData().extension}
-							onLoad={() => onLoad('icon')}
-							onError={(e) => onError('icon', e)}
-							decoding={props.size ? 'async' : 'sync'}
-							class={getClass()}
-							draggable={false}
-						/>
-					</Match>
-				</Switch>
+		<div
+			style={{
+				...(props.size
+					? {
+							maxWidth: props.size.toString(),
+							width: props.size.toString(),
+							height: props.size.toString()
+					  }
+					: {})
+			}}
+			class={clsx(
+				'relative flex shrink-0 items-center justify-center',
+				// !loaded && 'invisible',
+				!props.size && 'h-full w-full',
+				props.cover && 'overflow-hidden',
+				props.class
 			)}
-		</Show>
+		>
+			<Show when={src()}>
+				{(src) => (
+					<Switch>
+						<Match when={thumbType().variant === 'thumbnail'}>
+							<Thumbnail
+								{...props.childProps}
+								ref={props.ref}
+								src={src()}
+								cover={props.cover}
+								onLoad={() => onLoad('thumbnail')}
+								onError={(e) => onError('thumbnail', e)}
+								decoding={props.size ? 'async' : 'sync'}
+								class={clsx(
+									props.cover
+										? [
+												'min-h-full min-w-full object-cover object-center',
+												_childClassName()
+										  ]
+										: getClass(),
+									props.frame &&
+										!(itemData().kind === 'Video' && props.blackBars) &&
+										frameClassName()
+								)}
+								crossOrigin="anonymous" // Here it is ok, because it is not a react attr
+								blackBars={
+									props.blackBars && itemData().kind === 'Video' && !props.cover
+								}
+								blackBarsSize={props.blackBarsSize}
+								extension={
+									props.extension &&
+									itemData().extension &&
+									itemData().kind === 'Video'
+										? itemData().extension || undefined
+										: undefined
+								}
+							/>
+						</Match>
+						<Match when={thumbType().variant === 'icon'}>
+							<LayeredFileIcon
+								{...props.childProps}
+								ref={props.ref}
+								src={src()}
+								kind={itemData().kind}
+								extension={itemData().extension}
+								onLoad={() => onLoad('icon')}
+								onError={(e) => onError('icon', e)}
+								decoding={props.size ? 'async' : 'sync'}
+								class={getClass()}
+								draggable={false}
+							/>
+						</Match>
+					</Switch>
+				)}
+			</Show>
+		</div>
 	);
 }
 
@@ -180,7 +210,14 @@ function Thumbnail(props: ThumbnailProps) {
 
 	return (
 		<>
-			<img ref={setRef} draggable={false} />
+			<img
+				{...props}
+				class={props.class}
+				style={props.style}
+				src={props.src}
+				ref={setRef}
+				draggable={false}
+			/>
 			{(props.cover || (size.width && size.width > 80)) && props.extension && (
 				<div
 					style={{

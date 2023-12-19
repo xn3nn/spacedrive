@@ -67,7 +67,7 @@ export const GridItem = (props: Props) => {
 			class="h-full w-full"
 			data-selectable=""
 			data-selectable-index={props.index}
-			data-selectable-id={itemId}
+			data-selectable-id={itemId()}
 			onContextMenu={(e) => {
 				if (explorerView.selectable && !explorer.selectedItems().has(props.item)) {
 					explorer.resetSelectedItems([props.item]);

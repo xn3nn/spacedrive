@@ -3,7 +3,7 @@
 	"private": true,
 	"version": "0.0.0",
 	"scripts": {
-		"dev": "astro dev",
+		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
 		"test": "VITE_SD_DEMO_MODE=true playwright test",
@@ -14,7 +14,7 @@
 		"@astrojs/solid-js": "^3.0.2",
 		"@astrojs/tailwind": "^5.0.3",
 		"@fontsource/inter": "^4.5.15",
-		"@rspc/client": "0.0.0-main-45466c86",
+		"@rspc/client": "0.0.0-main-b8b35d28",
 		"@sd/client": "workspace:*",
 		"@sd/interface": "workspace:*",
 		"@tanstack/react-query": "^4.36.1",

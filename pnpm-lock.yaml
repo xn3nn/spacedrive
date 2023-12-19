@@ -81,11 +81,11 @@ importers:
         specifier: ^1.14.0
         version: 1.14.0
       '@rspc/client':
-        specifier: 0.0.0-main-45466c86
-        version: 0.0.0-main-45466c86
+        specifier: 0.0.0-main-b8b35d28
+        version: 0.0.0-main-b8b35d28
       '@rspc/tauri':
-        specifier: 0.0.0-main-45466c86
-        version: 0.0.0-main-45466c86(@tauri-apps/api@1.5.1)
+        specifier: 0.0.0-main-b8b35d28
+        version: 0.0.0-main-b8b35d28(@tauri-apps/api@1.5.1)
       '@sd/client':
         specifier: workspace:*
         version: link:../../packages/client
@@ -350,11 +350,11 @@ importers:
         specifier: ^6.3.20
         version: 6.3.20(@react-navigation/native@6.1.9)(react-native-gesture-handler@2.12.1)(react-native-safe-area-context@4.6.3)(react-native-screens@3.22.1)(react-native@0.72.6)(react@18.2.0)
       '@rspc/client':
-        specifier: 0.0.0-main-45466c86
-        version: 0.0.0-main-45466c86
+        specifier: 0.0.0-main-b8b35d28
+        version: 0.0.0-main-b8b35d28
       '@rspc/react':
-        specifier: 0.0.0-main-45466c86
-        version: 0.0.0-main-45466c86(@rspc/client@0.0.0-main-45466c86)(@tanstack/react-query@4.36.1)(react@18.2.0)
+        specifier: 0.0.0-main-b8b35d28
+        version: 0.0.0-main-b8b35d28(@rspc/client@0.0.0-main-b8b35d28)(@tanstack/react-query@4.36.1)(react@18.2.0)
       '@sd/assets':
         specifier: workspace:*
         version: link:../../packages/assets
@@ -576,8 +576,8 @@ importers:
         specifier: ^4.5.15
         version: 4.5.15
       '@rspc/client':
-        specifier: 0.0.0-main-45466c86
-        version: 0.0.0-main-45466c86
+        specifier: 0.0.0-main-b8b35d28
+        version: 0.0.0-main-b8b35d28
       '@sd/client':
         specifier: workspace:*
         version: link:../../packages/client
@@ -670,14 +670,17 @@ importers:
         specifier: ^5.0.3
         version: 5.0.3(astro@4.0.5)(tailwindcss@3.3.6)
       '@rspc/solid':
-        specifier: 0.0.0-main-45466c86
-        version: 0.0.0-main-45466c86(@rspc/client@0.0.0-main-45466c86)(@tanstack/solid-query@4.36.1)(solid-js@1.8.7)
+        specifier: 0.0.0-main-b8b35d28
+        version: 0.0.0-main-b8b35d28(@rspc/client@0.0.0-main-b8b35d28)(@tanstack/solid-query@4.36.1)(solid-js@1.8.7)
       '@sd/assets':
         specifier: workspace:^
         version: link:../../packages/assets
       '@sd/client':
         specifier: workspace:^
         version: link:../../packages/client
+      '@sd/ui':
+        specifier: workspace:^
+        version: link:../../packages/ui
       '@solid-primitives/event-listener':
         specifier: ^2.3.0
         version: 2.3.0(solid-js@1.8.7)
@@ -940,11 +943,11 @@ importers:
   packages/client:
     dependencies:
       '@rspc/client':
-        specifier: 0.0.0-main-45466c86
-        version: 0.0.0-main-45466c86
+        specifier: 0.0.0-main-b8b35d28
+        version: 0.0.0-main-b8b35d28
       '@rspc/react':
-        specifier: 0.0.0-main-45466c86
-        version: 0.0.0-main-45466c86(@rspc/client@0.0.0-main-45466c86)(@tanstack/react-query@4.36.1)(react@18.2.0)
+        specifier: 0.0.0-main-b8b35d28
+        version: 0.0.0-main-b8b35d28(@rspc/client@0.0.0-main-b8b35d28)(@tanstack/react-query@4.36.1)(react@18.2.0)
       '@tanstack/react-query':
         specifier: ^4.36.1
         version: 4.36.1(react-dom@18.2.0)(react-native@0.72.6)(react@18.2.0)
@@ -4681,7 +4684,7 @@ packages:
       magic-string: 0.27.0
       react-docgen-typescript: 2.2.2(typescript@5.3.3)
       typescript: 5.3.3
-      vite: 5.0.9(less@4.2.0)
+      vite: 5.0.9(@types/node@18.17.19)
 
   /@jridgewell/gen-mapping@0.3.3:
     resolution: {integrity: sha512-HLhSWOLRi875zjjMG/r+Nv0oCW8umGb0BgEhyX3dDX3egwZtB8PqLnjz3yedt8R5StBrzcg4aBpnh8UA9D1BoQ==}
@@ -7154,40 +7157,40 @@ packages:
     requiresBuild: true
     optional: true
 
-  /@rspc/client@0.0.0-main-45466c86:
-    resolution: {integrity: sha512-1a3+jSJXXcHyoMYrqlb5DModVf5m7S4Y7a6BaUHmkhfXG4rttvthFHNAU1ODMpbI371egEePFhiVR8SnPsXe6Q==}
+  /@rspc/client@0.0.0-main-b8b35d28:
+    resolution: {integrity: sha512-wXBZ+KDBzBfXXKr2GWAe/UF+D5jLl1vM7mBTuFJsEV4ihquu2hzxAQBPuBE3j6JC7SIWzhQ+hodzGFUCL04Rsg==}
     dev: false
 
-  /@rspc/react@0.0.0-main-45466c86(@rspc/client@0.0.0-main-45466c86)(@tanstack/react-query@4.36.1)(react@18.2.0):
-    resolution: {integrity: sha512-4b3SBm6KFS0fZ0JwdZPFZeb+ZG/FgXn3Qb4DJga5ioGr11YsDGMgeEyaxfC8dLSHtT5tj8vFqX/a6LoWk0Vqbw==}
+  /@rspc/react@0.0.0-main-b8b35d28(@rspc/client@0.0.0-main-b8b35d28)(@tanstack/react-query@4.36.1)(react@18.2.0):
+    resolution: {integrity: sha512-yjKtZkziLvUI3AyKAdN8l32O3yS2FBqKda24MWDcN/YWjFVw15Enfr9C2bGtuqrZZ/LKabrG67EnKWqGvTWkCQ==}
     peerDependencies:
-      '@rspc/client': 0.0.0-main-45466c86
+      '@rspc/client': 0.0.0-main-b8b35d28
       '@tanstack/react-query': ^4.26.0
       react: ^18.2.0
     dependencies:
-      '@rspc/client': 0.0.0-main-45466c86
+      '@rspc/client': 0.0.0-main-b8b35d28
       '@tanstack/react-query': 4.36.1(react-dom@18.2.0)(react-native@0.72.6)(react@18.2.0)
       react: 18.2.0
     dev: false
 
-  /@rspc/solid@0.0.0-main-45466c86(@rspc/client@0.0.0-main-45466c86)(@tanstack/solid-query@4.36.1)(solid-js@1.8.7):
-    resolution: {integrity: sha512-5rfeivH4I2LrMSx5Igfx2FfLn7F6s5OzVy9VtaJ6C4K/Yh9Y2AufR0yQwEApoUrfexGWbecmmoW+yPbDqaJvpA==}
+  /@rspc/solid@0.0.0-main-b8b35d28(@rspc/client@0.0.0-main-b8b35d28)(@tanstack/solid-query@4.36.1)(solid-js@1.8.7):
+    resolution: {integrity: sha512-KjssarTWhoj8chAoESekTfucy/vg/eum+5Ghp1vMfUQWhGQ7f6SOXqeGQefOz0itIBAMCmQn+R03uFm59+GMCQ==}
     peerDependencies:
-      '@rspc/client': 0.0.0-main-45466c86
+      '@rspc/client': 0.0.0-main-b8b35d28
       '@tanstack/solid-query': ^4.6.0
       solid-js: ^1.6.11
     dependencies:
-      '@rspc/client': 0.0.0-main-45466c86
+      '@rspc/client': 0.0.0-main-b8b35d28
       '@tanstack/solid-query': 4.36.1(solid-js@1.8.7)
       solid-js: 1.8.7
     dev: false
 
-  /@rspc/tauri@0.0.0-main-45466c86(@tauri-apps/api@1.5.1):
-    resolution: {integrity: sha512-B+/PcZjxuVTQEtEgBV7UXYwf1uGNbN34+6aqbc5oxxifLDDn0MxVGmEju3Y518sYCfuYaIF8rYDl+oPM9a7NSg==}
+  /@rspc/tauri@0.0.0-main-b8b35d28(@tauri-apps/api@1.5.1):
+    resolution: {integrity: sha512-uzBBxsP8ENBUs16j5KXni72WKtVdi37uA/+GA1rf2M/qJvnc8W+slXrI4PXL9CBHnGRbwXk/gM1z9AdadqsFRw==}
     peerDependencies:
       '@tauri-apps/api': ^1.2.0
     dependencies:
-      '@rspc/client': 0.0.0-main-45466c86
+      '@rspc/client': 0.0.0-main-b8b35d28
       '@tauri-apps/api': 1.5.1
     dev: false
 
@@ -7834,7 +7837,7 @@ packages:
       magic-string: 0.30.5
       rollup: 3.29.4
       typescript: 5.3.3
-      vite: 5.0.9(less@4.2.0)
+      vite: 5.0.9(@types/node@18.17.19)
     transitivePeerDependencies:
       - encoding
       - supports-color
@@ -8176,7 +8179,7 @@ packages:
       react: 18.2.0
       react-docgen: 7.0.1
       react-dom: 18.2.0(react@18.2.0)
-      vite: 5.0.9(less@4.2.0)
+      vite: 5.0.9(@types/node@18.17.19)
     transitivePeerDependencies:
       - '@preact/preset-vite'
       - encoding
@@ -9304,7 +9307,7 @@ packages:
       '@babel/plugin-transform-react-jsx-source': 7.23.3(@babel/core@7.23.6)
       magic-string: 0.27.0
       react-refresh: 0.14.0
-      vite: 5.0.9(less@4.2.0)
+      vite: 5.0.9(@types/node@18.17.19)
     transitivePeerDependencies:
       - supports-color
 
@@ -22537,6 +22540,7 @@ packages:
       rollup: 4.9.0
     optionalDependencies:
       fsevents: 2.3.3
+    dev: true
 
   /vite@5.0.9(sass@1.69.5):
     resolution: {integrity: sha512-wVqMd5kp28QWGgfYPDfrj771VyHTJ4UDlCteLH7bJDGDEamaz5hV8IX6h1brSGgnnyf9lI2RnzXq/JmD0c2wwg==}

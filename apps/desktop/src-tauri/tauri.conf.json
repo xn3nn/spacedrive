@@ -4,7 +4,7 @@
 	},
 	"build": {
 		"distDir": "../dist",
-		"devPath": "http://localhost:8001",
+		"devPath": "http://localhost:4321",
 		"beforeDevCommand": "pnpm dev",
 		"beforeBuildCommand": "pnpm turbo run build --filter=@sd/desktop..."
 	},

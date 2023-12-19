@@ -12,8 +12,8 @@
 	},
 	"dependencies": {
 		"@remix-run/router": "^1.14.0",
-		"@rspc/client": "0.0.0-main-45466c86",
-		"@rspc/tauri": "0.0.0-main-45466c86",
+		"@rspc/client": "0.0.0-main-b8b35d28",
+		"@rspc/tauri": "0.0.0-main-b8b35d28",
 		"@sd/client": "workspace:*",
 		"@sd/interface": "workspace:*",
 		"@sd/ui": "workspace:*",

@@ -1,7 +1,8 @@
 import clsx from 'clsx';
 import { JSX } from 'solid-js';
-import { getExplorerItemData, useRspcLibraryContext, type ExplorerItem } from '@sd/client';
+import { getExplorerItemData, type ExplorerItem } from '@sd/client';
 
+import { useRspcLibraryContext } from '../../rspc';
 import { useExplorerContext } from '../Context';
 // import { toast } from '@sd/ui';
 // import { useIsDark } from '~/hooks';

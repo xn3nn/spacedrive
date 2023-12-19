@@ -1,7 +1,6 @@
 import { ReactiveSet } from '@solid-primitives/set';
 import { type InfiniteQueryObserverResult } from '@tanstack/solid-query';
 import { createMemo, createSignal, type Accessor, type ComponentProps } from 'solid-js';
-import { useDebouncedCallback } from 'use-debounce';
 import { z } from 'zod';
 import type {
 	ExplorerItem,
@@ -36,7 +35,7 @@ export type ExplorerParent =
 	  };
 
 export interface UseExplorerProps<TOrder extends Ordering> {
-	items: () => ExplorerItem[] | null;
+	items: Accessor<ExplorerItem[] | null>;
 	count?: number;
 	parent?: ExplorerParent;
 	loadMore?: () => void;
@@ -52,7 +51,7 @@ export interface UseExplorerProps<TOrder extends Ordering> {
 	 * @defaultValue `true`
 	 */
 	selectable?: boolean;
-	settings: ReturnType<typeof useExplorerSettings<TOrder>>;
+	settings: ReturnType<typeof createExplorerSettings<TOrder>>;
 	/**
 	 * @defaultValue `true`
 	 */
@@ -64,38 +63,38 @@ export interface UseExplorerProps<TOrder extends Ordering> {
  * Controls top-level config and state for the explorer.
  * View- and inspector-specific state is not handled here.
  */
-export function createExplorer<TOrder extends Ordering>({
-	settings,
-	layouts,
-	...props
-}: UseExplorerProps<TOrder>) {
+export function createExplorer<TOrder extends Ordering>(props: UseExplorerProps<TOrder>) {
 	const [scrollRef, setScrollRef] = createSignal<HTMLDivElement | null>(null);
 
-	return {
+	return createMemo(() => ({
+		// Provided values
+		...props,
 		// Default values
 		allowMultiSelect: true,
 		selectable: true,
 		scrollRef,
 		setScrollRef,
-		count: props.items?.length,
+		get count() {
+			return props.items()?.length;
+		},
 		showPathBar: true,
 		layouts: {
 			grid: true,
 			list: true,
 			media: true,
-			...layouts
+			...props.layouts
 		},
-		...settings,
-		// Provided values
-		...props,
+		...props.settings,
 		// Selected items
-		...createSelectedItems(() => props.items)
-	};
+		...createSelectedItems(() => props.items() ?? [])
+	}));
 }
 
-export type CreateExplorer<TOrder extends Ordering> = ReturnType<typeof createExplorer<TOrder>>;
+export type CreateExplorer<TOrder extends Ordering> = ReturnType<
+	ReturnType<typeof createExplorer<TOrder>>
+>;
 
-export function useExplorerSettings<TOrder extends Ordering>({
+export function createExplorerSettings<TOrder extends Ordering>({
 	settings,
 	onSettingsChanged,
 	orderingKeys,
@@ -110,40 +109,40 @@ export function useExplorerSettings<TOrder extends Ordering>({
 }) {
 	// const [store] = useState(() => proxy(settings));
 
-	const updateSettings = useDebouncedCallback(
-		(settings: ExplorerSettings<TOrder>, location: Location) => {
-			onSettingsChanged?.(settings, location);
-		},
-		500
-	);
+	// const updateSettings = useDebouncedCallback(
+	// 	(settings: ExplorerSettings<TOrder>, location: Location) => {
+	// 		onSettingsChanged?.(settings, location);
+	// 	},
+	// 	500
+	// );
 
-	useEffect(() => updateSettings.flush(), [location, updateSettings]);
+	// useEffect(() => updateSettings.flush(), [location, updateSettings]);
 
-	useEffect(() => {
-		if (updateSettings.isPending()) return;
-		Object.assign(store, settings);
-	}, [settings, store, updateSettings]);
+	// useEffect(() => {
+	// 	if (updateSettings.isPending()) return;
+	// 	Object.assign(store, settings);
+	// }, [settings, store, updateSettings]);
 
-	useEffect(() => {
-		if (!onSettingsChanged || !location) return;
-		const unsubscribe = subscribe(store, () => {
-			updateSettings(snapshot(store) as ExplorerSettings<TOrder>, location);
-		});
-		return () => unsubscribe();
-	}, [store, updateSettings, location, onSettingsChanged]);
+	// (() => {
+	// 	if (!onSettingsChanged || !location) return;
+	// 	const unsubscribe = subscribe(store, () => {
+	// 		updateSettings(snapshot(store) as ExplorerSettings<TOrder>, location);
+	// 	});
+	// 	return () => unsubscribe();
+	// }, [store, updateSettings, location, onSettingsChanged]);
 
 	return {
-		useSettingsSnapshot: () => useSnapshot(store),
-		settingsStore: store,
+		// useSettingsSnapshot: () => useSnapshot(store),
+		// settingsStore: store,
 		orderingKeys
 	};
 }
 
-export type UseExplorerSettings<TOrder extends Ordering> = ReturnType<
-	typeof useExplorerSettings<TOrder>
+export type CreateExplorerSettings<TOrder extends Ordering> = ReturnType<
+	typeof createExplorerSettings<TOrder>
 >;
 
-function createSelectedItems(items: () => ExplorerItem[] | null) {
+function createSelectedItems(items: Accessor<ExplorerItem[]>) {
 	// Doing pointer lookups for hashes is a bit faster than assembling a bunch of strings
 	// WeakMap ensures that ExplorerItems aren't held onto after they're evicted from cache
 	const itemHashesWeakMap = new WeakMap<ExplorerItem, string>();
@@ -153,7 +152,7 @@ function createSelectedItems(items: () => ExplorerItem[] | null) {
 	const selectedItemHashes = new ReactiveSet<string>();
 
 	const itemsMap = createMemo(() =>
-		(items() ?? []).reduce((items, item) => {
+		items().reduce((items, item) => {
 			const hash = itemHashesWeakMap.get(item) ?? uniqueId(item);
 			itemHashesWeakMap.set(item, hash);
 			items.set(hash, item);
