@@ -11,7 +11,7 @@ use crate::node::Platform;
 pub struct PeerMetadata {
 	pub name: String,
 	pub operating_system: Option<OperatingSystem>,
-	pub device_kind: Option<String>,
+	pub device_model: Option<String>,
 	pub version: Option<String>,
 }
 
@@ -25,8 +25,8 @@ impl Metadata for PeerMetadata {
 		if let Some(version) = self.version {
 			map.insert("version".to_owned(), version);
 		}
-		if let Some(device_kind) = self.device_kind {
-			map.insert("device_kind".to_owned(), device_kind);
+		if let Some(device_model) = self.device_model {
+			map.insert("device_model".to_owned(), device_model);
 		}
 		map
 	}
@@ -47,7 +47,7 @@ impl Metadata for PeerMetadata {
 				.get("os")
 				.map(|os| os.parse().map_err(|_| "Unable to parse 'OperationSystem'!"))
 				.transpose()?,
-			device_kind: data.get("device_kind").map(|v| v.to_owned()),
+			device_model: data.get("device_model").map(|v| v.to_owned()),
 			version: data.get("version").map(|v| v.to_owned()),
 		})
 	}

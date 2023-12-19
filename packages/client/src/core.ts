@@ -480,7 +480,7 @@ export type PairingDecision = { decision: "accept"; libraryId: string } | { deci
 
 export type PairingStatus = { type: "EstablishingConnection" } | { type: "PairingRequested" } | { type: "LibraryAlreadyExists" } | { type: "PairingDecisionRequest" } | { type: "PairingInProgress"; data: { library_name: string; library_description: string | null } } | { type: "InitialSyncProgress"; data: number } | { type: "PairingComplete"; data: string } | { type: "PairingRejected" }
 
-export type PeerMetadata = { name: string; operating_system: OperatingSystem | null; device_kind: string | null; version: string | null }
+export type PeerMetadata = { name: string; operating_system: OperatingSystem | null; device_model: string | null; version: string | null }
 
 export type PlusCode = string
 

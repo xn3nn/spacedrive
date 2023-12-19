@@ -1,3 +1,4 @@
+import { ArrowsOut, CaretDown, CaretUp, FrameCorners } from '@phosphor-icons/react';
 import {
 	DriveAmazonS3,
 	DriveDropbox,
@@ -10,9 +11,9 @@ import {
 } from '@sd/assets/icons';
 import { ReactComponent as Ellipsis } from '@sd/assets/svgs/ellipsis.svg';
 import clsx from 'clsx';
-import { useEffect, useMemo, useState } from 'react';
+import { forwardRef, useEffect, useMemo, useState } from 'react';
 import { byteSize, useDiscoveredPeers, useLibraryQuery, useNodes } from '@sd/client';
-import { Button, Card, CircularProgress, tw } from '@sd/ui';
+import { Button, ButtonProps, Card, CircularProgress, tw } from '@sd/ui';
 
 import { useIsDark } from '../../../hooks';
 import { TopBarPortal } from '../TopBar/Portal';
@@ -125,10 +126,10 @@ export const Component = () => {
 			<TopBarPortal
 				left={
 					<div className="flex items-center gap-2">
-						<span className="truncate text-sm font-medium">Overview</span>
-						<Button className="!p-[5px]" variant="subtle">
+						<span className="truncate text-sm font-medium">Library Overview</span>
+						{/* <Button className="!p-[5px]" variant="subtle">
 							<Ellipsis className="h- w-3 opacity-50" />
-						</Button>
+						</Button> */}
 					</div>
 				}
 			/>
@@ -145,7 +146,7 @@ export const Component = () => {
 						color="#0362FF"
 						connection_type="lan"
 					/>
-					<StatisticItem
+					{/* <StatisticItem
 						name="Spacestudio"
 						icon={SilverBox}
 						total_space="4098046511104"
@@ -184,11 +185,11 @@ export const Component = () => {
 						free_space="969004651119"
 						color="#0362FF"
 						connection_type="p2p"
-					/>
+					/> */}
 				</OverviewSection>
 
-				<OverviewSection count={3} title="Cloud Drives">
-					<StatisticItem
+				{/* <OverviewSection count={3} title="Cloud Drives">
+				<StatisticItem
 						name="James Pine"
 						icon={DriveDropbox}
 						total_space="104877906944"
@@ -213,12 +214,15 @@ export const Component = () => {
 						connection_type="cloud"
 					/>
 				</OverviewSection>
+				*/}
 			</div>
 		</div>
 	);
 };
 
 const COUNT_STYLE = `min-w-[20px] flex h-[20px] px-1 items-center justify-center rounded-full border border-app-button/40 text-[9px]`;
+
+const BUTTON_STYLE = `!p-[5px] opacity-0 transition-opacity group-hover:opacity-100`;
 
 const OverviewSection = ({
 	children,
@@ -232,13 +236,18 @@ const OverviewSection = ({
 				<div className="mb-3 flex w-full items-center gap-3 pl-8 pr-4">
 					<div className="font-bold">{title}</div>
 					{count && <div className={COUNT_STYLE}>{count}</div>}
-					<Button
-						className="!p-[5px] opacity-0 transition-opacity group-hover:opacity-100"
-						size="icon"
-						variant="subtle"
-					>
-						<Ellipsis className="h-3 w-3 text-ink-faint " />
-					</Button>
+					<div className="grow" />
+					<div className="flex flex-row gap-1 text-sidebar-inkFaint opacity-0 transition-all duration-300 hover:!opacity-100 group-hover:opacity-30">
+						<Button className={BUTTON_STYLE} size="icon" variant="subtle">
+							<CaretUp weight="fill" className="h-3 w-3 text-ink-faint " />
+						</Button>
+						<Button className={BUTTON_STYLE} size="icon" variant="subtle">
+							<CaretDown weight="fill" className="h-3 w-3 text-ink-faint " />
+						</Button>
+						<Button className={BUTTON_STYLE} size="icon" variant="subtle">
+							<Ellipsis className="h-3 w-3 text-ink-faint " />
+						</Button>
+					</div>
 				</div>
 			)}
 			<HorizontalScroll>{children}</HorizontalScroll>
