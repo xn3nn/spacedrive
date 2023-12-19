@@ -12,8 +12,8 @@
 	},
 	"dependencies": {
 		"@remix-run/router": "^1.13.1",
-		"@oscartbeaumont-sd/rspc-client": "=0.0.0-main-56eb8b89",
-		"@oscartbeaumont-sd/rspc-tauri": "=0.0.0-main-56eb8b89",
+		"@rspc/client": "workspace:*",
+		"@rspc/tauri": "workspace:*",
 		"@sd/client": "workspace:*",
 		"@sd/interface": "workspace:*",
 		"@sd/ui": "workspace:*",

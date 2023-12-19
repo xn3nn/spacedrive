@@ -1,0 +1,83 @@
+[package]
+name = "rspc"
+description = "A blazing fast and easy to use TRPC server for Rust."
+version = "0.1.4"
+publish = false
+authors = ["Oscar Beaumont <oscar@otbeaumont.me>"]
+edition = "2021"
+license = "MIT"
+include = ["/src", "/LICENCE", "/README.md"]
+repository = "https://github.com/oscartbeaumont/rspc"
+documentation = "https://docs.rs/rspc/latest/rspc"
+keywords = ["async", "specta", "rust-to-ts", "typescript", "typesafe"]
+categories = ["web-programming", "asynchronous"]
+
+# /bin/sh RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features
+[package.metadata."docs.rs"]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[features]
+default = []
+tauri = ["dep:tauri"]
+tracing = ["dep:tracing"]
+httpz = ["dep:httpz", "httpz/cookies"]
+# openapi = ["dep:openapiv3"]
+anyhow = ["dep:anyhow"]
+
+alpha = []    # APIs that are not yet stable
+unstable = [] # APIs where one line of code can blow up your whole app
+
+# Webservers
+axum = ["httpz", "httpz/axum", "httpz/tokio-ws", "httpz/axum"]
+
+# Specta # TODO: Remove all of these with v1
+uuid = ["specta/uuid"]
+chrono = ["specta/chrono"]
+time = ["specta/time"]
+bigdecimal = ["specta/bigdecimal"]
+rust_decimal = ["specta/rust_decimal"]
+indexmap = ["specta/indexmap"]
+ipnetwork = ["specta/ipnetwork"]
+mac_address = ["specta/mac_address"]
+bit-vec = ["specta/bit-vec"]
+bson = ["specta/bson"]
+uhlc = ["specta/uhlc"]
+bytesize = ["specta/bytesize"]
+glam = ["specta/glam"]
+
+[dependencies]
+specta = { workspace = true, features = [
+	"serde",
+	"serde_json",
+	"typescript",
+	"tokio",
+] }
+httpz = { path = "../httpz", optional = true }
+serde = { version = "1.0.159", features = ["derive"] }
+serde_json = "1.0.95"
+thiserror = "1.0.40"
+futures = "0.3.28"
+tokio = { version = "1.27.0", features = ["sync", "rt", "macros"] }
+tauri = { version = "=2.0.0-alpha.18", optional = true }
+tracing = { version = "0.1.37", optional = true }
+worker = { version = "0.0.15", optional = true }
+anyhow = { version = "1", optional = true }
+futures-locks = { version = "0.7.1", features = ["tokio"] }
+futures-channel = "0.3.28"
+nougat = "0.2.4"
+pin-project = "1.0.12" # TODO: Move to `pin-project-lite`
+
+[dev-dependencies]
+# Tests
+async-stream = "0.3.4"
+
+# Benchmark
+criterion = { version = "0.4", features = ["async_tokio", "html_reports"] }
+pprof = { version = "0.11.1", features = [
+	"flamegraph",
+	"criterion",
+	"protobuf-codec",
+	"frame-pointer",
+] }
+tokio = { version = "1.27.0", features = ["macros", "rt-multi-thread"] }

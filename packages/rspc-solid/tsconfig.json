@@ -1,0 +1,10 @@
+{
+	"extends": "../config/base.tsconfig.json",
+	"compilerOptions": {
+		"jsx": "preserve",
+		"jsxImportSource": "solid-js",
+		"lib": ["esnext", "dom"]
+	},
+	"include": ["src/**/*"],
+	"exclude": ["dist/**/*"]
+}
