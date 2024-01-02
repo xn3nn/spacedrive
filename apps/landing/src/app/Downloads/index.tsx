@@ -1,6 +1,6 @@
 'use client';
 
-import { Github } from '@sd/assets/svgs/brands';
+import { Github } from '@sd/assets/react/svgs/brands';
 import clsx from 'clsx';
 import { motion } from 'framer-motion';
 import { usePlausible } from 'next-plausible';

@@ -1,5 +1,5 @@
 import { CaretRight, FunnelSimple, Icon, Plus } from '@phosphor-icons/react';
-import { IconTypes } from '@sd/assets/util';
+import { IconTypes } from '@sd/assets/react/util';
 import clsx from 'clsx';
 import { memo, PropsWithChildren, useDeferredValue, useState } from 'react';
 import { useLibraryMutation } from '@sd/client';

@@ -1,4 +1,4 @@
-import { Dribbble, Github, Gitlab, Twitch, Twitter } from '@sd/assets/svgs/brands';
+import { Dribbble, Github, Gitlab, Twitch, Twitter } from '@sd/assets/react/svgs/brands';
 import clsx from 'clsx';
 import Image from 'next/image';
 import NextLink from 'next/link';

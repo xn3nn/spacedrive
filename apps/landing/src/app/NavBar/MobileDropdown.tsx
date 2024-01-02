@@ -1,7 +1,7 @@
 'use client';
 
 import { Book, Chat, DotsThreeVertical, MapPin, User } from '@phosphor-icons/react';
-import { Academia, Discord, Github } from '@sd/assets/svgs/brands';
+import { Academia, Discord, Github } from '@sd/assets/react/svgs/brands';
 import clsx from 'clsx';
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { usePathname, useRouter } from 'next/navigation';
@@ -19,11 +19,7 @@ export function MobileDropdown() {
 	return (
 		<Dropdown.Root
 			button={
-				<Button
-					aria-label="mobile-menu"
-					className="hover:!bg-transparent"
-					size="icon"
-				>
+				<Button aria-label="mobile-menu" className="hover:!bg-transparent" size="icon">
 					<DotsThreeVertical weight="bold" className="h-6 w-6 " />
 				</Button>
 			}

@@ -1,4 +1,4 @@
-import { Folder } from '@sd/assets/icons';
+import { Folder } from '@sd/assets/react/icons';
 import dayjs from 'dayjs';
 import { DotsThreeVertical, Pause, Play, Stop } from 'phosphor-react-native';
 import { useMemo, useState } from 'react';

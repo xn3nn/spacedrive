@@ -1,7 +1,7 @@
 'use client';
 
 import { AndroidLogo, Globe, Icon, LinuxLogo, WindowsLogo } from '@phosphor-icons/react';
-import { Apple, Docker } from '@sd/assets/svgs/brands';
+import { Apple, Docker } from '@sd/assets/react/svgs/brands';
 import { ComponentProps, FunctionComponent, useEffect, useState } from 'react';
 import { Tooltip } from '@sd/ui';
 
@@ -86,7 +86,7 @@ export function Platform({ platform, ...props }: ComponentProps<'a'> & PlatformP
 						href={`${BASE_DL_LINK}/${platform.os}/${links[0].arch}`}
 						{...props}
 					/>
-			  )
+				)
 			: (props: any) => <button {...props} />
 		: (props: any) => <div {...props} />;
 

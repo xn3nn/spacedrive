@@ -1,0 +1,8 @@
+{
+	"extends": "../config/solid.tsconfig.json",
+	"compilerOptions": {
+		"rootDir": "src",
+		"declarationDir": "dist"
+	},
+	"include": ["src"]
+}

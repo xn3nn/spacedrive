@@ -3,8 +3,13 @@
 	"version": "1.0.0",
 	"license": "GPL-3.0-only",
 	"private": true,
+	"type": "module",
 	"sideEffects": false,
 	"scripts": {
 		"gen": "node ./scripts/generate.mjs"
+	},
+	"exports": {
+		"./react/*": "./react/*/index.ts",
+		"./svgs/*": "./svgs/*"
 	}
 }

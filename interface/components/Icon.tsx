@@ -1,4 +1,4 @@
-import { getIcon, iconNames } from '@sd/assets/util';
+import { getIcon, iconNames } from '@sd/assets/react/util';
 import { ImgHTMLAttributes } from 'react';
 import { useIsDark } from '~/hooks';
 

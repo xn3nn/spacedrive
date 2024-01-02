@@ -3,7 +3,7 @@ import {
 	Database_Light,
 	Folder as Folder_Dark,
 	Folder_Light
-} from '@sd/assets/icons';
+} from '@sd/assets/react/icons';
 import { useIsDark } from '~/hooks';
 
 interface Props {

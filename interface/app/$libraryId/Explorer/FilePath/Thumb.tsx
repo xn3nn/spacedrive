@@ -1,4 +1,4 @@
-import { getIcon, getIconByName } from '@sd/assets/util';
+import { getIcon, getIconByName } from '@sd/assets/react/util';
 import clsx from 'clsx';
 import {
 	forwardRef,
@@ -155,7 +155,7 @@ export const FileThumb = forwardRef<HTMLImageElement, ThumbProps>((props, ref) =
 								? [
 										'min-h-full min-w-full object-cover object-center',
 										_childClassName
-								  ]
+									]
 								: className,
 							props.frame && !(itemData.kind === 'Video' && props.blackBars)
 								? frameClassName

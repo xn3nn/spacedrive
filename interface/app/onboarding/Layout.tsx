@@ -1,4 +1,4 @@
-import { BloomOne } from '@sd/assets/images';
+import { BloomOne } from '@sd/assets/react/images';
 import clsx from 'clsx';
 import { Navigate, Outlet } from 'react-router';
 import { useDebugState } from '@sd/client';

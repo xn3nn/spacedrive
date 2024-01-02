@@ -1,5 +1,5 @@
 import { DotsThreeVertical, Eye, Pause, Play, Stop, Trash } from '@phosphor-icons/react';
-import { Folder } from '@sd/assets/icons';
+import { Folder } from '@sd/assets/react/icons';
 import { useQueryClient } from '@tanstack/react-query';
 import clsx from 'clsx';
 import dayjs from 'dayjs';

@@ -1,4 +1,4 @@
-import { AppLogo } from '@sd/assets/images';
+import { AppLogo } from '@sd/assets/react/images';
 import { useNavigate } from 'react-router';
 import { auth, useBridgeQuery } from '@sd/client';
 import { Button, ButtonLink, Loader } from '@sd/ui';

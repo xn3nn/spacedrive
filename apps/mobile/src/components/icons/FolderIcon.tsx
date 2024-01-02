@@ -1,4 +1,4 @@
-import { Folder, Folder_Light } from '@sd/assets/icons';
+import { Folder, Folder_Light } from '@sd/assets/react/icons';
 import { Image } from 'react-native';
 
 type FolderProps = {

@@ -1,5 +1,5 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { AppLogo, BloomOne } from '@sd/assets/images';
+import { AppLogo, BloomOne } from '@sd/assets/react/images';
 import { MotiView } from 'moti';
 import { CaretLeft } from 'phosphor-react-native';
 import { Image, KeyboardAvoidingView, Platform, Pressable, Text, View } from 'react-native';

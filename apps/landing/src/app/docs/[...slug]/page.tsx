@@ -1,6 +1,6 @@
 import { allDocs } from '@contentlayer/generated';
 import { CaretRight } from '@phosphor-icons/react/dist/ssr';
-import { Github } from '@sd/assets/svgs/brands';
+import { Github } from '@sd/assets/react/svgs/brands';
 import { Metadata } from 'next';
 import { getMDXComponent } from 'next-contentlayer/hooks';
 import Link from 'next/link';

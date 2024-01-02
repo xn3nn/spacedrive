@@ -1,4 +1,4 @@
-import { Discord, Github } from '@sd/assets/svgs/brands';
+import { Discord, Github } from '@sd/assets/react/svgs/brands';
 import Image from 'next/image';
 import Link from 'next/link';
 import { PropsWithChildren } from 'react';

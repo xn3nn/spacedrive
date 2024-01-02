@@ -1,7 +1,6 @@
-import { getIcon, iconNames } from '@sd/assets/util';
+import { getIcon, iconNames } from '@sd/assets/react/util';
 import clsx from 'clsx';
 import {
-	memo,
 	SyntheticEvent,
 	useEffect,
 	useMemo,

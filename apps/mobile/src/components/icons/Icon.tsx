@@ -1,4 +1,4 @@
-import { getIcon, iconNames } from '@sd/assets/util';
+import { getIcon, iconNames } from '@sd/assets/react/util';
 import { Image, ImageProps } from 'react-native';
 import { isDarkTheme } from '@sd/client';
 

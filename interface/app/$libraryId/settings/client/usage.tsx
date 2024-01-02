@@ -1,4 +1,4 @@
-import { iconNames } from '@sd/assets/util';
+import { iconNames } from '@sd/assets/react/util';
 import { memo, useEffect, useMemo, useState } from 'react';
 import { byteSize, useDiscoveredPeers, useLibraryQuery, useNodes } from '@sd/client';
 import { Card } from '@sd/ui';

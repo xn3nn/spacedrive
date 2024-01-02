@@ -5,7 +5,7 @@ import {
 	Opencollective,
 	Twitch,
 	Twitter
-} from '@sd/assets/svgs/brands';
+} from '@sd/assets/react/svgs/brands';
 import Image from 'next/image';
 import Link from 'next/link';
 import { PropsWithChildren } from 'react';

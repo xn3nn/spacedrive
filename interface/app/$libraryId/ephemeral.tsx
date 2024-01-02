@@ -1,6 +1,6 @@
 import { ArrowLeft, ArrowRight, Info } from '@phosphor-icons/react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { iconNames } from '@sd/assets/util';
+import { iconNames } from '@sd/assets/react/util';
 import clsx from 'clsx';
 import { memo, Suspense, useDeferredValue, useMemo } from 'react';
 import { useLocation } from 'react-router';

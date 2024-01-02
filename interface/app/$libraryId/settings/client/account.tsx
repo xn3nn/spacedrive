@@ -1,5 +1,5 @@
 import { Envelope, User } from '@phosphor-icons/react';
-import { iconNames } from '@sd/assets/util';
+import { iconNames } from '@sd/assets/react/util';
 import { auth, useBridgeQuery } from '@sd/client';
 import { Button, Card } from '@sd/ui';
 import { Icon, TruncatedText } from '~/components';

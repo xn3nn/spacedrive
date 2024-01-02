@@ -1,4 +1,4 @@
-import { getIcon } from '@sd/assets/util';
+import { getIcon } from '@sd/assets/react/util';
 import { useEffect, useLayoutEffect, useMemo, useState, type PropsWithChildren } from 'react';
 import { Image, View } from 'react-native';
 import { DocumentDirectoryPath } from 'react-native-fs';

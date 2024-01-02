@@ -1,5 +1,5 @@
 import { Book, Chat, DotsThreeVertical, MapPin, User } from '@phosphor-icons/react/dist/ssr';
-import { Academia, Discord, Github } from '@sd/assets/svgs/brands';
+import { Academia, Discord, Github } from '@sd/assets/react/svgs/brands';
 import clsx from 'clsx';
 import Image from 'next/image';
 import Link from 'next/link';

@@ -1,4 +1,4 @@
-import { getLayeredIcon } from '@sd/assets/util';
+import { getLayeredIcon } from '@sd/assets/react/util';
 import clsx from 'clsx';
 import { forwardRef, type ImgHTMLAttributes } from 'react';
 import { type ObjectKindKey } from '@sd/client';
