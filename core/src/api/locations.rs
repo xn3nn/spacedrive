@@ -452,6 +452,9 @@ pub(crate) fn mount() -> AlphaRouter<Ctx> {
 				     location_id,
 				     sub_path,
 				 }: LightScanArgs| async move {
+					tracing::warn!(
+						"trying to light scan Location: <id='{location_id}', path='{sub_path}'>"
+					);
 					if node
 						.jobs
 						.has_job_running(|job_identity| {
@@ -462,6 +465,7 @@ pub(crate) fn mount() -> AlphaRouter<Ctx> {
 						})
 						.await
 					{
+						error!("Still indexing Location, wait a bit...: <id='{location_id}', path='{sub_path}'>");
 						return Err(rspc::Error::new(
 							ErrorCode::Conflict,
 							"We're still indexing this location, pleases wait a bit...".to_string(),
@@ -475,6 +479,9 @@ pub(crate) fn mount() -> AlphaRouter<Ctx> {
 						.ok_or(LocationError::IdNotFound(location_id))?;
 
 					let handle = tokio::spawn(async move {
+						tracing::warn!(
+							"spawning light scan Location: <id='{location_id}', path='{sub_path}'>"
+						);
 						if let Err(e) = light_scan_location(node, library, location, sub_path).await
 						{
 							error!("light scan error: {e:#?}");

@@ -524,13 +524,31 @@ pub async fn light_scan_location(
 
 	// TODO(N): This isn't gonna work with removable media and this will likely permanently break if the DB is restored from a backup.
 	if location.instance_id != Some(library.config().await.instance_id) {
+		warn!(
+			"Mismatched instance_id, will not light scan location: <id='{}', path='{sub_path}'>",
+			location.id
+		);
 		return Ok(());
 	}
 
 	let location_base_data = location::Data::from(&location);
 
+	tracing::warn!(
+		"shallow indexing Location: <id='{}', path='{sub_path}'>",
+		location.id
+	);
 	indexer::shallow(&location, &sub_path, &node, &library).await?;
+
+	tracing::warn!(
+		"shallow identifying Location: <id='{}', path='{sub_path}'>",
+		location.id
+	);
 	file_identifier::shallow(&location_base_data, &sub_path, &library).await?;
+
+	tracing::warn!(
+		"shallow media processing Location: <id='{}', path='{sub_path}'>",
+		location.id
+	);
 	media_processor::shallow(
 		&location_base_data,
 		&sub_path,
@@ -540,6 +558,11 @@ pub async fn light_scan_location(
 		&node,
 	)
 	.await?;
+
+	tracing::warn!(
+		"light scan complete on Location: <id='{}', path='{sub_path}'>",
+		location.id
+	);
 
 	Ok(())
 }
