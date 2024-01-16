@@ -1,10 +1,12 @@
-use std::io::{self, Seek};
+use std::io::{Cursor, Read, Seek, Write};
 
 use sd_crypto::{
 	crypto::{Decryptor, Encryptor},
 	encoding::Header,
 	hashing::Hasher,
-	types::{Algorithm, DerivationContext, HashingAlgorithm, Key, MagicBytes, Salt, SecretKey},
+	types::{
+		Algorithm, DerivationContext, HashingAlgorithm, Key, MagicBytes, Params, Salt, SecretKey,
+	},
 	Protected,
 };
 
@@ -16,15 +18,15 @@ const HEADER_KEY_CONTEXT: DerivationContext =
 const HEADER_OBJECT_CONTEXT: DerivationContext =
 	DerivationContext::new("crypto 2023-03-21 11:25:08 example header object context");
 
-const ALGORITHM: Algorithm = Algorithm::default();
-const HASHING_ALGORITHM: HashingAlgorithm = HashingAlgorithm::default();
+const ALGORITHM: Algorithm = Algorithm::XChaCha20Poly1305;
+const HASHING_ALGORITHM: HashingAlgorithm = HashingAlgorithm::Argon2id(Params::Standard);
 
 const OBJECT_DATA: [u8; 15] = *b"a nice mountain";
 
 fn encrypt<R, W>(reader: &mut R, writer: &mut W)
 where
-	R: io::Read,
-	W: io::Write + io::Seek,
+	R: Read,
+	W: Write + Seek,
 {
 	let password = Protected::new(b"password".to_vec());
 
@@ -75,8 +77,8 @@ where
 
 fn decrypt<R, W>(reader: &mut R, writer: &mut W) -> Vec<u8>
 where
-	R: io::Read + io::Seek,
-	W: io::Write,
+	R: Read + Seek,
+	W: Write,
 {
 	let password = Protected::new(b"password".to_vec());
 
@@ -104,9 +106,9 @@ where
 
 fn main() {
 	// Open both the source and the output file
-	let mut source = io::Cursor::new(vec![5u8; 256]);
-	let mut dest = io::Cursor::new(vec![]);
-	let mut source_comparison = io::Cursor::new(vec![]);
+	let mut source = Cursor::new(vec![5u8; 256]);
+	let mut dest = Cursor::new(vec![]);
+	let mut source_comparison = Cursor::new(vec![]);
 
 	encrypt(&mut source, &mut dest);
 
