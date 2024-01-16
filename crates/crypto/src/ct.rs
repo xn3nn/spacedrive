@@ -46,10 +46,7 @@ where
 	}
 }
 
-impl<T> ConstantTimeEq for [T]
-where
-	T: CmovEq,
-{
+impl<T: CmovEq> ConstantTimeEq for [T] {
 	fn ct_eq(&self, rhs: &Self) -> Choice {
 		// Here we can short-circuit as it's obvious that they're not equal
 		if self.len() != rhs.len() {
@@ -162,7 +159,7 @@ impl ConstantTimeEqNull for [u8] {
 	#[inline]
 	fn ct_eq_null(&self) -> Choice {
 		let mut x = 1u8;
-		self.iter().for_each(|i| x.cmovnz(&0u8, *i)); // FIXME: implicit copy?
+		self.iter().for_each(|b| b.cmovne(&0, 0u8, &mut x));
 		Choice::from(x)
 	}
 }
@@ -175,24 +172,24 @@ mod tests {
 	};
 
 	#[test]
-	fn constant_time_eq_null() {
+	fn eq_null() {
 		assert!(bool::from([0u8; SALT_LEN].ct_eq_null()));
 	}
 
 	#[test]
 	#[should_panic(expected = "assertion")]
-	fn constant_time_eq_null_fail() {
+	fn eq_null_fail() {
 		assert!(bool::from([1u8; SALT_LEN].ct_eq_null()));
 	}
 
 	#[test]
-	fn constant_time_ne_null() {
+	fn ne_null() {
 		assert!(bool::from([1u8; SALT_LEN].ct_ne_null()));
 	}
 
 	#[test]
 	#[should_panic(expected = "assertion")]
-	fn constant_time_ne_null_fail() {
+	fn ne_null_fail() {
 		assert!(bool::from([0u8; SALT_LEN].ct_ne_null()));
 	}
 
@@ -201,27 +198,27 @@ mod tests {
 			$(
 				paste::paste! {
 					#[test]
-					fn [<ct_eq_ $item_type:lower>]() {
+					fn [<eq_ $item_type:lower>]() {
 						let x: $item_type = $sample1;
 						assert!(bool::from(x.ct_eq(&$sample1)));
 					}
 
 					#[test]
 					#[should_panic(expected = "assertion")]
-					fn [<ct_eq_ $item_type:lower _fail>]() {
+					fn [<eq_ $item_type:lower _fail>]() {
 						let x: $item_type = $sample1;
 						assert!(bool::from(x.ct_eq(&$sample2)));
 					}
 
 					#[test]
-					fn [<ct_ne_ $item_type:lower>]() {
+					fn [<ne_ $item_type:lower>]() {
 						let x: $item_type = $sample1;
 						assert!(bool::from(x.ct_ne(&$sample2)));
 					}
 
 					#[test]
 					#[should_panic(expected = "assertion")]
-					fn [<ct_ne_ $item_type:lower _fail>]() {
+					fn [<ne_ $item_type:lower _fail>]() {
 						let x: $item_type = $sample1;
 						assert!(bool::from(x.ct_ne(&$sample1)));
 					}
