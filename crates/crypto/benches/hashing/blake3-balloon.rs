@@ -1,35 +1,10 @@
 use criterion::{criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion};
-use rand_core::RngCore;
 use sd_crypto::{
 	hashing::Hasher,
 	rng::CryptoRng,
 	types::{HashingAlgorithm, Params, Salt, SecretKey},
 	Protected,
 };
-use std::alloc::{GlobalAlloc, Layout, System};
-use std::sync::atomic::{AtomicUsize, Ordering::Relaxed};
-
-struct Counter;
-
-static ALLOCATED: AtomicUsize = AtomicUsize::new(0);
-
-unsafe impl GlobalAlloc for Counter {
-	unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-		let ret = System.alloc(layout);
-		if !ret.is_null() {
-			ALLOCATED.fetch_add(layout.size(), Relaxed);
-		}
-		ret
-	}
-
-	unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-		System.dealloc(ptr, layout);
-		ALLOCATED.fetch_sub(layout.size(), Relaxed);
-	}
-}
-
-#[global_allocator]
-static A: Counter = Counter;
 
 const PARAMS: [Params; 3] = [Params::Standard, Params::Hardened, Params::Paranoid];
 
@@ -57,8 +32,6 @@ fn bench(c: &mut Criterion) {
 	}
 
 	group.finish();
-
-	panic!("{:?}", ALLOCATED.as_ptr().clone() as usize);
 }
 
 criterion_group!(

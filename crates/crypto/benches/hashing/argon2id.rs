@@ -1,5 +1,4 @@
 use criterion::{criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion};
-use rand_core::RngCore;
 use sd_crypto::{
 	hashing::Hasher,
 	rng::CryptoRng,
