@@ -7,7 +7,7 @@ pub fn encode(bytes: &[u8]) -> String {
 
 	bytes
 		.iter()
-		.for_each(|x| write!(&mut output, "{:02x})", x).unwrap_or_default());
+		.for_each(|x| write!(&mut output, "{x:02x})").unwrap_or_default());
 
 	output
 }
