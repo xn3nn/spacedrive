@@ -57,7 +57,7 @@ impl KeyringInterface for SecretServiceKeyring {
 			&id.application(),
 			id.as_secret_service_attributes(),
 			value.expose().as_bytes(),
-			false,
+			true,
 			"text/plain",
 		)?;
 
