@@ -1,15 +1,15 @@
-use crate::{stronghold::Keystore, types::Algorithm, Error, Protected, Result};
+use crate::{types::Algorithm, vault::EphemeralVault, Error, Protected, Result};
 
 use super::{Identifier, KeyringBackend, KeyringInterface};
 
 pub struct SessionKeyring {
-	inner: Keystore<String>,
+	inner: EphemeralVault<String, Vec<u8>>,
 }
 
 impl KeyringInterface for SessionKeyring {
 	fn new() -> Result<Self> {
 		Ok(Self {
-			inner: Keystore::new(Algorithm::default()),
+			inner: EphemeralVault::new(Algorithm::default()),
 		})
 	}
 
@@ -21,17 +21,15 @@ impl KeyringInterface for SessionKeyring {
 		self.inner.contains_key(&id.hash()).map_or(false, |x| x)
 	}
 
-	fn get(&self, id: &Identifier) -> Result<Protected<String>> {
-		let item = self.inner.get(&id.hash()).map_err(|_| Error::Keyring)?;
-
-		String::from_utf8(item)
-			.map(Protected::new)
-			.map_err(|_| Error::Keyring)
+	fn get(&self, id: &Identifier) -> Result<Protected<Vec<u8>>> {
+		Ok(Protected::new(
+			self.inner.get(&id.hash()).map_err(|_| Error::Keyring)?,
+		))
 	}
 
-	fn insert(&self, id: &Identifier, value: Protected<String>) -> Result<()> {
+	fn insert(&self, id: &Identifier, value: Protected<Vec<u8>>) -> Result<()> {
 		self.inner
-			.insert(id.hash(), value.into_inner().into_bytes())
+			.insert(id.hash(), value.into_inner())
 			.map_err(|_| Error::Keyring)
 	}
 

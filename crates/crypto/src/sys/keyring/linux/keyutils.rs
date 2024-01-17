@@ -1,6 +1,6 @@
 //! This is Spacedrive's Linux keyring implementation, which makes use of the `keyutils` API (provided by modern Linux kernels).
 use crate::sys::keyring::{Identifier, KeyringBackend, KeyringInterface, LinuxKeyring};
-use crate::{Error, Protected, Result};
+use crate::{Protected, Result};
 use linux_keyutils::{KeyPermissionsBuilder, KeyRing, KeyRingIdentifier, Permission};
 
 pub struct KeyutilsKeyring {
@@ -32,28 +32,25 @@ impl KeyringInterface for KeyutilsKeyring {
 		self.session.search(&id.hash()).map_or(false, |_| true)
 	}
 
-	fn get(&self, id: &Identifier) -> Result<Protected<String>> {
+	fn get(&self, id: &Identifier) -> Result<Protected<Vec<u8>>> {
 		let key = self.session.search(&id.hash())?;
 
 		self.session.link_key(key)?;
 		self.persistent.link_key(key)?;
 
-		let buffer = key.read_to_vec()?;
-
-		String::from_utf8(buffer)
-			.map(Protected::new)
-			.map_err(|_| Error::Keyring)
+		Ok(Protected::new(key.read_to_vec()?))
 	}
 
-	fn insert(&self, id: &Identifier, value: Protected<String>) -> Result<()> {
+	fn insert(&self, id: &Identifier, value: Protected<Vec<u8>>) -> Result<()> {
 		let key = self.session.add_key(&id.hash(), value.expose())?;
 		key.set_timeout(WEEK)?;
 
 		// TODO(brxken128): find the bits for this and get the perms directly
 		let p = KeyPermissionsBuilder::builder()
 			.posessor(Permission::ALL)
-			.user(Permission::ALL)
-			.group(Permission::VIEW | Permission::READ)
+			.user(Permission::empty())
+			.group(Permission::empty())
+			.world(Permission::empty())
 			.build();
 
 		key.set_perms(p)?;

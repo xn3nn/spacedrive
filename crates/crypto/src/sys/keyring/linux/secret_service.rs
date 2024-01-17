@@ -43,20 +43,18 @@ impl KeyringInterface for SecretServiceKeyring {
 			.unwrap_or_default()
 	}
 
-	fn get(&self, id: &Identifier) -> Result<Protected<String>> {
+	fn get(&self, id: &Identifier) -> Result<Protected<Vec<u8>>> {
 		self.get_collection()?
 			.search_items(id.as_secret_service_attributes())?
 			.first()
-			.map_or(Err(Error::Keyring), |k| {
-				Ok(Protected::new(String::from_utf8(k.get_secret()?)?))
-			})
+			.map_or(Err(Error::Keyring), |k| Ok(Protected::new(k.get_secret()?)))
 	}
 
-	fn insert(&self, id: &Identifier, value: Protected<String>) -> Result<()> {
+	fn insert(&self, id: &Identifier, value: Protected<Vec<u8>>) -> Result<()> {
 		self.get_collection()?.create_item(
 			&id.application(),
 			id.as_secret_service_attributes(),
-			value.expose().as_bytes(),
+			value.expose(),
 			true,
 			"text/plain",
 		)?;
