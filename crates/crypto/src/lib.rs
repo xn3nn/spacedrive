@@ -22,7 +22,11 @@
 	deprecated
 )]
 #![forbid(unsafe_code, deprecated_in_future)]
-#![allow(clippy::missing_errors_doc, clippy::module_name_repetitions)]
+#![allow(
+	clippy::missing_errors_doc,
+	clippy::module_name_repetitions,
+	clippy::similar_names
+)]
 
 pub mod crypto;
 pub mod ct;
@@ -34,6 +38,10 @@ pub mod protected;
 pub mod rng;
 pub mod types;
 pub mod utils;
+pub mod vault;
+
+#[cfg(feature = "bincode")]
+pub mod encrypted;
 
 #[cfg(feature = "sys")]
 pub mod sys;
