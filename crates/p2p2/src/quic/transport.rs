@@ -24,8 +24,6 @@ use crate::{
 	RemoteIdentity, UnicastStream, P2P,
 };
 
-use super::behaviour::SpaceTime;
-
 /// [libp2p::PeerId] for debugging purposes only.
 #[derive(Debug)]
 pub struct Libp2pPeerId(libp2p::PeerId);
@@ -133,64 +131,6 @@ impl QuicTransport {
 			libp2p_peer_id,
 		))
 	}
-
-	// `None` on the port means disabled. Use `0` for random port.
-	pub async fn set_ipv4_enabled(&self, port: Option<u16>) -> Result<(), String> {
-		self.setup_listener(
-			port.map(|p| SocketAddr::from((Ipv4Addr::UNSPECIFIED, p))),
-			true,
-		)
-		.await
-	}
-
-	pub async fn set_ipv6_enabled(&self, port: Option<u16>) -> Result<(), String> {
-		self.setup_listener(
-			port.map(|p| SocketAddr::from((Ipv6Addr::UNSPECIFIED, p))),
-			false,
-		)
-		.await
-	}
-
-	// TODO: Proper error type
-	async fn setup_listener(&self, addr: Option<SocketAddr>, ipv4: bool) -> Result<(), String> {
-		let (tx, rx) = oneshot::channel();
-		let event = if let Some(mut addr) = addr {
-			// if addr.port() == 0 {
-			// 	addr.set_port(
-			// 		TcpListener::bind(addr)
-			// 			.await
-			// 			.unwrap()
-			// 			.local_addr()
-			// 			.unwrap()
-			// 			.port(),
-			// 	);
-			// }
-
-			InternalEvent::RegisterListener {
-				id: self.id,
-				ipv4,
-				addr,
-				result: tx,
-			}
-		} else {
-			InternalEvent::UnregisterListener {
-				id: self.id,
-				ipv4,
-				result: tx,
-			}
-		};
-
-		let Ok(_) = self.internal_tx.send(event) else {
-			return Err("internal channel closed".to_string());
-		};
-		rx.await
-			.map_err(|_| "internal response channel closed".to_string())
-			.and_then(|r| r)
-	}
-
-	pub fn shutdown(self) {
-		self.p2p.unregister_hook(self.id.into());
-	}
 }
 
 fn ok<T>(v: Result<T, Infallible>) -> T {
@@ -259,53 +199,102 @@ async fn start(
 				_ => {}, // TODO: Fix this
 			},
 			Some(req) = connect_rx.recv() => {
-				println!("{:?}\n\n", req.addrs);
+				println!("DIAL {:?}", req.addrs);
+				let opts = DialOpts::unknown_peer_id().addresses(req.addrs.iter().map(socketaddr_to_quic_multiaddr).collect()).build();
 
-				let bruh = req.addrs.iter().filter(|a| a.is_ipv4()).map(socketaddr_to_quic_multiaddr).collect::<Vec<_>>();
-				println!("BRUH {bruh:?}");
+				// println!("RESULT {:?}", swarm.dial(opts));
 
-				let opts = DialOpts::unknown_peer_id()
-					// .addresses(bruh)
-					.address(socketaddr_to_quic_multiaddr(req.addrs.iter().next().unwrap()))
-					.build();
-				// let opts = DialOpts::peer_id(PeerId::from_str("12D3KooWQ7ei5eiMWos5gkXao9YaPBwi2bHgHnam4xiLnFGLAfKy").unwrap())
-				// 	.condition(PeerCondition::Disconnected)
-				//    .addresses(req.addrs.iter().map(socketaddr_to_quic_multiaddr).collect())
-				//    .build();
+				// match swarm.dial(opts) {
+				// 	Ok(_) => {
+				// 		tokio::spawn(async move {
+				// 			tokio::time::sleep(std::time::Duration::from_secs(99999)).await;
+				// 			let _req = req;
+				// 		});
+				// 	},
+				// 	Err(err) => {
+				// 		// panic!("{:?}", e); // TODO
 
+				// 		let _ = req.tx.send(Err(err.to_string()));
+				// 	},
+				// }
 
-				let id = opts.connection_id();
 				let Err(err) = swarm.dial(opts) else {
-					println!("QQQ"); // TODO
-					// swarm.behaviour_mut().state.establishing_outbound.lock().unwrap_or_else(PoisonError::into_inner).insert(id, req);
-
-					// let y = swarm.behaviour_mut().state.clone();
-					// tokio::spawn(async move {
-					// 	// TODO: Timeout and remove from the map sending an error
-					// 	loop {
-					// 		println!("{:?}", y.establishing_outbound);
-					// 		tokio::time::sleep(std::time::Duration::from_secs(100)).await;
-					// 	}
-					// });
-
 					tokio::spawn(async move {
 						tokio::time::sleep(std::time::Duration::from_secs(99999)).await;
 						let _req = req;
 					});
 
-					return;
+					continue;
 				};
 
-				println!("EEE"); // TODO
-
-				warn!(
-					"error dialing peer '{}' with addresses '{:?}': {}",
-					req.to, req.addrs, err
-				);
-				println!("EMIT ERROR {:?}", err.to_string());
 				let _ = req.tx.send(Err(err.to_string()));
 
-				println!("DONE"); // TODO
+
+
+				// let Err(err) = swarm.dial(opts) else {
+				// 	// TODO
+
+				// 	tokio::spawn(async move {
+				// 		tokio::time::sleep(std::time::Duration::from_secs(99999)).await;
+				// 		let _req = req;
+				// 	});
+
+				// 	return;
+				// };
+
+				// panic!("ERR {:?}", err);
+
+				// let _ = req.tx.send(Err(err.to_string()));
+
+
+
+				// println!("{:?}\n\n", req.addrs);
+
+				// let bruh = req.addrs.iter().filter(|a| a.is_ipv4()).map(socketaddr_to_quic_multiaddr).collect::<Vec<_>>();
+				// // println!("BRUH {bruh:?}");
+
+				// let opts = DialOpts::unknown_peer_id()
+				// 	// .addresses(bruh)
+				// 	.address(socketaddr_to_quic_multiaddr(req.addrs.iter().next().unwrap()))
+				// 	.build();
+				// // let opts = DialOpts::peer_id(PeerId::from_str("12D3KooWQ7ei5eiMWos5gkXao9YaPBwi2bHgHnam4xiLnFGLAfKy").unwrap())
+				// // 	.condition(PeerCondition::Disconnected)
+				// //    .addresses(req.addrs.iter().map(socketaddr_to_quic_multiaddr).collect())
+				// //    .build();
+
+
+				// let id = opts.connection_id();
+				// let Err(err) = swarm.dial(opts) else {
+				// 	// println!("QQQ"); // TODO
+				// 	// swarm.behaviour_mut().state.establishing_outbound.lock().unwrap_or_else(PoisonError::into_inner).insert(id, req);
+
+				// 	// let y = swarm.behaviour_mut().state.clone();
+				// 	// tokio::spawn(async move {
+				// 	// 	// TODO: Timeout and remove from the map sending an error
+				// 	// 	loop {
+				// 	// 		println!("{:?}", y.establishing_outbound);
+				// 	// 		tokio::time::sleep(std::time::Duration::from_secs(100)).await;
+				// 	// 	}
+				// 	// });
+
+				// 	tokio::spawn(async move {
+				// 		tokio::time::sleep(std::time::Duration::from_secs(99999)).await;
+				// 		let _req = req;
+				// 	});
+
+				// 	return;
+				// };
+
+				// println!("EEE"); // TODO
+
+				// warn!(
+				// 	"error dialing peer '{}' with addresses '{:?}': {}",
+				// 	req.to, req.addrs, err
+				// );
+				// println!("EMIT ERROR {:?}", err.to_string());
+				// let _ = req.tx.send(Err(err.to_string()));
+
+				// println!("DONE"); // TODO
 			}
 		}
 	}

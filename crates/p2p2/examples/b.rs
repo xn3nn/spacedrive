@@ -15,7 +15,7 @@ async fn main() {
 
 	// TODO: Mount mdns
 
-	let (quic, libp2p_peer_id) = QuicTransport::spawn(p2p.clone(), 8076).unwrap();
+	let (quic, libp2p_peer_id) = QuicTransport::spawn(p2p.clone(), 8078).unwrap();
 	println!("{:?}", libp2p_peer_id);
 
 	// Enable IPv4 (`Some`) on a random port (`0`)
@@ -39,7 +39,7 @@ async fn main() {
 				println!("DIAL");
 				let peer = p2p.clone().discover_peer(hook_id, Identity::new().to_remote_identity(), Default::default(), [SocketAddr::from((
 						Ipv4Addr::LOCALHOST,
-						8075,
+						8079,
 					))].into_iter().collect());
 
 				let stream = peer.new_stream().await.unwrap();
