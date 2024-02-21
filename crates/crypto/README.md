@@ -30,13 +30,8 @@ A list of all features can be found below (NOTE: none of these features are enab
 - `tokio` - provides integration with the `tokio` crate
 - `specta` - provides integration with the `specta` crate
 - `bincode` - provides integration with the `bincode` crate
-
-
-
-
-- `keyrings` - provides a unified interface for interacting with OS-keyrings (currently only supports MacOS/iOS/Linux `keyutils`). `keyutils` is not persistent, so is best used in a headless server/docker environment, as keys are wiped on-reboot. The Secret Service API is not easily available in headless environments.
--
-- `secret-service` - enables `keyrings` but also enables the Secret Service API (a persistent keyring targeted at Gnome/KDE (via `gnome-keyring` and `kwallet` respectively)). Is a pretty heavy dependency.
+- `keyring` - provides a unified interface for interacting with OS-keyrings (currently only supports MacOS/iOS/Linux `keyutils`). `keyutils` is not persistent, so is best used in a headless server/docker environment, as keys are wiped on-reboot. The Secret Service API is not practically available in headless environments.
+- `secret-service` - enables `keyring` but also enables the Secret Service API (a persistent keyring targeted at Gnome/KDE (via `gnome-keyring` and `kwallet` respectively)). Is a pretty heavy dependency.
 
 ## Security Notice
 
