@@ -43,7 +43,7 @@ mod tests {
 
 	#[test]
 	fn slice_to_array() {
-		let slice = [1u8; SALT_LEN].as_ref();
+		let slice: &[u8] = [1u8; SALT_LEN].as_ref();
 		let array: [u8; SALT_LEN] = slice.to_array().unwrap();
 
 		assert!(!bool::from(slice.ct_eq_null()));
