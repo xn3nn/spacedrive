@@ -1,5 +1,3 @@
-use std::io::{Cursor, Read, Seek, Write};
-
 use sd_crypto::{
 	crypto::{Decryptor, Encryptor},
 	encoding::Header,
@@ -9,6 +7,7 @@ use sd_crypto::{
 	},
 	Protected,
 };
+use std::io::{Cursor, Read, Seek, Write};
 
 const MAGIC_BYTES: MagicBytes<6> = MagicBytes::new(*b"crypto");
 
