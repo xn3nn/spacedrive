@@ -4,8 +4,8 @@ members = [
 	"core",
 	"core/crates/*",
 	"crates/*",
-	# "crates/p2p/tunnel",
-	# "crates/p2p/tunnel/utils",
+	"crates/p2p/tunnel",
+	"crates/p2p/tunnel/utils",
 	"apps/cli",
 	"apps/desktop/src-tauri",
 	"apps/desktop/crates/*",
@@ -13,6 +13,7 @@ members = [
 	"apps/mobile/modules/sd-core/android/crate",
 	"apps/mobile/modules/sd-core/ios/crate",
 	"apps/server",
+	"crates/crypto",
 ]
 
 [workspace.package]
@@ -63,4 +64,6 @@ specta = { git = "https://github.com/oscartbeaumont/specta", rev = "4bc6e46fc874
 rspc = { git = "https://github.com/oscartbeaumont/rspc", rev = "adebce542049b982dd251466d4144f4d57e92177" }
 tauri-specta = { git = "https://github.com/oscartbeaumont/tauri-specta", rev = "c964bef228a90a66effc18cefcba6859c45a8e08" }
 
-aes = { git = "https://github.com/RustCrypto/block-ciphers", rev = "5837233f86419dbe75b8e3824349e30f6bc40b22" }
+# aes = { git = "https://github.com/RustCrypto/block-ciphers", rev = "5837233f86419dbe75b8e3824349e30f6bc40b22" }
+
+blake3 = { git = "https://github.com/brxken128/blake3", rev = "d3aab416c12a75c2bfabce33bcd594e428a79069" }
