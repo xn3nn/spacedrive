@@ -13,9 +13,6 @@ pub const SALT_LEN: usize = 16;
 /// The nonce size for XChaCha20-Poly1305, minus the last 4 bytes (due to STREAM with a 31+1 bit counter)
 pub const XCHACHA20_POLY1305_NONCE_LEN: usize = 20;
 
-/// The nonce size for AES-256-GCM, minus the last 4 bytes (due to STREAM with a 31+1 bit counter)
-pub const AES_256_GCM_NONCE_LEN: usize = 8;
-
 /// The nonce size for AES-256-GCM-SIV, minus the last 4 bytes (due to STREAM with a 31+1 bit counter)
 pub const AES_256_GCM_SIV_NONCE_LEN: usize = 8;
 
@@ -55,7 +52,7 @@ pub(super) const BLAKE3_BALLOON_PARANOID: (u32, u32, u32) = (524_288, 1, 1);
 #[cfg(test)]
 mod tests {
 	use crate::primitives::{
-		AAD_LEN, AEAD_TAG_LEN, AES_256_GCM_NONCE_LEN, ARGON2ID_HARDENED, ARGON2ID_PARANOID,
+		AAD_LEN, AEAD_TAG_LEN, AES_256_GCM_SIV_NONCE_LEN, ARGON2ID_HARDENED, ARGON2ID_PARANOID,
 		ARGON2ID_STANDARD, BLAKE3_BALLOON_HARDENED, BLAKE3_BALLOON_PARANOID,
 		BLAKE3_BALLOON_STANDARD, BLOCK_LEN, ENCRYPTED_KEY_LEN, KEY_LEN, SECRET_KEY_LEN,
 		XCHACHA20_POLY1305_NONCE_LEN,
@@ -127,7 +124,7 @@ mod tests {
 	}
 
 	#[test]
-	fn aes_256_gcm_nonce_len() {
-		assert_eq!(AES_256_GCM_NONCE_LEN, 8);
+	fn aes_256_gcm_siv_nonce_len() {
+		assert_eq!(AES_256_GCM_SIV_NONCE_LEN, 8);
 	}
 }

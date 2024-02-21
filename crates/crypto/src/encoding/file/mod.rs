@@ -2,8 +2,7 @@ use std::mem;
 
 use crate::{
 	primitives::{
-		AES_256_GCM_NONCE_LEN, AES_256_GCM_SIV_NONCE_LEN, ENCRYPTED_KEY_LEN, SALT_LEN,
-		XCHACHA20_POLY1305_NONCE_LEN,
+		AES_256_GCM_SIV_NONCE_LEN, ENCRYPTED_KEY_LEN, SALT_LEN, XCHACHA20_POLY1305_NONCE_LEN,
 	},
 	types::{Algorithm, EncryptedKey, HashingAlgorithm, Nonce, Params, Salt},
 	utils::ToArray,
@@ -117,7 +116,6 @@ impl HeaderEncode for Algorithm {
 
 	fn as_bytes(&self) -> Self::Output {
 		let s = match self {
-			Self::Aes256Gcm => 0xD1,
 			Self::Aes256GcmSiv => 0xD3,
 			Self::XChaCha20Poly1305 => 0xD5,
 		};
@@ -131,7 +129,6 @@ impl HeaderEncode for Algorithm {
 		}
 
 		let a = match b[1] {
-			0xD1 => Self::Aes256Gcm,
 			0xD3 => Self::Aes256GcmSiv,
 			0xD5 => Self::XChaCha20Poly1305,
 			_ => return Err(Error::Validity),
@@ -191,7 +188,6 @@ impl HeaderEncode for Nonce {
 
 	fn as_bytes(&self) -> Self::Output {
 		let b = match self {
-			Self::Aes256Gcm(_) => 0xB2u8,
 			Self::Aes256GcmSiv(_) => 0xB5u8,
 			Self::XChaCha20Poly1305(_) => 0xB7u8,
 		};
@@ -214,7 +210,6 @@ impl HeaderEncode for Nonce {
 		}
 
 		let x = match b[1] {
-			0xB2u8 => Self::Aes256Gcm(b[2..2 + AES_256_GCM_NONCE_LEN].to_array()?),
 			0xB5u8 => Self::Aes256GcmSiv(b[2..2 + AES_256_GCM_SIV_NONCE_LEN].to_array()?),
 			0xB7u8 => Self::XChaCha20Poly1305(b[2..2 + XCHACHA20_POLY1305_NONCE_LEN].to_array()?),
 			_ => return Err(Error::Validity),
