@@ -757,17 +757,4 @@ mod tests {
 			.validate(Algorithm::XChaCha20Poly1305)
 			.unwrap();
 	}
-
-	// #[test]
-	// fn x() {
-	// 	let key = Key::generate();
-
-	// 	let secret = Aad::generate();
-
-	// 	let x = Encrypted::new(&key, &secret, Algorithm::XChaCha20Poly1305).unwrap();
-
-	// 	let z = x.decrypt(&key).unwrap();
-
-	// 	assert!(secret == z);
-	// }
 }
