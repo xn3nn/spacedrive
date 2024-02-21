@@ -45,9 +45,9 @@ pub const ENCRYPTED_TYPE_CONTEXT: DerivationContext =
 pub(super) const ARGON2ID_STANDARD: (u32, u32, u32) = (131_072, 8, 4);
 pub(super) const ARGON2ID_HARDENED: (u32, u32, u32) = (262_144, 8, 4);
 pub(super) const ARGON2ID_PARANOID: (u32, u32, u32) = (524_288, 8, 4);
-pub(super) const BLAKE3_BALLOON_STANDARD: (u32, u32, u32) = (131_072, 1, 1);
-pub(super) const BLAKE3_BALLOON_HARDENED: (u32, u32, u32) = (262_144, 1, 1);
-pub(super) const BLAKE3_BALLOON_PARANOID: (u32, u32, u32) = (524_288, 1, 1);
+pub(super) const BLAKE3_BALLOON_STANDARD: (u32, u32, u32) = (131_072, 2, 1);
+pub(super) const BLAKE3_BALLOON_HARDENED: (u32, u32, u32) = (262_144, 2, 1);
+pub(super) const BLAKE3_BALLOON_PARANOID: (u32, u32, u32) = (524_288, 2, 1); // could increase first value 2x, and lower 2nd value to 1?
 
 #[cfg(test)]
 mod tests {
@@ -73,20 +73,20 @@ mod tests {
 		assert_eq!(ARGON2ID_PARANOID, (524_288, 8, 4));
 	}
 
-	// #[test]
-	// fn blake3_balloon_standard_params() {
-	// 	assert_eq!(BLAKE3_BALLOON_STANDARD, (262_144, 2, 1));
-	// }
+	#[test]
+	fn blake3_balloon_standard_params() {
+		assert_eq!(BLAKE3_BALLOON_STANDARD, (131_072, 2, 1));
+	}
 
-	// #[test]
-	// fn blake3_balloon_hardened_params() {
-	// 	assert_eq!(BLAKE3_BALLOON_HARDENED, (524_288, 2, 1));
-	// }
+	#[test]
+	fn blake3_balloon_hardened_params() {
+		assert_eq!(BLAKE3_BALLOON_HARDENED, (262_144, 2, 1));
+	}
 
-	// #[test]
-	// fn blake3_balloon_paranoid_params() {
-	// 	assert_eq!(BLAKE3_BALLOON_PARANOID, (1_024_586, 2, 1));
-	// }
+	#[test]
+	fn blake3_balloon_paranoid_params() {
+		assert_eq!(BLAKE3_BALLOON_PARANOID, (524_288, 2, 1));
+	}
 
 	#[test]
 	fn block_len() {
