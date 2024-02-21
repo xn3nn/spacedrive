@@ -7,10 +7,11 @@ use crate::{
 	utils::ToArray,
 	Error, Protected,
 };
+
 use aead::generic_array::{ArrayLength, GenericArray};
 use cmov::Cmov;
 use std::fmt::{Debug, Display, Write};
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::{DefaultIsZeroes, Zeroize, ZeroizeOnDrop};
 
 use crate::primitives::{
 	AAD_HEADER_LEN, AAD_LEN, AES_256_GCM_NONCE_LEN, AES_256_GCM_SIV_NONCE_LEN, ARGON2ID_HARDENED,
@@ -56,22 +57,15 @@ impl DerivationContext {
 /// These parameters define the password-hashing level.
 ///
 /// The greater the parameter, the longer the password will take to hash.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 pub enum Params {
+	#[default]
 	Standard,
 	Hardened,
 	Paranoid,
-}
-
-impl Params {
-	#[inline]
-	#[must_use]
-	pub const fn default() -> Self {
-		Self::Standard
-	}
 }
 
 /// This defines all available password hashing algorithms.
@@ -88,13 +82,13 @@ pub enum HashingAlgorithm {
 	Blake3Balloon(Params),
 }
 
-impl HashingAlgorithm {
-	#[inline]
-	#[must_use]
-	pub const fn default() -> Self {
+impl Default for HashingAlgorithm {
+	fn default() -> Self {
 		Self::Argon2id(Params::default())
 	}
+}
 
+impl HashingAlgorithm {
 	#[inline]
 	#[must_use]
 	pub const fn get_parameters(&self) -> (u32, u32, u32) {
@@ -204,13 +198,14 @@ where
 }
 
 /// These are all possible algorithms that can be used for encryption and decryption
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 pub enum Algorithm {
 	Aes256Gcm,
 	Aes256GcmSiv,
+	#[default]
 	XChaCha20Poly1305,
 }
 
@@ -228,12 +223,6 @@ impl PartialEq for Algorithm {
 }
 
 impl Algorithm {
-	#[inline]
-	#[must_use]
-	pub const fn default() -> Self {
-		Self::XChaCha20Poly1305
-	}
-
 	/// This function returns the nonce length for a given encryption algorithm
 	#[inline]
 	#[must_use]
@@ -246,8 +235,6 @@ impl Algorithm {
 	}
 }
 
-pub type KeyInner = [u8; KEY_LEN];
-
 /// This should be used for providing a key to functions.
 ///
 /// It can either be a random key, or a hashed key.
@@ -255,12 +242,14 @@ pub type KeyInner = [u8; KEY_LEN];
 /// You may also generate a secure random key with `Key::generate()`
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
 #[repr(transparent)]
-pub struct Key(KeyInner);
+// TODO(brxken128): box this to avoid stack allocations.
+// will break tests that use `const` for keys`
+pub struct Key([u8; KEY_LEN]);
 
 impl Key {
 	#[inline]
 	#[must_use]
-	pub const fn new(v: KeyInner) -> Self {
+	pub const fn new(v: [u8; KEY_LEN]) -> Self {
 		Self(v)
 	}
 
@@ -283,21 +272,6 @@ impl Key {
 	}
 }
 
-impl std::ops::Deref for Key {
-	type Target = KeyInner;
-
-	fn deref(&self) -> &Self::Target {
-		&self.0
-	}
-}
-
-impl From<KeyInner> for Key {
-	fn from(value: KeyInner) -> Self {
-		Self(value)
-		// Self(Box::new(value))
-	}
-}
-
 impl ConstantTimeEq for Key {
 	fn ct_eq(&self, rhs: &Self) -> Choice {
 		self.expose().ct_eq(rhs.expose())
@@ -310,12 +284,57 @@ impl PartialEq for Key {
 	}
 }
 
+#[cfg(feature = "serde")]
+impl serde::Serialize for Key {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: serde::Serializer,
+	{
+		serdect::array::serialize_hex_lower_or_bin(&self.expose(), serializer)
+	}
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for Key {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: serde::Deserializer<'de>,
+	{
+		let mut buf = [0u8; 32];
+		serdect::array::deserialize_hex_or_bin(&mut buf, deserializer)?;
+		Ok(Self::new(buf))
+	}
+}
+
+#[cfg(feature = "serde")]
+#[cfg(feature = "bincode")]
+impl bincode::Encode for Key {
+	fn encode<E: bincode::enc::Encoder>(
+		&self,
+		encoder: &mut E,
+	) -> Result<(), bincode::error::EncodeError> {
+		bincode::serde::Compat(self).encode(encoder)?;
+
+		Ok(())
+	}
+}
+
+#[cfg(feature = "serde")]
+#[cfg(feature = "bincode")]
+impl bincode::Decode for Key {
+	fn decode<D: bincode::de::Decoder>(
+		decoder: &mut D,
+	) -> Result<Self, bincode::error::DecodeError> {
+		Ok(bincode::serde::Compat::decode(decoder)?.0)
+	}
+}
+
 impl<I> From<&Key> for GenericArray<u8, I>
 where
 	I: ArrayLength<u8>,
 {
 	fn from(value: &Key) -> Self {
-		value.into_iter().collect()
+		value.expose().iter().copied().collect() // TODO(brxken128): streamline this?
 	}
 }
 
@@ -337,16 +356,25 @@ impl TryFrom<Protected<Box<[u8]>>> for Key {
 	type Error = Error;
 
 	fn try_from(value: Protected<Box<[u8]>>) -> Result<Self, Self::Error> {
-		Ok(Self::new(value.into_inner().to_array()?))
+		Ok(Self::new(value.expose().to_array()?))
 	}
 }
+
+// #[cfg(feature = "bincode")]
+// impl bincode::Encode for Key {
+// 	fn encode<E: bincode::enc::Encoder>(
+// 		&self,
+// 		encoder: &mut E,
+// 	) -> Result<(), bincode::error::EncodeError> {
+// 		serdect::array::serialize_hex_lower_or_bin(self.expose(), bincode::serde::)
+// 	}
+// }
 
 /// This should be used for providing a secret key to functions.
 ///
 // /// You may also generate a secret key with `SecretKey::generate()`
 #[derive(Zeroize, ZeroizeOnDrop, Clone)]
 pub enum SecretKey {
-	// Standard(Box<[u8; SECRET_KEY_LEN]>),
 	Standard([u8; SECRET_KEY_LEN]),
 	Variable(Vec<u8>),
 	Null,
@@ -364,7 +392,6 @@ impl SecretKey {
 	pub fn expose(&self) -> &[u8] {
 		match self {
 			Self::Standard(v) => v,
-			// Self::Standard(v) => v.as_slice(),
 			Self::Variable(v) => v,
 			Self::Null => &[],
 		}
@@ -478,7 +505,7 @@ impl PartialEq for EncryptedKey {
 	}
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
@@ -488,6 +515,7 @@ pub enum Aad {
 		#[cfg_attr(feature = "serde", serde(with = "serde_big_array::BigArray"))]
 		[u8; AAD_HEADER_LEN],
 	),
+	#[default]
 	Null,
 }
 
@@ -529,6 +557,14 @@ impl PartialEq for Aad {
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[cfg_attr(feature = "specta", derive(specta::Type))]
 pub struct Salt([u8; SALT_LEN]);
+
+impl DefaultIsZeroes for Salt {}
+
+impl Default for Salt {
+	fn default() -> Self {
+		Self([0u8; SALT_LEN])
+	}
+}
 
 impl Salt {
 	#[inline]
@@ -695,7 +731,7 @@ mod tests {
 
 	#[test]
 	#[should_panic(expected = "Validity")]
-	fn key_validate_fail() {
+	fn key_validate_null() {
 		Key::new([0u8; KEY_LEN]).validate().unwrap();
 	}
 
@@ -721,4 +757,17 @@ mod tests {
 			.validate(Algorithm::XChaCha20Poly1305)
 			.unwrap();
 	}
+
+	// #[test]
+	// fn x() {
+	// 	let key = Key::generate();
+
+	// 	let secret = Aad::generate();
+
+	// 	let x = Encrypted::new(&key, &secret, Algorithm::XChaCha20Poly1305).unwrap();
+
+	// 	let z = x.decrypt(&key).unwrap();
+
+	// 	assert!(secret == z);
+	// }
 }
