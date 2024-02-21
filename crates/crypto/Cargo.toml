@@ -27,6 +27,7 @@ secret-service = [
 	"dep:secret-service",
 	"dep:zbus",
 ] # explicit enabling required as the secret service api is a mess
+experimental = []
 
 [dependencies]
 # rng
@@ -67,7 +68,6 @@ serde-big-array = { version = "0.5.1", optional = true }
 serdect = { version = "0.3.0-pre.0", optional = true }
 
 specta = { workspace = true, optional = true }
-
 
 # for asynchronous crypto
 tokio = { workspace = true, features = [
@@ -116,13 +116,13 @@ harness = false
 [[bench]]
 path = "benches/hashing/argon2id.rs"
 name = "argon2id"
-# bench = false
+bench = false
 harness = false
 
 [[bench]]
 path = "benches/hashing/blake3-balloon.rs"
 name = "blake3-balloon"
-# bench = false
+bench = false
 harness = false
 
 [[bench]]
