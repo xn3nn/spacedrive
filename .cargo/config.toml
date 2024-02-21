@@ -1,3 +1,9 @@
-# temprary until https://github.com/RustCrypto/block-ciphers/pull/380
-[target.'cfg(target_arch = "aarch64")']
-rustflags = ["--cfg", "aes_armv8"]
+[env]
+PROTOC = "/home/broken/Code/spacedrive/target/Frameworks/bin/protoc"
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-L", "/home/broken/Code/spacedrive/target/Frameworks/lib"]
+[target.aarch64-unknown-linux-gnu]
+rustflags = ["-L", "/home/broken/Code/spacedrive/target/Frameworks/lib"]
+[alias]
+prisma = "run -p prisma-cli --bin prisma --"
+prisma-sync = "run -p prisma-cli --bin sync --"
