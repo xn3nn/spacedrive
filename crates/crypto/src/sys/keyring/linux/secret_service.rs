@@ -36,7 +36,7 @@ impl KeyringInterface for SecretServiceKeyring {
 		self.get_collection()
 			.ok()
 			.map(|k| {
-				k.search_items(id.as_secret_service_attributes())
+				k.search_items(id.as_sec_ser_identifier())
 					.ok()
 					.map_or(false, |x| !x.is_empty())
 			})
@@ -45,16 +45,18 @@ impl KeyringInterface for SecretServiceKeyring {
 
 	fn get(&self, id: &Identifier) -> Result<Protected<Vec<u8>>> {
 		self.get_collection()?
-			.search_items(id.as_secret_service_attributes())?
+			.search_items(id.as_sec_ser_identifier())?
 			.first()
-			.map_or(Err(Error::Keyring), |k| Ok(Protected::new(k.get_secret()?)))
+			.map_or(Err(Error::Keyring), |k| {
+				Ok(Protected::new(hex::decode(k.get_secret()?)?))
+			})
 	}
 
 	fn insert(&self, id: &Identifier, value: Protected<Vec<u8>>) -> Result<()> {
 		self.get_collection()?.create_item(
 			&id.application(),
-			id.as_secret_service_attributes(),
-			value.expose(),
+			id.as_sec_ser_identifier(),
+			hex::encode(value.expose()).as_bytes(),
 			true,
 			"text/plain",
 		)?;
@@ -64,7 +66,7 @@ impl KeyringInterface for SecretServiceKeyring {
 
 	fn remove(&self, id: &Identifier) -> Result<()> {
 		self.get_collection()?
-			.search_items(id.as_secret_service_attributes())?
+			.search_items(id.as_sec_ser_identifier())?
 			.first()
 			.map_or(Err(Error::Keyring), |k| {
 				k.delete()?;

@@ -1,83 +1,73 @@
-// TODO(brxken128): change this, as both of these should be available at runtime
-#[cfg(all(feature = "keyutils", feature = "secret-service", target_os = "linux"))]
-compile_error!(
-	"You may not use both the keyutils and secret-service implementation simultaneously"
-);
+use crate::{Error, Protected, Result};
+use std::fmt::Display;
 
-use crate::{hashing::Hasher, Protected, Result};
+mod identifier;
+mod session;
 
-mod portable;
-use portable::PortableKeyring;
+use identifier::Identifier;
+use session::SessionKeyring;
 
-#[cfg(not(feature = "keyring"))]
-use portable::PortableKeyring as DefaultKeyring;
+#[cfg(target_os = "linux")]
+mod linux;
 
-#[cfg(all(target_os = "linux", feature = "keyring"))]
-mod linux_keyutils;
-#[cfg(all(target_os = "linux", feature = "keyring"))]
-use linux_keyutils::LinuxKeyring as DefaultKeyring;
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+mod apple;
 
-#[cfg(target_os = "macos")]
-pub mod macos;
-#[cfg(target_os = "macos")]
-pub use macos::MacosKeyring as DefaultKeyring;
+#[cfg(target_os = "windows")]
+mod windows;
 
-#[cfg(target_os = "ios")]
-pub mod ios;
-#[cfg(target_os = "ios")]
-pub use ios::IosKeyring as DefaultKeyring;
+const MAX_LEN: usize = 128;
+
+// TODO(brxken128): use `Encrypted<T>` type here?
 
 pub trait KeyringInterface {
 	fn new() -> Result<Self>
 	where
 		Self: Sized;
-
-	fn get(&self, id: &Identifier) -> Result<Protected<String>>;
+	fn name(&self) -> KeyringBackend;
+	fn get(&self, id: &Identifier) -> Result<Protected<Vec<u8>>>;
 	fn remove(&self, id: &Identifier) -> Result<()>;
-	fn insert(&self, id: &Identifier, value: Protected<String>) -> Result<()>;
+	fn insert(&self, id: &Identifier, value: Protected<Vec<u8>>) -> Result<()>;
 	fn contains_key(&self, id: &Identifier) -> bool;
-	fn name(&self) -> KeyringName;
 }
 
-pub enum KeyringName {
-	Portable,
-	Linux,
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum KeyringBackend {
+	Session,
+	// TODO(brxken128): somehow include the default keyring here
+	#[cfg(target_os = "macos")]
 	MacOS,
+	#[cfg(target_os = "ios")]
 	Ios,
+	#[cfg(target_os = "linux")]
+	Linux(LinuxKeyring),
 }
 
-#[derive(Clone, Copy)]
-pub enum KeyringType {
-	Default,
-	Portable,
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum LinuxKeyring {
+	#[cfg(target_os = "linux")]
+	Keyutils,
+	#[cfg(all(target_os = "linux", feature = "secret-service"))]
+	SecretService,
 }
 
-#[derive(Clone)]
-pub struct Identifier {
-	id: String,
-	usage: String,
-	application: String,
-}
+impl Display for KeyringBackend {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		let s = match self {
+			Self::Session => "Session",
+			#[cfg(target_os = "macos")]
+			Self::MacOS => "MacOS",
+			#[cfg(target_os = "ios")]
+			Self::Ios => "iOS",
+			#[cfg(target_os = "linux")]
+			Self::Linux(k) => match k {
+				LinuxKeyring::Keyutils => "KeyUtils",
+				#[cfg(feature = "secret-service")]
+				LinuxKeyring::SecretService => "Secret Service",
+			},
+		};
 
-impl Identifier {
-	#[inline]
-	#[must_use]
-	pub fn new(id: &'static str, usage: &'static str, application: &'static str) -> Self {
-		Self {
-			id: id.to_string(),
-			usage: usage.to_string(),
-			application: application.to_string(),
-		}
-	}
-
-	#[inline]
-	#[must_use]
-	pub fn hash(&self) -> String {
-		format!(
-			"{}:{}",
-			self.application,
-			Hasher::blake3_hex(&[self.id.as_bytes(), self.usage.as_bytes()].concat())
-		)
+		f.write_str(s)
 	}
 }
 
@@ -86,21 +76,28 @@ pub struct Keyring {
 }
 
 impl Keyring {
-	pub fn new(backend: KeyringType) -> Result<Self> {
-		let kr = match backend {
-			KeyringType::Default => Self {
-				inner: Box::new(DefaultKeyring::new()?),
+	pub fn new(backend: KeyringBackend) -> Result<Self> {
+		let inner: Box<dyn KeyringInterface + Send + Sync> = match backend {
+			KeyringBackend::Session => Box::new(SessionKeyring::new()?),
+			#[cfg(target_os = "macos")]
+			KeyringBackend::MacOS => Box::new(apple::MacosKeyring::new()?),
+			#[cfg(target_os = "Ios")]
+			KeyringBackend::Ios => Box::new(apple::IosKeyring::new()?),
+			#[cfg(target_os = "linux")]
+			KeyringBackend::Linux(k) => match k {
+				LinuxKeyring::Keyutils => Box::new(linux::KeyutilsKeyring::new()?),
+				#[cfg(feature = "secret-service")]
+				LinuxKeyring::SecretService => Box::new(linux::SecretServiceKeyring::new()?),
 			},
-			KeyringType::Portable => Self {
-				inner: Box::new(PortableKeyring::new()?),
-			},
+			#[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "linux")))]
+			_ => Box::new(DefaultKeyring::new()?),
 		};
 
-		Ok(kr)
+		Ok(Self { inner })
 	}
 
 	#[inline]
-	pub fn get(&self, id: &Identifier) -> Result<Protected<String>> {
+	pub fn get(&self, id: &Identifier) -> Result<Protected<Vec<u8>>> {
 		self.inner.get(id)
 	}
 
@@ -116,13 +113,17 @@ impl Keyring {
 	}
 
 	#[inline]
-	pub fn insert(&self, id: &Identifier, value: Protected<String>) -> Result<()> {
+	pub fn insert(&self, id: &Identifier, value: Protected<Vec<u8>>) -> Result<()> {
+		if value.expose().len() > MAX_LEN {
+			return Err(Error::Validity); // should be "value too long"
+		}
+
 		self.inner.insert(id, value)
 	}
 
 	#[inline]
 	#[must_use]
-	pub fn name(&self) -> KeyringName {
+	pub fn name(&self) -> KeyringBackend {
 		self.inner.name()
 	}
 }
@@ -131,13 +132,74 @@ impl Keyring {
 mod tests {
 	use crate::Protected;
 
-	use super::{Identifier, Keyring, KeyringType};
+	use super::{Identifier, Keyring, KeyringBackend};
 
 	#[test]
-	fn full_portable() {
-		let password = Protected::new("SuperSecurePassword".to_string());
+	fn full_session() {
+		let password = Protected::new(b"SuperSecurePassword".to_vec());
 		let identifier = Identifier::new("0000-0000-0000-0000", "Password", "Crypto");
-		let keyring = Keyring::new(KeyringType::Portable).unwrap();
+		let keyring = Keyring::new(KeyringBackend::Session).unwrap();
+
+		keyring.insert(&identifier, password.clone()).unwrap();
+		assert!(keyring.contains_key(&identifier));
+
+		let pw = keyring.get(&identifier).unwrap();
+
+		assert_eq!(pw.expose(), password.expose());
+
+		keyring.remove(&identifier).unwrap();
+
+		assert!(!keyring.contains_key(&identifier));
+	}
+
+	#[test]
+	#[cfg(target_os = "linux")]
+	#[ignore]
+	fn linux_keyutils() {
+		let password = Protected::new(b"SuperSecurePassword".to_vec());
+		let identifier = Identifier::new("0000-0000-0000-0000", "Password", "Crypto");
+		let keyring = Keyring::new(KeyringBackend::Linux(super::LinuxKeyring::Keyutils)).unwrap();
+
+		keyring.insert(&identifier, password.clone()).unwrap();
+		assert!(keyring.contains_key(&identifier));
+
+		let pw = keyring.get(&identifier).unwrap();
+
+		assert_eq!(pw.expose(), password.expose());
+
+		keyring.remove(&identifier).unwrap();
+
+		assert!(!keyring.contains_key(&identifier));
+	}
+
+	#[test]
+	#[cfg(target_os = "linux")]
+	#[ignore]
+	fn linux_secret_service() {
+		let password = Protected::new(b"SuperSecurePassword".to_vec());
+		let identifier = Identifier::new("0000-0000-0000-0000", "Password", "Crypto");
+		let keyring =
+			Keyring::new(KeyringBackend::Linux(super::LinuxKeyring::SecretService)).unwrap();
+
+		keyring.insert(&identifier, password.clone()).unwrap();
+		assert!(keyring.contains_key(&identifier));
+
+		let pw = keyring.get(&identifier).unwrap();
+
+		assert_eq!(pw.expose(), password.expose());
+
+		keyring.remove(&identifier).unwrap();
+
+		assert!(!keyring.contains_key(&identifier));
+	}
+
+	#[test]
+	#[cfg(target_os = "macos")]
+	#[ignore]
+	fn macos() {
+		let password = Protected::new(b"SuperSecurePassword".to_vec());
+		let identifier = Identifier::new("0000-0000-0000-0000", "Password", "Crypto");
+		let keyring = Keyring::new(KeyringBackend::MacOS).unwrap();
 
 		keyring.insert(&identifier, password.clone()).unwrap();
 		assert!(keyring.contains_key(&identifier));

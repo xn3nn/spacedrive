@@ -1,5 +1,4 @@
 use crate::hashing::Hasher;
-use std::collections::HashMap;
 
 #[derive(Clone)]
 pub struct Identifier {
@@ -36,11 +35,14 @@ impl Identifier {
 	#[inline]
 	#[must_use]
 	#[cfg(any(target_os = "ios", target_os = "macos"))]
-	pub(super) fn as_apple_account(&self) -> String {
+	pub(super) fn as_apple_identifer(&self) -> String {
 		format!("{} - {}", self.id, self.usage)
 	}
 
-	pub(super) fn as_secret_service_attributes(&self) -> HashMap<&str, &str> {
-		HashMap::from([(self.id.as_str(), self.usage.as_str())])
+	#[inline]
+	#[must_use]
+	#[cfg(all(target_os = "linux", feature = "secret-service"))]
+	pub(super) fn as_sec_ser_identifier(&self) -> std::collections::HashMap<&str, &str> {
+		std::collections::HashMap::from([(self.id.as_str(), self.usage.as_str())])
 	}
 }

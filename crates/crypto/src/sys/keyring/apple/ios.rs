@@ -18,30 +18,23 @@ impl KeyringInterface for IosKeyring {
 		KeyringBackend::Ios
 	}
 
-	fn get(&self, id: &Identifier) -> Result<Protected<String>> {
-		let key = get_generic_password(&id.application(), &id.as_apple_account())
-			.map_err(Error::AppleKeyring)?;
-
-		String::from_utf8(key)
-			.map(Protected::new)
-			.map_err(|_| Error::Keyring)
+	fn get(&self, id: &Identifier) -> Result<Protected<Vec<u8>>> {
+		get_generic_password(&id.application(), &id.as_apple_identifer())
+			.map_err(Error::AppleKeyring)
+			.map(Into::into)
 	}
 
 	fn contains_key(&self, id: &Identifier) -> bool {
-		get_generic_password(&id.application(), &id.as_apple_account()).map_or(false, |_| true)
+		get_generic_password(&id.application(), &id.as_apple_identifer()).map_or(false, |_| true)
 	}
 
-	fn insert(&self, id: &Identifier, value: Protected<String>) -> Result<()> {
-		set_generic_password(
-			&id.application(),
-			&id.as_apple_account(),
-			value.expose().as_bytes(),
-		)
-		.map_err(Error::AppleKeyring)
+	fn insert(&self, id: &Identifier, value: Protected<Vec<u8>>) -> Result<()> {
+		set_generic_password(&id.application(), &id.as_apple_identifer(), value.expose())
+			.map_err(Error::AppleKeyring)
 	}
 
 	fn remove(&self, id: &Identifier) -> Result<()> {
-		delete_generic_password(&id.application(), &id.as_apple_account())
+		delete_generic_password(&id.application(), &id.as_apple_identifer())
 			.map_err(Error::AppleKeyring)
 	}
 }
