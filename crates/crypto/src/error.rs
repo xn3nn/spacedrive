@@ -20,7 +20,7 @@ pub enum Error {
 	Hashing,
 	#[error("error while encrypting")]
 	Encrypt,
-	#[error("error while decrypting (could be: wrong password, wrong data, wrong aad, etc)")]
+	#[error("error while decrypting (could be: wrong key, wrong data, wrong aad, etc)")]
 	Decrypt,
 
 	// header errors
@@ -42,12 +42,33 @@ pub enum Error {
 	#[error("error while decoding with bincode: {0}")]
 	BincodeDecode(#[from] bincode::error::DecodeError),
 
+	// #[cfg(feature = "serde")]
+	// #[error("error while encoding with serde")]
+	// Serde,
 	#[error("keystore error")]
 	Keystore,
+
+	#[error("redb error: {0}")]
+	Redb(#[from] redb::Error),
+	#[error("redb error: {0}")]
+	RedbDatabase(#[from] redb::DatabaseError),
+	#[error("redb error: {0}")]
+	RedbTransaction(#[from] redb::TransactionError),
+	#[error("redb error: {0}")]
+	RedbTable(#[from] redb::TableError),
+	#[error("redb error: {0}")]
+	RedbStorage(#[from] redb::StorageError),
+	#[error("redb error: {0}")]
+	RedbCommit(#[from] redb::CommitError),
+
+	#[error("vault root key already exists")]
+	RootKeyAlreadyExists,
 
 	// general errors
 	#[error("expected length differs from provided length")]
 	LengthMismatch,
+
+	// TODO(brxken128): remove this, and add appropriate/correct errors
 	#[error("expected type/value differs from provided")]
 	Validity,
 	#[error("string parse error")]
@@ -66,8 +87,11 @@ pub enum Error {
 
 	// keyring
 	#[cfg(all(target_os = "linux", feature = "keyring"))]
-	#[error("error with the linux keyring: {0}")]
-	LinuxKeyring(#[from] linux_keyutils::KeyError),
+	#[error("error with the keyutils keyring: {0}")]
+	KeyUtils(#[from] linux_keyutils::KeyError),
+	#[cfg(all(target_os = "linux", feature = "keyring", feature = "secret-service"))]
+	#[error("error with the secret service keyring: {0}")]
+	SecretService(#[from] secret_service::Error),
 	#[cfg(all(any(target_os = "macos", target_os = "ios"), feature = "keyring"))]
 	#[error("error with the apple keyring: {0}")]
 	AppleKeyring(#[from] security_framework::base::Error),
