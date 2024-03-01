@@ -1,7 +1,7 @@
 import { BloomOne } from '@sd/assets/images';
-import { introvideobg, sdintro } from '@sd/assets/videos';
+import { sdintro } from '@sd/assets/videos';
 import clsx from 'clsx';
-import { useLayoutEffect, useState } from 'react';
+import { useState } from 'react';
 import { Navigate, Outlet } from 'react-router';
 import { useDebugState } from '@sd/client';
 import DragRegion from '~/components/DragRegion';
@@ -44,30 +44,18 @@ export const Component = () => {
 							fill="none"
 							xmlns="http://www.w3.org/2000/svg"
 						>
-							<rect width="100%" height="100%" fill="#2E2F38" />
+							<rect width="100%" height="100%" fill="#13151A" />
 						</svg>
 						<video
-							style={{
-								position: 'absolute',
-								objectFit: 'cover',
-								width: '100vw',
-								height: '100vh',
-								zIndex: -1
-							}}
-							preload="auto"
-							src={introvideobg}
-							muted
-							controls={false}
-						/>
-						<video
 							className="mx-auto w-[700px]"
-							autoPlay
 							onEnded={() => {
 								setShowIntro(false);
 							}}
+							preload="auto"
+							autoPlay
+							src={sdintro}
 							muted
 							controls={false}
-							src={sdintro}
 						/>
 					</div>
 				)}

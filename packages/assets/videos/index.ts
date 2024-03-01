@@ -4,8 +4,7 @@
  */
 
 import fda from './fda.mp4';
-import introvideobg from './introvideobg.webm';
 import mobsdintro from './mobsdintro.mp4';
 import sdintro from './sdintro.webm';
 
-export { fda, introvideobg, mobsdintro, sdintro };
+export { fda, mobsdintro, sdintro };
